@@ -8,7 +8,6 @@
  * ne déclenche pas encore de mouvement horizontal
  */
 export const INITIAL_SCROLL_BLOCK = 2500
-export const ACCELERATE_ROCKET_X = 1300
 
 /**
  * Configuration du deuxième bloc de scroll (pour la deuxième section)
