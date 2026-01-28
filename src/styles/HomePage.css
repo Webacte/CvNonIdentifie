@@ -1,0 +1,188 @@
+@font-face {
+    font-family: 'SP-Caffeine';
+    src: url('/assets/police/SP-Caffeine  Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Conteneur principal pour le scroll horizontal */
+.horizontal-scroll-container {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    top: 0;
+    left: 0;
+}
+
+/* Wrapper qui se déplace horizontalement */
+.horizontal-scroll-wrapper {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    will-change: transform;
+    position: relative;
+}
+
+/* Chaque section horizontale */
+.horizontal-section {
+    width: 100vw;
+    height: 100vh;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.presentationContainer {
+    position: relative;
+    height: 40vh;
+    width: 90vw;
+    margin-top: 10vh;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-family: 'SP-Caffeine', sans-serif;
+    z-index: 2;
+}
+
+#myName {
+    font-size: 7vw;
+    font-weight: 10;
+}
+
+.descriptionContainer {
+    font-size: 3.5vw;
+    font-weight: 10;
+    opacity: 0;
+}
+
+/* Image portrait */
+.portrait-image {
+    position: absolute;
+    width: 200px;
+    max-width: 400px;
+    height: auto;
+    object-fit: contain;
+    left: 50vw;
+    top: 5vh;
+    transform: translateX(-50%);
+    z-index: 1;
+    border-radius: 100%;
+    opacity: 0;
+}
+
+/* Conteneur de la fusée */
+.rocket-container {
+    position: absolute;
+    transform-box: fill-box;
+    transform-origin: 85% 50%;
+    width: 300px;
+    height: 300px;
+    left: 40vw;
+    top: -60vh;
+    z-index: 1;
+}
+
+/* Ajustement responsive pour mobile */
+@media (max-width: 768px) {
+    .rocket-container {
+        left: -10vw;
+    }
+}
+
+/* Ajustement pour très petits écrans */
+@media (max-width: 480px) {
+    .rocket-container {
+        left: -15vw;
+    }
+}
+
+/* Styles pour les autres sections */
+.section-content {
+    text-align: center;
+    z-index: 2;
+}
+
+.section-content h2 {
+    font-size: 3rem;
+    font-weight: 10;
+    margin-bottom: 2rem;
+}
+
+.section-content p {
+    font-size: 1.5rem;
+    font-weight: 10;
+}
+
+/* Conteneur SVG pour la section à propos */
+.about-svg-container {
+    position: absolute;
+    transform-box: fill-box;
+    width: 200px; /* Taille d'origine restaurée */
+    height: auto;
+    left: 10vw;
+    top: 80%;
+    transform: translateY(-50%);
+    z-index: 12;
+    overflow: visible;
+}
+
+.about-svg-container svg {
+    overflow: visible;
+}
+
+/* Ajustement responsive pour mobile */
+@media (max-width: 768px) {
+    .about-svg-container {
+        width: 150px; /* Taille d'origine restaurée */
+        left: 5vw;
+    }
+}
+
+/* Ajustement pour très petits écrans */
+@media (max-width: 480px) {
+    .about-svg-container {
+        width: 120px; /* Taille d'origine restaurée */
+        left: 2vw;
+    }
+}
+
+/* Conteneur SVG hologramme pour la section à propos */
+.hologram-svg-container {
+    position: absolute;
+    transform-box: fill-box;
+    width: auto;
+    height: auto;
+    left: 10vw;
+    top: 55%;
+    transform: translateY(-50%);
+    z-index: 12;
+    opacity: 1;
+}
+
+/* Ajustement responsive pour mobile */
+@media (max-width: 768px) {
+    .hologram-svg-container {
+        right: 5vw;
+    }
+}
+
+/* Ajustement pour très petits écrans */
+@media (max-width: 480px) {
+    .hologram-svg-container {
+        right: 2vw;
+    }
+}
+
+#hologramme {
+    scale: .75;
+    transform-origin: 450px 200px;
+}

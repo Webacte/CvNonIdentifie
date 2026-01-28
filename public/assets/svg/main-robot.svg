@@ -1,0 +1,23 @@
+<svg width="112" height="124" viewBox="0 0 112 124" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="main-robot">
+<g id="pouce">
+<g id="rectangle-21">
+<mask id="path-1-inside-1_14_212" fill="white">
+<path d="M46.3449 0H69.1725C74.6953 0 79.1725 4.47715 79.1725 10V57.2308H46.3449V0Z"/>
+</mask>
+<path d="M44.3449 -2H69.1725C75.7999 -2 81.1725 3.37258 81.1725 10H77.1725C77.1725 5.58172 73.5908 2 69.1725 2H48.3449L44.3449 -2ZM48.3449 2M79.1725 57.2308H46.3449H79.1725M44.3449 57.2308V-2L48.3449 2V57.2308H44.3449ZM69.1725 -2C75.7999 -2 81.1725 3.37258 81.1725 10V57.2308H77.1725V10C77.1725 5.58172 73.5908 2 69.1725 2V-2Z" fill="black" mask="url(#path-1-inside-1_14_212)"/>
+</g>
+<rect id="rectangle-22" x="47.3449" y="1" width="17.3103" height="26.6154" fill="white" stroke="black" stroke-width="2"/>
+</g>
+<g id="poing">
+<rect id="rectangle-20" x="45.4139" y="58.2307" width="65.5862" height="64.7692" stroke="black" stroke-width="2"/>
+<line id="line-48" x1="112" y1="83.0308" x2="79.1725" y2="83.0308" stroke="black" stroke-width="2"/>
+<line id="line-49" x1="112" y1="104.015" x2="79.1725" y2="104.015" stroke="black" stroke-width="2"/>
+<rect id="rectangle-23" x="22.2414" y="75.4" width="25.0345" height="36.1538" stroke="black" stroke-width="2"/>
+<line id="line-50" x1="21.2414" y1="103.515" x2="1.52588e-05" y2="103.515" stroke="black"/>
+<line id="line-51" x1="21.2414" y1="95.8846" x2="1.52588e-05" y2="95.8846" stroke="black"/>
+<line id="line-52" x1="21.2414" y1="86.3462" x2="1.52588e-05" y2="86.3462" stroke="black"/>
+<line id="line-53" x1="1.43115" y1="85.8462" x2="1.43115" y2="66.7692" stroke="black"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,71 @@
+.section-content {
+    text-align: center;
+    z-index: 2;
+    width: 50vw;
+    margin-left: 12vw;
+}
+
+@media (max-width: 768px) {
+    .section-content {
+        width: 80vw;
+        margin-left: 10vw;
+    }
+}
+
+#profileDescription {
+    font-size: 1.5rem;
+    font-weight: 10;
+}
+
+/* Conteneur pour l'animation handwriting */
+.handwriting-wrapper {
+    position: absolute;
+    z-index: 12;
+    /* Positionnement centré sur petit écran, décalé à gauche sur grand écran */
+    left: 50%;
+    top: 55%;
+    transform: translate(-50%, -50%);
+    /* Ajustement responsive : décaler vers la gauche sur grand écran */
+    width: auto;
+    max-width: 80vw;
+}
+
+/* Réduire légèrement la taille du SVG pour améliorer la lisibilité */
+.handwriting-wrapper svg {
+    /* Réduire la taille de 10% pour rendre les lettres plus petites mais garder l'espacement */
+    transform: scale(0.9);
+    transform-origin: center;
+}
+
+/* Sur grand écran, décaler vers la gauche */
+@media (min-width: 1200px) {
+    .handwriting-wrapper {
+        transform: translate(calc(-50% - 8vw), -50%);
+    }
+}
+
+@media (min-width: 1600px) {
+    .handwriting-wrapper {
+        transform: translate(calc(-50% - 12vw), -50%);
+    }
+}
+
+/* Sur très grand écran, décaler encore plus */
+@media (min-width: 2000px) {
+    .handwriting-wrapper {
+        transform: translate(calc(-50% - 16vw), -50%);
+    }
+}
+
+/* Sur petit écran, centrer */
+@media (max-width: 768px) {
+    .handwriting-wrapper {
+        transform: translate(-50%, -50%);
+        max-width: 90vw;
+    }
+    
+    /* Sur mobile, réduire encore plus la taille si nécessaire */
+    .handwriting-wrapper svg {
+        transform: scale(0.85);
+    }
+}

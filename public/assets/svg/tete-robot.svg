@@ -1,0 +1,21 @@
+<svg width="93" height="124" viewBox="0 0 93 124" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="tete-robot">
+<g id="oeil-gauche">
+<path id="ouvert" d="M68.5698 69.1127C72.9521 69.1127 76.1411 71.9745 76.1411 75.099C76.1408 78.2233 72.9519 81.0843 68.5698 81.0844C64.1877 81.0844 60.9988 78.2233 60.9985 75.099C60.9985 71.9745 64.1875 69.1127 68.5698 69.1127Z" stroke="black" stroke-width="2"/>
+</g>
+<g id="tete">
+<rect id="rectangle-18" x="1" y="53.3943" width="90.1406" height="69.6056" rx="2" stroke="black" stroke-width="2"/>
+<line id="line-41" x1="45.9989" y1="6.98593" x2="45.9989" y2="52.3944" stroke="black" stroke-width="2"/>
+<ellipse id="ellipse-16" cx="47.1418" cy="6.98592" rx="8.57122" ry="6.98592" fill="black"/>
+<path id="ellipse-17" d="M25.7139 69.1127C30.0962 69.1127 33.2852 71.9745 33.2852 75.099C33.2849 78.2233 30.096 81.0843 25.7139 81.0844C21.3317 81.0844 18.1429 78.2233 18.1426 75.099C18.1426 71.9745 21.3315 69.1127 25.7139 69.1127Z" stroke="black" stroke-width="2"/>
+<rect id="rectangle-19" x="24.5709" y="97.0563" width="42.9989" height="13.7183" rx="2" stroke="black" stroke-width="2"/>
+<line id="line-42" x1="27.8563" y1="104.289" x2="66.4268" y2="104.289" stroke="black"/>
+<line id="line-43" x1="39.0706" y1="97.8028" x2="39.0706" y2="110.028" stroke="black"/>
+<line id="line-44" x1="51.9275" y1="97.8028" x2="51.9275" y2="110.028" stroke="black"/>
+<line id="line-45" x1="45.4989" y1="97.8028" x2="45.4989" y2="110.028" stroke="black"/>
+<line id="line-46" x1="32.6421" y1="97.8028" x2="32.6421" y2="110.028" stroke="black"/>
+<line id="line-47" x1="58.3557" y1="97.8028" x2="58.3557" y2="110.028" stroke="black"/>
+<path id="polygon-16" d="M56.373 88.9437H40.0537L48.2129 78.4711L56.373 88.9437Z" stroke="black" stroke-width="2"/>
+</g>
+</g>
+</svg>
