@@ -1,6 +1,14 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { INITIAL_SCROLL_BLOCK, SECOND_SECTION_BLOCK_START, SECOND_SECTION_BLOCK_END } from './constants'
+import {
+    ROCKET_PAN_START_RATIO,
+    SECOND_SECTION_BLOCK_START,
+    SECOND_SECTION_BLOCK_END,
+    THIRD_SECTION_BLOCK_START,
+    THIRD_SECTION_BLOCK_END,
+    SCROLL_FROM_THIRD_BLOCK,
+    VIEWPORT_REFERENCE_WIDTH,
+} from './constants'
 
 /**
  * Valeurs de scroll uniformisées pour toutes les animations
@@ -16,6 +24,12 @@ export interface ScrollValues {
     totalWidth: number
     /** Largeur du viewport */
     viewportWidth: number
+    /** Position de scroll (px) à laquelle la phase 1 (Présentation) se termine = début bloc About */
+    phase1EndScroll: number
+    /** Position de scroll (px) à laquelle la phase 2 (About) commence */
+    phase2StartScroll: number
+    /** Position de scroll (px) à laquelle la phase 2 (About) se termine */
+    phase2EndScroll: number
 }
 
 /**
@@ -53,44 +67,31 @@ export function setupHorizontalScroll(
     // Le scroll vertical déclenche le mouvement horizontal
     // Le scroll est bloqué pendant les premiers pixels, puis commence
     
-    // Valeurs de référence pour un écran de 1050px (taille de référence)
-    const REFERENCE_VIEWPORT_WIDTH = 1050
-    const REFERENCE_INITIAL_SCROLL_BLOCK = INITIAL_SCROLL_BLOCK
-    const REFERENCE_SECOND_SECTION_BLOCK_START = SECOND_SECTION_BLOCK_START
-    const REFERENCE_SECOND_SECTION_BLOCK_END = SECOND_SECTION_BLOCK_END
-    
-    // Calculer le ratio de mise à l'échelle basé sur la largeur du viewport
-    const scaleRatio = viewportWidth / REFERENCE_VIEWPORT_WIDTH
-    
-    // Calculer les valeurs responsive pour tous les blocs de scroll
-    // Utiliser un ratio pour adapter aux différentes tailles d'écran
-    const initialScrollBlock = REFERENCE_INITIAL_SCROLL_BLOCK * scaleRatio
-    const secondBlockStart = REFERENCE_SECOND_SECTION_BLOCK_START * scaleRatio
-    const secondBlockEnd = REFERENCE_SECOND_SECTION_BLOCK_END * scaleRatio
+    const scaleRatio = viewportWidth / VIEWPORT_REFERENCE_WIDTH
+    const initialScrollBlock = SECOND_SECTION_BLOCK_START * ROCKET_PAN_START_RATIO * scaleRatio
+    const secondBlockStart = SECOND_SECTION_BLOCK_START * scaleRatio
+    const secondBlockEnd = SECOND_SECTION_BLOCK_END * scaleRatio
     const secondBlockDuration = secondBlockEnd - secondBlockStart
-    
-    // Calculer les distances de scroll pour chaque phase
-    // scrollBeforeSecondBlock : distance de scroll vertical entre la fin du bloc initial et le début du deuxième bloc
-    const scrollBeforeSecondBlock = secondBlockStart - initialScrollBlock // 3800 - 2500 = 1300px
-    
-    // Pour calculer la position X au deuxième bloc, on doit déterminer quelle fraction de scrollDistance
-    // a été parcourue. On utilise une proportion basée sur scrollBeforeSecondBlock.
-    // Si scrollDistance représente la distance horizontale totale, on calcule la position X proportionnellement.
-    // On suppose que scrollBeforeSecondBlock représente une partie de la distance totale de scroll vertical
-    // nécessaire pour parcourir scrollDistance horizontalement.
-    // Pour simplifier, on utilise scrollBeforeSecondBlock comme limite pour la première phase,
-    // et le reste (scrollDistance - scrollBeforeSecondBlock) pour la deuxième phase.
-    // Mais on doit s'assurer que scrollBeforeSecondBlock ne dépasse pas scrollDistance.
-    const maxScrollBeforeSecondBlock = Math.min(scrollBeforeSecondBlock, scrollDistance)
-    const scrollAfterSecondBlock = Math.max(0, scrollDistance - maxScrollBeforeSecondBlock)
-    
-    // Distance totale de scroll incluant tous les blocs
-    const scrollDistanceWithoutMovement = initialScrollBlock + scrollBeforeSecondBlock + secondBlockDuration + scrollAfterSecondBlock
-    
-    // Calculer la position X atteinte à la fin du premier mouvement (avant le deuxième bloc)
-    // La position X est directement liée à maxScrollBeforeSecondBlock
-    // Si scrollBeforeSecondBlock <= scrollDistance, on a parcouru scrollBeforeSecondBlock pixels horizontalement
-    const xPositionAtSecondBlock = -maxScrollBeforeSecondBlock
+    const thirdBlockStart = THIRD_SECTION_BLOCK_START * scaleRatio
+    const thirdBlockEnd = THIRD_SECTION_BLOCK_END * scaleRatio
+    const thirdBlockDuration = thirdBlockEnd - thirdBlockStart
+    const scrollFromThirdBlock = SCROLL_FROM_THIRD_BLOCK * scaleRatio
+
+    const scrollBeforeSecondBlock = secondBlockStart - initialScrollBlock
+
+    // scrollBeforeThirdBlock : distance de scroll vertical entre la fin du bloc About et le début du bloc Expérience
+    const scrollBeforeThirdBlock = thirdBlockStart - secondBlockEnd
+
+    // Position X pour afficher la section Expérience (section 3) : largeur des sections 0 + 1
+    const xPositionAtThirdBlock = sections.length >= 3
+        ? -(sections[0].offsetWidth + sections[1].offsetWidth)
+        : -scrollDistance
+
+    // Distance totale de scroll incluant tous les blocs (initial, move1, block2, move2, block3, move3)
+    const scrollDistanceWithoutMovement = initialScrollBlock + scrollBeforeSecondBlock + secondBlockDuration + scrollBeforeThirdBlock + thirdBlockDuration + scrollFromThirdBlock
+
+    // Position X pour afficher la section About (section 1) : largeur de la section 0
+    const xPositionAtSecondBlock = sections.length >= 1 ? -sections[0].offsetWidth : 0
     
     const scrollDistanceWithMovement = scrollDistance // Distance avec mouvement d'écran (distance horizontale réelle)
     
@@ -101,6 +102,9 @@ export function setupHorizontalScroll(
         initialScrollBlock,
         totalWidth,
         viewportWidth,
+        phase1EndScroll: secondBlockStart,
+        phase2StartScroll: secondBlockStart,
+        phase2EndScroll: secondBlockEnd,
     }
     
     // Créer une timeline avec plusieurs phases : bloc initial, mouvement, bloc deuxième section, mouvement final
@@ -123,6 +127,18 @@ export function setupHorizontalScroll(
                 gsap.set(container, {
                     clearProps: 'top,left'
                 })
+            },
+            onUpdate: (self) => {
+                const scrollY = self.progress * scrollDistanceWithoutMovement
+                let phase = 'bloc initial'
+                if (scrollY >= thirdBlockEnd) phase = 'après bloc Expérience'
+                else if (scrollY >= thirdBlockStart) phase = 'bloc Expérience'
+                else if (scrollY >= secondBlockEnd) phase = 'mouvement vers Expérience'
+                else if (scrollY >= secondBlockStart) phase = 'bloc About'
+                else if (scrollY >= initialScrollBlock) phase = 'mouvement vers About'
+                console.log(
+                    `[Scroll] ${Math.round(scrollY)} px / ${Math.round(scrollDistanceWithoutMovement)} | progress: ${(self.progress * 100).toFixed(1)}% | ${phase}`
+                )
             }
         }
     })
@@ -131,14 +147,18 @@ export function setupHorizontalScroll(
     const initialBlockDuration = initialScrollBlock / scrollDistanceWithoutMovement
     const firstMovementDuration = scrollBeforeSecondBlock / scrollDistanceWithoutMovement
     const secondBlockDurationRatio = secondBlockDuration / scrollDistanceWithoutMovement
-    const secondMovementDuration = scrollAfterSecondBlock / scrollDistanceWithoutMovement
-    
+    const scrollBeforeThirdBlockDuration = scrollBeforeThirdBlock / scrollDistanceWithoutMovement
+    const thirdBlockDurationRatio = thirdBlockDuration / scrollDistanceWithoutMovement
+    const scrollFromThirdBlockDuration = scrollFromThirdBlock / scrollDistanceWithoutMovement
+
     // Ajouter les animations à la timeline avec les différentes phases
     timeline
         .to(wrapper, { x: 0, duration: initialBlockDuration, ease: 'none' }) // Bloc initial : reste à 0
-        .to(wrapper, { x: xPositionAtSecondBlock, duration: firstMovementDuration, ease: 'none' }) // Premier mouvement jusqu'à 3800px
-        .to(wrapper, { x: xPositionAtSecondBlock, duration: secondBlockDurationRatio, ease: 'none' }) // Bloc deuxième section : reste à la position atteinte
-        .to(wrapper, { x: -scrollDistanceWithMovement, duration: secondMovementDuration, ease: 'none' }) // Deuxième mouvement jusqu'à la fin
+        .to(wrapper, { x: xPositionAtSecondBlock, duration: firstMovementDuration, ease: 'none' }) // Premier mouvement jusqu'à la section About
+        .to(wrapper, { x: xPositionAtSecondBlock, duration: secondBlockDurationRatio, ease: 'none' }) // Bloc section About : reste à la position atteinte
+        .to(wrapper, { x: xPositionAtThirdBlock, duration: scrollBeforeThirdBlockDuration, ease: 'none' }) // Mouvement jusqu'à la section Expérience
+        .to(wrapper, { x: xPositionAtThirdBlock, duration: thirdBlockDurationRatio, ease: 'none' }) // Bloc section Expérience : reste sur place
+        .to(wrapper, { x: -scrollDistanceWithMovement, duration: scrollFromThirdBlockDuration, ease: 'none' }) // Dernier mouvement jusqu'à la fin
     
     // Retourner le tween principal de la timeline pour containerAnimation
     const scrollTween = timeline as any as gsap.core.Tween

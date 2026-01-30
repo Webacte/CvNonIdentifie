@@ -1,7 +1,121 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { ScrollValues } from './horizontalScroll'
-import { INITIAL_SCROLL_BLOCK } from './constants'
+import {
+    ROCKET_PAN_START_RATIO,
+    SECOND_SECTION_BLOCK_START,
+    SECOND_SECTION_BLOCK_END,
+    VIEWPORT_REFERENCE_WIDTH,
+    ROCKET_ACCELERATE_X_REFERENCE,
+    ROCKET_HEIGHT_PX,
+    ROCKET_END_Y_PERCENTAGE,
+    ROCKET_Y_COMPLETION_PROGRESS,
+    ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR,
+    ROCKET_Y_COMPLETION_MOBILE_FACTOR,
+    GROUND_LINE_425_MAX_WIDTH,
+    ROCKET_END_Y_PERCENTAGE_425,
+    ROCKET_Y_COMPLETION_425_FACTOR,
+    MOBILE_SMALL_MAX_WIDTH,
+    MOBILE_MAX_WIDTH,
+    TABLET_MAX_WIDTH,
+    ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
+    ROCKET_END_X_MIN_PX,
+    ROCKET_END_X_MIN_RATIO,
+    FIRE_HORIZONTAL_PROGRESS_MULTIPLIER,
+    FIRE_CYCLES_PER_SCROLL,
+    ALIEN_ANIMATION_START,
+    ALIEN_ANIMATION_END,
+    ALIEN_LEG_RETURN_START,
+    ALIEN_LEG_RETURN_END,
+    HOLOGRAM_BASES_ANIMATION_START,
+    HOLOGRAM_BASES_ANIMATION_END,
+    HOLOGRAM_BASES_TABLET_MAX,
+    HOLOGRAM_BASES_MOBILE_MAX,
+    HOLOGRAM_BASES_SMALL_PHONE_MAX,
+    HOLOGRAM_BASES_VERY_SMALL_PHONE_MAX,
+    HOLOGRAM_REFLECTEURS_ANIMATION_START,
+    HOLOGRAM_REFLECTEURS_ANIMATION_END,
+    HOLOGRAM_ECRA_ANIMATION_START,
+    HOLOGRAM_ECRA_ANIMATION_END,
+    HOLOGRAM_HANDWRITING_START,
+    HOLOGRAM_HANDWRITING_END,
+    PORTRAIT_SCROLL_START,
+    PORTRAIT_SCROLL_END,
+    DESCRIPTION_SCROLL_START,
+    DESCRIPTION_SCROLL_END,
+    ROCKET_START_X,
+    ROCKET_START_Y,
+    ROCKET_START_ROTATE,
+    ROCKET_END_ROTATE,
+    ROCKET_ACCELERATION_FACTOR_BASE,
+    ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX,
+    ALIEN_BRAS_GAUCHE_START_ROTATE,
+    ALIEN_BRAS_GAUCHE_END_ROTATE,
+    ALIEN_AVANT_BRAS_GAUCHE_START_ROTATE,
+    ALIEN_AVANT_BRAS_GAUCHE_END_ROTATE,
+    ALIEN_AVANT_BRAS_GAUCHE_START_Y,
+    ALIEN_AVANT_BRAS_GAUCHE_END_Y,
+    ALIEN_AVANT_BRAS_GAUCHE_START_X,
+    ALIEN_AVANT_BRAS_GAUCHE_END_X,
+    ALIEN_AVANT_BRAS_GAUCHE_END_X2,
+    ALIEN_BRAS_DROIT_START_ROTATE,
+    ALIEN_BRAS_DROIT_END_ROTATE,
+    ALIEN_AVANT_BRAS_DROIT_START_ROTATE,
+    ALIEN_AVANT_BRAS_DROIT_END_ROTATE,
+    ALIEN_AVANT_BRAS_DROIT_START_Y,
+    ALIEN_AVANT_BRAS_DROIT_END_Y,
+    ALIEN_AVANT_BRAS_DROIT_START_X,
+    ALIEN_AVANT_BRAS_DROIT_END_X,
+    ALIEN_AVANT_BRAS_DROIT_END_X2,
+    ALIEN_JAMBES_HAUT_DROITE_START_ROTATE,
+    ALIEN_JAMBES_HAUT_DROITE_END_ROTATE,
+    ALIEN_JAMBES_BAS_DROITE_START_ROTATE,
+    ALIEN_JAMBES_BAS_DROITE_END_ROTATE,
+    ALIEN_JAMBES_BAS_DROITE_START_Y,
+    ALIEN_JAMBES_BAS_DROITE_END_Y,
+    ALIEN_JAMBES_BAS_DROITE_START_X,
+    ALIEN_JAMBES_BAS_DROITE_END_X,
+    ALIEN_EXTRATERRESTRE_START_ROTATE,
+    ALIEN_EXTRATERRESTRE_END_ROTATE,
+    ALIEN_AVANT_BRAS_PHASE1_THRESHOLD,
+    ALIEN_AVANT_BRAS_SLOWED_ROTATION,
+    ALIEN_AVANT_BRAS_SLOWED_XY,
+    HOLOGRAM_BASES_DESKTOP_DROITE_X,
+    HOLOGRAM_BASES_DESKTOP_DROITE_Y,
+    HOLOGRAM_BASES_DESKTOP_GAUCHE_X,
+    HOLOGRAM_BASES_DESKTOP_GAUCHE_Y,
+    HOLOGRAM_BASES_TABLET_SCALE_DROITE_X,
+    HOLOGRAM_BASES_TABLET_SCALE_GAUCHE_X,
+    HOLOGRAM_BASES_TABLET_Y_DROITE,
+    HOLOGRAM_BASES_TABLET_Y_GAUCHE,
+    HOLOGRAM_BASES_VERY_SMALL_SCALE_DROITE_X,
+    HOLOGRAM_BASES_VERY_SMALL_SCALE_GAUCHE_X,
+    HOLOGRAM_BASES_VERY_SMALL_Y_DROITE,
+    HOLOGRAM_BASES_VERY_SMALL_Y_GAUCHE,
+    HOLOGRAM_BASES_SMALL_PHONE_SCALE_DROITE_X,
+    HOLOGRAM_BASES_SMALL_PHONE_SCALE_GAUCHE_X,
+    HOLOGRAM_BASES_SMALL_PHONE_Y_DROITE,
+    HOLOGRAM_BASES_SMALL_PHONE_Y_GAUCHE,
+    HOLOGRAM_BASES_MOBILE_SCALE_DROITE_X,
+    HOLOGRAM_BASES_MOBILE_SCALE_GAUCHE_X,
+    HOLOGRAM_BASES_MOBILE_Y_DROITE,
+    HOLOGRAM_BASES_MOBILE_Y_GAUCHE,
+    HOLOGRAM_BASES_DROITE_END_X,
+    HOLOGRAM_BASES_DROITE_END_Y,
+    HOLOGRAM_BASES_DROITE_START_ROTATE,
+    HOLOGRAM_BASES_DROITE_END_ROTATE,
+    HOLOGRAM_BASES_GAUCHE_END_X,
+    HOLOGRAM_BASES_GAUCHE_END_Y,
+    HOLOGRAM_BASES_GAUCHE_START_ROTATE,
+    HOLOGRAM_BASES_GAUCHE_END_ROTATE,
+    HOLOGRAM_BASES_ARC_HEIGHT,
+    HOLOGRAM_REFLECTEURS_GAUCHE_START_SCALE_Y,
+    HOLOGRAM_REFLECTEURS_GAUCHE_END_SCALE_Y,
+    HOLOGRAM_REFLECTEURS_DROIT_START_SCALE_Y,
+    HOLOGRAM_REFLECTEURS_DROIT_END_SCALE_Y,
+    HOLOGRAM_ECRAN_START_SCALE_X,
+    HOLOGRAM_ECRAN_END_SCALE_X,
+} from './constants'
 import { createHandwritingAnimation } from './handwriting'
 
 type Point = {x: number, y: number}
@@ -92,6 +206,29 @@ export function setupScrollAnimations(setup: ScrollAnimationsSetup, scrollValues
     return Math.max(0, Math.min(1, localProgress))
 }
 
+/** Calcule scrollY, progressPhase1 et progressPhase2 à partir du progress global et des scrollValues */
+export function getPhaseProgress(progress: number, scrollValues: ScrollValues): { scrollY: number; progressPhase1: number; progressPhase2: number } {
+    const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
+    const progressPhase1 = Math.min(1, scrollY / scrollValues.phase1EndScroll)
+    const phase2Range = scrollValues.phase2EndScroll - scrollValues.phase2StartScroll
+    const progressPhase2 = phase2Range <= 0 ? 0 : Math.max(0, Math.min(1, (scrollY - scrollValues.phase2StartScroll) / phase2Range))
+    return { scrollY, progressPhase1, progressPhase2 }
+}
+
+/**
+ * Progression phase 1 pour la fusée et la flamme : 0 tant que le scroll est dans le bloc initial,
+ * puis 0→1 entre la fin du bloc initial et la fin de la phase 1. Ainsi la fusée reste visible
+ * au début et ne part qu’une fois que l’écran commence à bouger.
+ */
+export function getRocketPhase1Progress(progress: number, scrollValues: ScrollValues): number {
+    const { scrollY } = getPhaseProgress(progress, scrollValues)
+    const { initialScrollBlock, phase1EndScroll } = scrollValues
+    const range = phase1EndScroll - initialScrollBlock
+    if (range <= 0) return scrollY / phase1EndScroll
+    if (scrollY <= initialScrollBlock) return 0
+    return Math.min(1, (scrollY - initialScrollBlock) / range)
+}
+
 /**
  * Animation de la fusée qui suit le scroll
  * Utilise containerAnimation pour synchroniser avec le scroll horizontal
@@ -100,7 +237,8 @@ export function createRocketScrollAnimation(
     rocketElement: HTMLElement | null,
     container: HTMLElement,
     scrollValues: ScrollValues,
-    scrollTween?: gsap.core.Tween
+    scrollTween?: gsap.core.Tween,
+    firstSection?: HTMLElement | null
 ): void {
     if (!rocketElement) {
         return
@@ -114,45 +252,37 @@ export function createRocketScrollAnimation(
 
     // Utiliser les valeurs uniformisées
     const scrollDistance = scrollValues.scrollDistanceWithMovement
-    const rocketStartX = 0
-    const rocketStartY = 0
-    const rocketStartRotate = 680
-    const rocketEndRotate = 90
+    const rocketStartX = ROCKET_START_X
+    const rocketStartY = ROCKET_START_Y
+    const rocketStartRotate = ROCKET_START_ROTATE
+    const rocketEndRotate = ROCKET_END_ROTATE
     
-    // Valeurs de référence pour un écran de 1050px (taille de référence)
-    const REFERENCE_VIEWPORT_WIDTH = 1050
-    // Pour la hauteur, on utilise un pourcentage du viewport pour une adaptation responsive
-    // Sur un écran de référence (1050px de large), rocketEndY = 450px
-    // Si on suppose une hauteur typique de ~700px pour cet écran, cela représente ~64% de la hauteur
-    // On utilise donc un pourcentage fixe pour s'adapter à toutes les hauteurs d'écran
-    const ROCKET_END_Y_PERCENTAGE = 1.05 // 64% de la hauteur du viewport
-    const REFERENCE_ACCELERATE_ROCKET_X = 450
-    
-    // Fonctions helper pour calculer les valeurs responsive dynamiquement
-    // Cela permet de s'adapter au redimensionnement de la fenêtre
-    const getScaleRatio = () => {
-        const currentViewportWidth = window.innerWidth
-        return currentViewportWidth / REFERENCE_VIEWPORT_WIDTH
-    }
-    
+    const getScaleRatio = () => window.innerWidth / VIEWPORT_REFERENCE_WIDTH
+
     const getRocketEndX = () => {
         const scaleRatio = getScaleRatio()
-        return Math.max(scrollDistance * 0.3, 500 * scaleRatio)
+        return Math.max(scrollDistance * ROCKET_END_X_MIN_RATIO, ROCKET_END_X_MIN_PX * scaleRatio)
     }
     
     const getRocketEndY = () => {
-        // Utiliser un pourcentage fixe de la hauteur du viewport pour une adaptation responsive
-        const currentViewportHeight = window.innerHeight
-        return currentViewportHeight * ROCKET_END_Y_PERCENTAGE
-    }
-    
-    const getAccelerateRocketX = () => {
-        const scaleRatio = getScaleRatio()
-        return REFERENCE_ACCELERATE_ROCKET_X * scaleRatio
+        const referenceHeight = firstSection?.offsetHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 0)
+        if (typeof window === 'undefined') {
+            return referenceHeight * ROCKET_END_Y_PERCENTAGE
+        }
+        const w = window.innerWidth
+        // ≤425px : sol à 55%, fusée atterrit sur la ligne de sol
+        if (w <= GROUND_LINE_425_MAX_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE_425
+        // ≤375px : fusée descend plus, atterrit à 76% de la hauteur du viewport
+        if (w <= MOBILE_SMALL_MAX_WIDTH) return referenceHeight * 0.76
+        // ≤600px : atterrit à 72%
+        if (w <= MOBILE_MAX_WIDTH) return referenceHeight * 0.72
+        // Tablette 601–768px : remonter d’une hauteur de fusée (trop bas sinon)
+        if (w <= TABLET_MAX_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE - ROCKET_HEIGHT_PX
+        return referenceHeight * ROCKET_END_Y_PERCENTAGE
     }
 
-    // Initialiser la position de départ
-    // Utiliser clearProps pour effacer le left CSS et utiliser x (translateX) à la place
+    const getAccelerateRocketX = () => ROCKET_ACCELERATE_X_REFERENCE * getScaleRatio()
+
     gsap.set(rocketElement, {
         clearProps: 'left',
         x: rocketStartX,
@@ -161,74 +291,44 @@ export function createRocketScrollAnimation(
         force3D: true,
     })
 
-    // Calculer le ratio du bloc initial
-    const blockRatio = scrollValues.initialScrollBlock / scrollValues.scrollDistanceWithoutMovement
-    
-    // Calculer la progression nécessaire pour terminer le mouvement Y
-    // Le mouvement Y utilise progress * 1.5, donc il se termine quand progress * 1.5 >= 1
-    // Ce qui signifie progress >= 1/1.5 = 0.667
-    const Y_COMPLETION_PROGRESS = 1/3.8
-    
-    // Fonction pour calculer et appliquer la position de la fusée
+    const getYCompletionProgress = () => {
+        if (typeof window === 'undefined') return ROCKET_Y_COMPLETION_PROGRESS
+        const w = window.innerWidth
+        if (w <= GROUND_LINE_425_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR
+        if (w <= MOBILE_SMALL_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR
+        if (w <= MOBILE_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR
+        return ROCKET_Y_COMPLETION_PROGRESS
+    }
+
     const updateRocketPositionX = (progress: number) => {
         let currentX: number
-        
-        // Si le mouvement Y n'est pas encore terminé, la fusée reste à sa position de départ X
-        if (progress < Y_COMPLETION_PROGRESS) {
-            return rocketStartX
-        }
-        
-        // Une fois le mouvement Y terminé, calculer la progression restante pour le mouvement X
-        // La progression totale pour X commence après Y_COMPLETION_PROGRESS
-        const remainingProgress = progress - Y_COMPLETION_PROGRESS
-        const maxRemainingProgress = 1 - Y_COMPLETION_PROGRESS
-        // Normaliser la progression X entre 0 et 1
+        const yCompletionProgress = getYCompletionProgress()
+        if (progress < yCompletionProgress) return rocketStartX
+        const remainingProgress = progress - yCompletionProgress
+        const maxRemainingProgress = 1 - yCompletionProgress
         const xProgress = Math.min(remainingProgress / maxRemainingProgress, 1)
-        
-        // Multiplier par 3 pour accélérer le mouvement horizontal (comme avant)
-        const horizontalProgress = xProgress * 3
-        
-        // Calculer les valeurs responsive dynamiquement
+        const horizontalProgress = xProgress * ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER
         const currentRocketEndX = getRocketEndX()
         const currentAccelerateRocketX = getAccelerateRocketX()
         
-        // Calculer la position X normale (sans accélération)
         const normalX = rocketStartX + (currentRocketEndX - rocketStartX) * horizontalProgress
-        
-        // Calculer à quel point de progression on atteint le point d'accélération
-        // accelerateRocketX est une position X absolue (responsive), on doit trouver la progression correspondante
         const accelerateProgress = (currentAccelerateRocketX - rocketStartX) / (currentRocketEndX - rocketStartX)
-        
         if (horizontalProgress <= accelerateProgress) {
-            // Avant le point d'accélération : mouvement normal
             currentX = normalX
         } else {
-            // Après le point d'accélération : accélération progressive jusqu'à 2x la vitesse
-            // Calculer la progression dans la zone d'accélération (0 à 1)
             const accelerationZone = (horizontalProgress - accelerateProgress) / (1 - accelerateProgress)
-            
-            // Facteur d'accélération progressif : passe de 1 à 2 de manière fluide (ease-in)
-            // Utiliser une courbe d'ease-in pour une accélération progressive
-            const accelerationFactor = 5 + (accelerationZone * accelerationZone) // ease-in quadratique
-            
-            // Position au point d'accélération
+            const accelerationFactor = ROCKET_ACCELERATION_FACTOR_BASE + (accelerationZone * accelerationZone)
             const accelerateX = rocketStartX + (currentRocketEndX - rocketStartX) * accelerateProgress
-            
-            // Distance supplémentaire parcourue avec l'accélération
-            // La vitesse double progressivement, donc la distance parcourue augmente
             const extraDistance = (normalX - accelerateX) * (accelerationFactor - 1)
-            
             currentX = normalX + extraDistance
         }
         
         return currentX
     }
 
-    // Fonction pour calculer et appliquer la rotation de la fusée
     const updateRocketRotate = (progress: number) => {
         let currentRotate: number
-        
-        const rotateProgress = progress * 3
+        const rotateProgress = progress * ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER
         currentRotate = rocketStartRotate + (rotateProgress * (rocketEndRotate - rocketStartRotate))
         if (currentRotate < rocketEndRotate) {
             currentRotate = rocketEndRotate
@@ -236,10 +336,9 @@ export function createRocketScrollAnimation(
         return currentRotate
     }
 
-    // Fonction calculant la hauteur de la fusée
     const updateRocketPositionY = (progress: number) => {
         let currentY: number
-        const verticalProgress = progress * 3
+        const verticalProgress = progress * ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER
         const currentRocketEndY = getRocketEndY()
         currentY = rocketStartY + (verticalProgress * (currentRocketEndY - rocketStartY))
         if (currentY > currentRocketEndY) {
@@ -253,19 +352,20 @@ export function createRocketScrollAnimation(
     if (scrollTween && scrollTween.scrollTrigger) {
         // Utiliser le ScrollTrigger du scrollTween pour obtenir la progression
         const mainScrollTrigger = scrollTween.scrollTrigger
-        
+
         // Utiliser requestAnimationFrame pour surveiller la progression du ScrollTrigger principal
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
-            
+            const { progressPhase1 } = getPhaseProgress(progress, scrollValues)
+
             // Mettre à jour seulement si la progression a changé
             if (progress !== lastProgress) {
                 lastProgress = progress
-                const currentX = updateRocketPositionX(progress)
-                const currentY = updateRocketPositionY(progress)
-                const currentRotate = updateRocketRotate(progress)
-                
+                const currentX = updateRocketPositionX(progressPhase1)
+                const currentY = updateRocketPositionY(progressPhase1)
+                const currentRotate = updateRocketRotate(progressPhase1)
+
                 // Appliquer la transformation
                 gsap.set(rocketElement, {
                     x: currentX,
@@ -273,9 +373,8 @@ export function createRocketScrollAnimation(
                     rotate: currentRotate,
                     force3D: true,
                 })
-                
             }
-            
+
             requestAnimationFrame(updateLoop)
         }
         updateLoop()
@@ -289,9 +388,10 @@ export function createRocketScrollAnimation(
             invalidateOnRefresh: true,
             onUpdate: (self) => {
                 const progress = self.progress
-                const currentX = updateRocketPositionX(progress)
-                const currentY = updateRocketPositionY(progress)
-                const currentRotate = updateRocketRotate(progress)
+                const { progressPhase1 } = getPhaseProgress(progress, scrollValues)
+                const currentX = updateRocketPositionX(progressPhase1)
+                const currentY = updateRocketPositionY(progressPhase1)
+                const currentRotate = updateRocketRotate(progressPhase1)
 
                 gsap.set(rocketElement, {
                     x: currentX,
@@ -330,7 +430,7 @@ export function createRocketFireScrollAnimation(
 
     // Valeurs responsive pour les feux (doivent correspondre à celles de la fusée)
     const REFERENCE_VIEWPORT_WIDTH = 1050
-    const REFERENCE_FIRE_MIN_X = 650
+    const REFERENCE_FIRE_MIN_X = 1050
     const scrollDistance = scrollValues.scrollDistanceWithMovement
     const horizontalProgressMultiplier = 3
     
@@ -352,7 +452,7 @@ export function createRocketFireScrollAnimation(
 
     // Fonction pour déterminer quel feu doit être visible en fonction de la progression
     const updateFireVisibility = (progress: number) => {
-        const horizontalProgress = progress * horizontalProgressMultiplier
+        const horizontalProgress = progress * FIRE_HORIZONTAL_PROGRESS_MULTIPLIER
         const currentRocketEndX = getRocketEndX()
         const rocketX = currentRocketEndX * horizontalProgress
         const currentFireMinX = getFireMinX()
@@ -363,10 +463,7 @@ export function createRocketFireScrollAnimation(
             return
         }
 
-        // Créer un cycle qui se répète : chaque cycle dure 1/3 de la progression totale
-        // On multiplie par un nombre pour créer plusieurs cycles pendant le scroll
-        const cyclesPerScroll = 10 // Nombre de cycles complets pendant tout le scroll
-        const totalCycles = progress * 10 * cyclesPerScroll
+        const totalCycles = progress * 10 * FIRE_CYCLES_PER_SCROLL
         const cyclePosition = totalCycles % 3 // Position dans le cycle actuel (0-3)
         
         // Éteindre tous les feux d'abord
@@ -389,15 +486,16 @@ export function createRocketFireScrollAnimation(
     if (scrollTween && scrollTween.scrollTrigger) {
         // Utiliser le ScrollTrigger du scrollTween
         const mainScrollTrigger = scrollTween.scrollTrigger
-        
+
         // Surveiller la progression et mettre à jour les feux
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
-            
+            const { progressPhase1 } = getPhaseProgress(progress, scrollValues)
+
             if (progress !== lastProgress) {
                 lastProgress = progress
-                updateFireVisibility(progress)
+                updateFireVisibility(progressPhase1)
             }
             
             requestAnimationFrame(updateLoop)
@@ -412,7 +510,8 @@ export function createRocketFireScrollAnimation(
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                updateFireVisibility(self.progress)
+                const { progressPhase1 } = getPhaseProgress(self.progress, scrollValues)
+                updateFireVisibility(progressPhase1)
             }
         })
     }
@@ -437,14 +536,11 @@ export function createPortraitScrollAnimation(
     // Créer un ScrollTrigger qui surveille le scroll vertical
     ScrollTrigger.create({
         trigger: document.body,
-        start: '400px top',
-        end: '900px top',
+        start: PORTRAIT_SCROLL_START,
+        end: PORTRAIT_SCROLL_END,
         scrub: true,
         invalidateOnRefresh: true,
         onUpdate: (self) => {
-            // Calculer l'opacité basée sur la progression (0 à 1)
-            // Quand scroll = 0, opacity = 0
-            // Quand scroll = 500px, opacity = 1
             const opacity = Math.max(0, Math.min(1, self.progress))
             gsap.set(portraitElement, { opacity, immediateRender: false })
         }
@@ -452,7 +548,7 @@ export function createPortraitScrollAnimation(
 }
 
 /**
- * Animation du descriptionContainer qui apparaît avec une opacité de 0 à 1 quand le scroll atteint 500px
+ * Animation du descriptionContainer (opacité 0 à 1)
  */
 export function createDescriptionContainerScrollAnimation(
     descriptionContainerElement: HTMLElement | null
@@ -467,14 +563,11 @@ export function createDescriptionContainerScrollAnimation(
     // Créer un ScrollTrigger qui surveille le scroll vertical
     ScrollTrigger.create({
         trigger: document.body,
-        start: 'top top',
-        end: '500px top',
+        start: DESCRIPTION_SCROLL_START,
+        end: DESCRIPTION_SCROLL_END,
         scrub: true,
         invalidateOnRefresh: true,
         onUpdate: (self) => {
-            // Calculer l'opacité basée sur la progression (0 à 1)
-            // Quand scroll = 0, opacity = 0
-            // Quand scroll = 500px, opacity = 1
             const opacity = Math.max(0, Math.min(1, self.progress))
             gsap.set(descriptionContainerElement, { opacity, immediateRender: false })
         }
@@ -508,43 +601,35 @@ export function createAlienScrollAnimation(
         return
     }
 
-    // Valeurs de rotation initiales et finales
-    const brasGaucheStartRotate = 0  // Le SVG a déjà une rotation de 20° par défaut
-    const brasGaucheEndRotate = 130
+    const brasGaucheStartRotate = ALIEN_BRAS_GAUCHE_START_ROTATE
+    const brasGaucheEndRotate = ALIEN_BRAS_GAUCHE_END_ROTATE
+    const avantBrasGaucheStartRotate = ALIEN_AVANT_BRAS_GAUCHE_START_ROTATE
+    const avantBrasGaucheEndRotate = ALIEN_AVANT_BRAS_GAUCHE_END_ROTATE
+    const avantBrasGaucheStartY = ALIEN_AVANT_BRAS_GAUCHE_START_Y
+    const avantBrasGaucheEndY = ALIEN_AVANT_BRAS_GAUCHE_END_Y
+    const avantBrasGaucheStartX = ALIEN_AVANT_BRAS_GAUCHE_START_X
+    const avantBrasGaucheEndX = ALIEN_AVANT_BRAS_GAUCHE_END_X
+    const avantBrasGaucheEndX2 = ALIEN_AVANT_BRAS_GAUCHE_END_X2
+    const brasDroitStartRotate = ALIEN_BRAS_DROIT_START_ROTATE
+    const brasDroitEndRotate = ALIEN_BRAS_DROIT_END_ROTATE
+    const avantBrasDroitStartRotate = ALIEN_AVANT_BRAS_DROIT_START_ROTATE
+    const avantBrasDroitEndRotate = ALIEN_AVANT_BRAS_DROIT_END_ROTATE
+    const avantBrasDroitStartY = ALIEN_AVANT_BRAS_DROIT_START_Y
+    const avantBrasDroitEndY = ALIEN_AVANT_BRAS_DROIT_END_Y
+    const avantBrasDroitStartX = ALIEN_AVANT_BRAS_DROIT_START_X
+    const avantBrasDroitEndX = ALIEN_AVANT_BRAS_DROIT_END_X
+    const avantBrasDroitEndX2 = ALIEN_AVANT_BRAS_DROIT_END_X2
+    const jambesHautDroiteStartRotate = ALIEN_JAMBES_HAUT_DROITE_START_ROTATE
+    const jambesHautDroiteEndRotate = ALIEN_JAMBES_HAUT_DROITE_END_ROTATE
+    const jambesBasDroiteStartRotate = ALIEN_JAMBES_BAS_DROITE_START_ROTATE
+    const jambesBasDroiteEndRotate = ALIEN_JAMBES_BAS_DROITE_END_ROTATE
+    const jambesBasDroiteStartY = ALIEN_JAMBES_BAS_DROITE_START_Y
+    const jambesBasDroiteEndY = ALIEN_JAMBES_BAS_DROITE_END_Y
+    const jambesBasDroiteStartX = ALIEN_JAMBES_BAS_DROITE_START_X
+    const jambesBasDroiteEndX = ALIEN_JAMBES_BAS_DROITE_END_X
+    const extraterrestreStartRotate = ALIEN_EXTRATERRESTRE_START_ROTATE
+    const extraterrestreEndRotate = ALIEN_EXTRATERRESTRE_END_ROTATE
 
-    const avantBrasGaucheStartRotate = 0
-    const avantBrasGaucheEndRotate = 100
-    const avantBrasGaucheStartY = 0
-    const avantBrasGaucheEndY = -45
-    const avantBrasGaucheStartX = 0
-    const avantBrasGaucheEndX = -5
-    const avantBrasGaucheEndX2 = 35
-
-    const brasDroitStartRotate = 0  // Le SVG a déjà une rotation de 20° par défaut
-    const brasDroitEndRotate = 150
-
-    const avantBrasDroitStartRotate = 0
-    const avantBrasDroitEndRotate = 100
-    const avantBrasDroitStartY = 0
-    const avantBrasDroitEndY = -50
-    const avantBrasDroitStartX = 0
-    const avantBrasDroitEndX = -5
-    const avantBrasDroitEndX2 = 50
-
-    const jambesHautDroiteStartRotate = 0
-    const jambesHautDroiteEndRotate = 70
-
-    const jambesBasDroiteStartRotate = 0
-    const jambesBasDroiteEndRotate = 50
-    const jambesBasDroiteStartY = 0
-    const jambesBasDroiteEndY = -18
-    const jambesBasDroiteStartX = 0
-    const jambesBasDroiteEndX = -18
-
-    const extraterrestreStartRotate = 0
-    const extraterrestreEndRotate = 90
-
-    // Initialiser les rotations de départ
         gsap.set(brasGauche, {
             transformOrigin: 'top center',
             rotation: brasGaucheStartRotate,
@@ -581,40 +666,42 @@ export function createAlienScrollAnimation(
         y: jambesBasDroiteStartY,
         force3D: true,
     })
+    const alienTransformOrigin = typeof window !== 'undefined' && window.innerWidth <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX ? 'right bottom' : 'bottom center'
     gsap.set(extraterrestre, {
-        transformOrigin: 'bottom center', // Centre original du SVG (64/2, 188/2) ajusté pour le nouveau viewBox
+        transformOrigin: alienTransformOrigin,
         rotation: extraterrestreStartRotate,
         force3D: true,
     })
 
-    // Timing de l'animation
-    const ANIMATION_START_PROGRESS = 0.42
-    const ANIMATION_END_PROGRESS = 0.48
-    const LEG_RETURN_START_PROGRESS = 0.46
-    const LEG_RETURN_END_PROGRESS = 0.48
+    const getAlienAnimationStart = () => ALIEN_ANIMATION_START
+    const getAlienAnimationEnd = () => ALIEN_ANIMATION_END
+    const getAlienLegReturnStart = () => ALIEN_LEG_RETURN_START
+    const getAlienLegReturnEnd = () => ALIEN_LEG_RETURN_END
 
     // Fonction pour mapper le progress global vers le progress local pour le retour des jambes
-    const mapProgressToLegReturn = (globalProgress: number): number => {
-        if (globalProgress < LEG_RETURN_START_PROGRESS) {
+    const mapProgressToLegReturn = (globalProgress: number, legReturnStart?: number, legReturnEnd?: number): number => {
+        const start = legReturnStart ?? getAlienLegReturnStart()
+        const end = legReturnEnd ?? getAlienLegReturnEnd()
+        if (globalProgress < start) {
             return 0  // Retour pas encore commencé
         }
-        if (globalProgress > LEG_RETURN_END_PROGRESS) {
+        if (globalProgress > end) {
             return 1  // Retour terminé
         }
-        // Mapper progress entre LEG_RETURN_START_PROGRESS et LEG_RETURN_END_PROGRESS vers 0 à 1
-        // Utiliser une courbe accélérée pour un retour plus rapide
-        const returnRange = LEG_RETURN_END_PROGRESS - LEG_RETURN_START_PROGRESS
-        const rawProgress = (globalProgress - LEG_RETURN_START_PROGRESS) / returnRange
-        // Appliquer une courbe d'accélération (quadratique) pour rendre le retour plus rapide
+        const returnRange = end - start
+        const rawProgress = (globalProgress - start) / returnRange
         const acceleratedProgress = rawProgress * rawProgress
         return Math.max(0, Math.min(1, acceleratedProgress))
     }
 
     // Fonction pour mettre à jour les rotations en fonction du progress
     const updateAlienLimbs = (globalProgress: number) => {
-        // Convertir le progress global en progress local pour l'animation
-        const animationProgress = mapProgressToAnimation(globalProgress, ANIMATION_START_PROGRESS, ANIMATION_END_PROGRESS)
-        const legReturnProgress = mapProgressToLegReturn(globalProgress)
+        const animationStart = getAlienAnimationStart()
+        const animationEnd = getAlienAnimationEnd()
+        const legReturnStart = getAlienLegReturnStart()
+        const legReturnEnd = getAlienLegReturnEnd()
+        const animationProgress = mapProgressToAnimation(globalProgress, animationStart, animationEnd)
+        const legReturnProgress = mapProgressToLegReturn(globalProgress, legReturnStart, legReturnEnd)
         
         // Calculer les rotations basées sur le progress local (0 à 1)
         const brasGaucheRotate = brasGaucheStartRotate + (brasGaucheEndRotate - brasGaucheStartRotate) * animationProgress
@@ -623,7 +710,7 @@ export function createAlienScrollAnimation(
         
         // Ralentir les rotations des avant-bras pour qu'ils suivent mieux les bras
         // Utiliser un facteur de ralentissement pour synchroniser avec les bras
-        const slowedRotationProgress = animationProgress * 0.85 // Ralentir de 15% pour mieux suivre les bras
+        const slowedRotationProgress = animationProgress * ALIEN_AVANT_BRAS_SLOWED_ROTATION
         const avantBrasGaucheRotate = avantBrasGaucheStartRotate + (avantBrasGaucheEndRotate - avantBrasGaucheStartRotate) * slowedRotationProgress
         const avantBrasDroitRotate = avantBrasDroitStartRotate + (avantBrasDroitEndRotate - avantBrasDroitStartRotate) * slowedRotationProgress
         
@@ -636,10 +723,8 @@ export function createAlienScrollAnimation(
         
         // Ralentir l'animation des avant-bras pour qu'ils suivent mieux les bras
         // Utiliser un facteur de ralentissement pour synchroniser avec les bras
-        const slowedProgress = animationProgress * 0.8 // Ralentir de 20% pour mieux suivre les bras
-        
-        // Phase 1 : de start à end (0 à ~0.7 de animationProgress ralenti)
-        const phase1Threshold = 0.7
+        const slowedProgress = animationProgress * ALIEN_AVANT_BRAS_SLOWED_XY
+        const phase1Threshold = ALIEN_AVANT_BRAS_PHASE1_THRESHOLD
         if (slowedProgress < phase1Threshold) {
             const phase1Progress = slowedProgress / phase1Threshold
             avantBrasGaucheX = avantBrasGaucheStartX + (avantBrasGaucheEndX - avantBrasGaucheStartX) * phase1Progress
@@ -655,24 +740,21 @@ export function createAlienScrollAnimation(
             avantBrasDroitY = avantBrasDroitEndY // Y reste constant dans la phase 2
         }
         
-        // Pour les jambes : utiliser animationProgress avant LEG_RETURN_START_PROGRESS, puis legReturnProgress après
+        // Pour les jambes : utiliser animationProgress avant legReturnStart, puis legReturnProgress après
         let jambesHautDroiteRotate: number
         let jambesBasDroiteRotate: number
         let jambesBasDroiteX: number
         let jambesBasDroiteY: number
         
-        if (globalProgress < LEG_RETURN_START_PROGRESS) {
+        if (globalProgress < legReturnStart) {
             // Phase d'extension : utiliser animationProgress
-            // S'assurer que animationProgress est utilisé de manière continue
             jambesHautDroiteRotate = jambesHautDroiteStartRotate + (jambesHautDroiteEndRotate - jambesHautDroiteStartRotate) * animationProgress
             jambesBasDroiteRotate = jambesBasDroiteStartRotate + (jambesBasDroiteEndRotate - jambesBasDroiteStartRotate) * animationProgress
             jambesBasDroiteX = jambesBasDroiteStartX + (jambesBasDroiteEndX - jambesBasDroiteStartX) * animationProgress
             jambesBasDroiteY = jambesBasDroiteStartY + (jambesBasDroiteEndY - jambesBasDroiteStartY) * animationProgress
         } else {
             // Phase de retour : partir des valeurs finales et revenir vers les valeurs initiales
-            // À globalProgress = LEG_RETURN_START_PROGRESS, legReturnProgress = 0, donc on utilise les valeurs finales
-            // Calculer les valeurs finales pour assurer la continuité
-            const finalAnimationProgress = mapProgressToAnimation(LEG_RETURN_START_PROGRESS, LEG_RETURN_START_PROGRESS, LEG_RETURN_END_PROGRESS)
+            const finalAnimationProgress = mapProgressToAnimation(legReturnStart, animationStart, animationEnd)
             const jambesHautDroiteFinalRotate = jambesHautDroiteStartRotate + (jambesHautDroiteEndRotate - jambesHautDroiteStartRotate) * finalAnimationProgress
             const jambesBasDroiteFinalRotate = jambesBasDroiteStartRotate + (jambesBasDroiteEndRotate - jambesBasDroiteStartRotate) * finalAnimationProgress
             const jambesBasDroiteFinalX = jambesBasDroiteStartX + (jambesBasDroiteEndX - jambesBasDroiteStartX) * finalAnimationProgress
@@ -695,7 +777,8 @@ export function createAlienScrollAnimation(
         gsap.set(jambesHautDroite, { rotation: jambesHautDroiteRotate, force3D: true })
         gsap.set(jambesBasDroite, { rotation: jambesBasDroiteRotate, x: jambesBasDroiteX, y: jambesBasDroiteY, force3D: true })
         
-        gsap.set(extraterrestre, { rotation: extraterrestreRotate, force3D: true })
+        const transformOrigin = typeof window !== 'undefined' && window.innerWidth <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX ? 'right bottom' : 'bottom center'
+        gsap.set(extraterrestre, { transformOrigin, rotation: extraterrestreRotate, force3D: true })
     }
 
     // Initialiser les valeurs dès le début pour éviter les sauts
@@ -704,24 +787,25 @@ export function createAlienScrollAnimation(
     // Si scrollTween est disponible, utiliser son ScrollTrigger
     if (scrollTween && scrollTween.scrollTrigger) {
         const mainScrollTrigger = scrollTween.scrollTrigger
-        
-        // Surveiller la progression et mettre à jour les membres
+
+        // Surveiller la progression et mettre à jour les membres (progressPhase2 = bloc About)
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
-            
+            const { progressPhase2 } = getPhaseProgress(progress, scrollValues)
+
             if (progress !== lastProgress) {
                 lastProgress = progress
-                updateAlienLimbs(progress)
+                updateAlienLimbs(progressPhase2)
             }
-            
+
             requestAnimationFrame(updateLoop)
         }
         updateLoop()
     } else {
         // Initialiser les valeurs dès le début
         updateAlienLimbs(0)
-        
+
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -729,11 +813,46 @@ export function createAlienScrollAnimation(
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                updateAlienLimbs(self.progress)
+                const { progressPhase2 } = getPhaseProgress(self.progress, scrollValues)
+                updateAlienLimbs(progressPhase2)
             }
         })
     }
 
+}
+
+function getHologramBasesStartPositions(): {
+    baseDroite: Point
+    baseGauche: Point
+} {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1200
+    const desktopDroite = { x: HOLOGRAM_BASES_DESKTOP_DROITE_X, y: HOLOGRAM_BASES_DESKTOP_DROITE_Y }
+    const desktopGauche = { x: HOLOGRAM_BASES_DESKTOP_GAUCHE_X, y: HOLOGRAM_BASES_DESKTOP_GAUCHE_Y }
+    if (w > HOLOGRAM_BASES_TABLET_MAX) {
+        return { baseDroite: desktopDroite, baseGauche: desktopGauche }
+    }
+    if (w > HOLOGRAM_BASES_MOBILE_MAX) {
+        return {
+            baseDroite: { x: desktopDroite.x * HOLOGRAM_BASES_TABLET_SCALE_DROITE_X, y: HOLOGRAM_BASES_TABLET_Y_DROITE },
+            baseGauche: { x: desktopGauche.x * HOLOGRAM_BASES_TABLET_SCALE_GAUCHE_X, y: HOLOGRAM_BASES_TABLET_Y_GAUCHE },
+        }
+    }
+    if (w <= HOLOGRAM_BASES_VERY_SMALL_PHONE_MAX) {
+        return {
+            baseDroite: { x: desktopDroite.x * HOLOGRAM_BASES_VERY_SMALL_SCALE_DROITE_X, y: HOLOGRAM_BASES_VERY_SMALL_Y_DROITE },
+            baseGauche: { x: desktopGauche.x * HOLOGRAM_BASES_VERY_SMALL_SCALE_GAUCHE_X, y: HOLOGRAM_BASES_VERY_SMALL_Y_GAUCHE },
+        }
+    }
+    if (w <= HOLOGRAM_BASES_SMALL_PHONE_MAX) {
+        return {
+            baseDroite: { x: desktopDroite.x * HOLOGRAM_BASES_SMALL_PHONE_SCALE_DROITE_X, y: HOLOGRAM_BASES_SMALL_PHONE_Y_DROITE },
+            baseGauche: { x: desktopGauche.x * HOLOGRAM_BASES_SMALL_PHONE_SCALE_GAUCHE_X, y: HOLOGRAM_BASES_SMALL_PHONE_Y_GAUCHE },
+        }
+    }
+    return {
+        baseDroite: { x: desktopDroite.x * HOLOGRAM_BASES_MOBILE_SCALE_DROITE_X, y: HOLOGRAM_BASES_MOBILE_Y_DROITE },
+        baseGauche: { x: desktopGauche.x * HOLOGRAM_BASES_MOBILE_SCALE_GAUCHE_X, y: HOLOGRAM_BASES_MOBILE_Y_GAUCHE },
+    }
 }
 
 /**
@@ -750,73 +869,64 @@ export function createHologramBasesScrollAnimation(
     // Trouver les éléments de l'hologramme
     const baseDroite = hologramElement.querySelector('#base-droite') as HTMLElement | null
     const baseGauche = hologramElement.querySelector('#base-gauche') as HTMLElement | null
-    
+
     if (!baseDroite || !baseGauche) return
 
-    // Valeurs de départ pour la base droite
-    const BaseDroiteStartX = -595
-    const BaseDroiteStartY = -11
-    const BaseDroiteEndX = 0
-    const BaseDroiteEndY = 0
-    const BaseDroiteStartRotate = 180
-    const BaseDroiteEndRotate = 0
-
-    // Valeurs de départ pour la base gauche
-    const BaseGaucheStartX = -140
-    const BaseGaucheStartY = -80
-    const BaseGaucheEndX = 0
-    const BaseGaucheEndY = 0
-    const BaseGaucheStartRotate = 0
-    const BaseGaucheEndRotate = 0
-
-    // Initialiser les valeurs dès le début pour éviter les sauts
-    gsap.set(baseDroite, {
-        x: BaseDroiteStartX,
-        y: BaseDroiteStartY,
-        rotation: BaseDroiteStartRotate,
-        force3D: true,
-    })
-
-    gsap.set(baseGauche, {
-        x: BaseGaucheStartX,
-        y: BaseGaucheStartY,
-        rotation: BaseGaucheStartRotate,
-        force3D: true,
-    })
-
-    // Timing de l'animation
-    const ANIMATION_START_BASES_PROGRESS = 0.42
-    const ANIMATION_END_BASES_PROGRESS = 0.48
+    const applyInitialBases = () => {
+        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions()
+        gsap.set(baseDroite, {
+            x: startD.x,
+            y: startD.y,
+            rotation: HOLOGRAM_BASES_DROITE_START_ROTATE,
+            force3D: true,
+        })
+        gsap.set(baseGauche, {
+            x: startG.x,
+            y: startG.y,
+            rotation: HOLOGRAM_BASES_GAUCHE_START_ROTATE,
+            force3D: true,
+        })
+    }
+    applyInitialBases()
 
     function arcPosition(start: Point, end: Point, progress: number, height: number): Point {
-         const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-         const x = lerp(start.x, end.x, progress)
-         const y = lerp(start.y, end.y, progress)
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+        const x = lerp(start.x, end.x, progress)
+        const y = lerp(start.y, end.y, progress)
 
-         const angle = Math.sin(Math.PI * progress)
-         return {x, y: y - height * angle}
+        const angle = Math.sin(Math.PI * progress)
+        return { x, y: y - height * angle }
     }
 
-    // Fonction pour mettre à jour les transformations en fonction du progress
-    const updateHologramBases = (globalProgress: number) => {
-        // Convertir le progress global en progress local pour l'animation
-        const animationProgress = mapProgressToAnimation(globalProgress, ANIMATION_START_BASES_PROGRESS, ANIMATION_END_BASES_PROGRESS)
-        
-        // Calculer les transformations basées sur le progress local (0 à 1)
-        const baseDroiteRotate = BaseDroiteStartRotate + (BaseDroiteEndRotate - BaseDroiteStartRotate) * animationProgress
-        const baseGaucheRotate = BaseGaucheStartRotate + (BaseGaucheEndRotate - BaseGaucheStartRotate) * animationProgress
+    // Fonction pour mettre à jour les transformations en fonction du progress (progressPhase2 = bloc About)
+    const updateHologramBases = (progressPhase2: number) => {
+        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions()
 
-        const baseDroitePosition = arcPosition({x: BaseDroiteStartX, y: BaseDroiteStartY}, {x: BaseDroiteEndX, y: BaseDroiteEndY}, animationProgress, 200)
-        const baseGauchePosition = arcPosition({x: BaseGaucheStartX, y: BaseGaucheStartY}, {x: BaseGaucheEndX, y: BaseGaucheEndY}, animationProgress, 200)
+        const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_BASES_ANIMATION_START, HOLOGRAM_BASES_ANIMATION_END)
 
-        // Appliquer les transformations
-        gsap.set(baseDroite, { 
+        const baseDroiteRotate = HOLOGRAM_BASES_DROITE_START_ROTATE + (HOLOGRAM_BASES_DROITE_END_ROTATE - HOLOGRAM_BASES_DROITE_START_ROTATE) * animationProgress
+        const baseGaucheRotate = HOLOGRAM_BASES_GAUCHE_START_ROTATE + (HOLOGRAM_BASES_GAUCHE_END_ROTATE - HOLOGRAM_BASES_GAUCHE_START_ROTATE) * animationProgress
+
+        const baseDroitePosition = arcPosition(
+            { x: startD.x, y: startD.y },
+            { x: HOLOGRAM_BASES_DROITE_END_X, y: HOLOGRAM_BASES_DROITE_END_Y },
+            animationProgress,
+            HOLOGRAM_BASES_ARC_HEIGHT
+        )
+        const baseGauchePosition = arcPosition(
+            { x: startG.x, y: startG.y },
+            { x: HOLOGRAM_BASES_GAUCHE_END_X, y: HOLOGRAM_BASES_GAUCHE_END_Y },
+            animationProgress,
+            HOLOGRAM_BASES_ARC_HEIGHT
+        )
+
+        gsap.set(baseDroite, {
             x: baseDroitePosition.x,
             y: baseDroitePosition.y,
             rotation: baseDroiteRotate,
             force3D: true,
-            })
-        gsap.set(baseGauche, { 
+        })
+        gsap.set(baseGauche, {
             x: baseGauchePosition.x,
             y: baseGauchePosition.y,
             rotation: baseGaucheRotate,
@@ -831,13 +941,14 @@ export function createHologramBasesScrollAnimation(
     if (scrollTween && scrollTween.scrollTrigger) {
         const mainScrollTrigger = scrollTween.scrollTrigger
 
-        // Surveiller la progression et mettre à jour les transformations
+        // Surveiller la progression et mettre à jour les transformations (progressPhase2 = bloc About)
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
+            const { progressPhase2 } = getPhaseProgress(progress, scrollValues)
             if (progress !== lastProgress) {
                 lastProgress = progress
-                updateHologramBases(progress)
+                updateHologramBases(progressPhase2)
             }
 
             requestAnimationFrame(updateLoop)
@@ -846,7 +957,7 @@ export function createHologramBasesScrollAnimation(
     } else {
         // Initialiser les valeurs dès le début
         updateHologramBases(0)
-        
+
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -854,7 +965,8 @@ export function createHologramBasesScrollAnimation(
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                updateHologramBases(self.progress)
+                const { progressPhase2 } = getPhaseProgress(self.progress, scrollValues)
+                updateHologramBases(progressPhase2)
             }
         })
     }
@@ -874,33 +986,22 @@ export function createHologramReflecteursScrollAnimation(
 
     if (!reflecteurGauche || !reflecteurDroit || !ecran) return
 
-    // Valeurs de départ pour le reflecteur gauche
-    const ReflecteurGaucheStartScaleY =  0
-    const ReflecteurGaucheEndScaleY = 1
-
-    // Valeurs de départ pour le reflecteur droit
-    const ReflecteurDroitStartScaleY = 0
-    const ReflecteurDroitEndScaleY = 1
-
     gsap.set(reflecteurGauche, {
         transformOrigin: 'bottom',
-        scaleY: ReflecteurGaucheStartScaleY,
+        scaleY: HOLOGRAM_REFLECTEURS_GAUCHE_START_SCALE_Y,
         force3D: true,
     })
 
     gsap.set(reflecteurDroit, {
         transformOrigin: 'bottom',
-        scaleY: ReflecteurDroitStartScaleY,
+        scaleY: HOLOGRAM_REFLECTEURS_DROIT_START_SCALE_Y,
         force3D: true,
     })
 
-    const ANIMATION_START_REFLECTEURS_PROGRESS = 0.48
-    const ANIMATION_END_REFLECTEURS_PROGRESS = 0.54
-
-    const updateHologramReflecteurs = (globalProgress: number) => {
-        const animationProgress = mapProgressToAnimation(globalProgress, ANIMATION_START_REFLECTEURS_PROGRESS, ANIMATION_END_REFLECTEURS_PROGRESS)
-        const reflecteurGaucheY = ReflecteurGaucheStartScaleY + (ReflecteurGaucheEndScaleY - ReflecteurGaucheStartScaleY) * animationProgress
-        const reflecteurDroitY = ReflecteurDroitStartScaleY + (ReflecteurDroitEndScaleY - ReflecteurDroitStartScaleY) * animationProgress
+    const updateHologramReflecteurs = (progressPhase2: number) => {
+        const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_REFLECTEURS_ANIMATION_START, HOLOGRAM_REFLECTEURS_ANIMATION_END)
+        const reflecteurGaucheY = HOLOGRAM_REFLECTEURS_GAUCHE_START_SCALE_Y + (HOLOGRAM_REFLECTEURS_GAUCHE_END_SCALE_Y - HOLOGRAM_REFLECTEURS_GAUCHE_START_SCALE_Y) * animationProgress
+        const reflecteurDroitY = HOLOGRAM_REFLECTEURS_DROIT_START_SCALE_Y + (HOLOGRAM_REFLECTEURS_DROIT_END_SCALE_Y - HOLOGRAM_REFLECTEURS_DROIT_START_SCALE_Y) * animationProgress
         gsap.set(reflecteurGauche, { scaleY: reflecteurGaucheY, force3D: true })
         gsap.set(reflecteurDroit, { scaleY: reflecteurDroitY, force3D: true })
     }
@@ -911,13 +1012,14 @@ export function createHologramReflecteursScrollAnimation(
     if (scrollTween && scrollTween.scrollTrigger) {
         const mainScrollTrigger = scrollTween.scrollTrigger
 
-        // Surveiller la progression et mettre à jour les transformations
+        // Surveiller la progression et mettre à jour les transformations (progressPhase2 = bloc About)
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
+            const { progressPhase2 } = getPhaseProgress(progress, scrollValues)
             if (progress !== lastProgress) {
                 lastProgress = progress
-                updateHologramReflecteurs(progress)
+                updateHologramReflecteurs(progressPhase2)
             }
 
             requestAnimationFrame(updateLoop)
@@ -926,7 +1028,7 @@ export function createHologramReflecteursScrollAnimation(
     } else {
         // Initialiser les valeurs dès le début
         updateHologramReflecteurs(0)
-        
+
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -934,7 +1036,8 @@ export function createHologramReflecteursScrollAnimation(
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                updateHologramReflecteurs(self.progress)
+                const { progressPhase2 } = getPhaseProgress(self.progress, scrollValues)
+                updateHologramReflecteurs(progressPhase2)
             }
         })
     }
@@ -953,20 +1056,11 @@ export function createHologramEcranScrollAnimation(
 
     if (!ecran) return
 
-    const EcranStartScaleX = 0
-    const EcranEndScaleX = 1
-
     gsap.set(ecran, {
         transformOrigin: 'left',
-        scaleX: EcranStartScaleX,
+        scaleX: HOLOGRAM_ECRAN_START_SCALE_X,
         force3D: true,
     })
-
-    const ANIMATION_START_ECRA_PROGRESS = 0.54
-    const ANIMATION_END_ECRA_PROGRESS = 0.6
-    // L'animation handwriting commence après #ecran et dure jusqu'à la fin du scroll
-    const HANDWRITING_START_PROGRESS = ANIMATION_END_ECRA_PROGRESS
-    const HANDWRITING_END_PROGRESS = .75
 
     // Créer l'animation handwriting dès le début pour pouvoir la contrôler avec le scroll
     let handwritingController: ReturnType<typeof createHandwritingAnimation> | null = null
@@ -974,19 +1068,18 @@ export function createHologramEcranScrollAnimation(
         handwritingController = createHandwritingAnimation(handwritingElement)
     }
 
-    const updateHologramEcran = (globalProgress: number) => {
-        const animationProgress = mapProgressToAnimation(globalProgress, ANIMATION_START_ECRA_PROGRESS, ANIMATION_END_ECRA_PROGRESS)
-        const ecranScaleX = EcranStartScaleX + (EcranEndScaleX - EcranStartScaleX) * animationProgress
+    const updateHologramEcran = (progressPhase2: number) => {
+        const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_ECRA_ANIMATION_START, HOLOGRAM_ECRA_ANIMATION_END)
+        const ecranScaleX = HOLOGRAM_ECRAN_START_SCALE_X + (HOLOGRAM_ECRAN_END_SCALE_X - HOLOGRAM_ECRAN_START_SCALE_X) * animationProgress
         gsap.set(ecran, { scaleX: ecranScaleX, force3D: true })
 
         // Contrôler l'animation handwriting en fonction du scroll (forward et backward)
         if (handwritingController) {
-            if (globalProgress >= HANDWRITING_START_PROGRESS) {
-                // Calculer le progress local de l'animation handwriting (0 à 1)
+            if (progressPhase2 >= HOLOGRAM_HANDWRITING_START) {
                 const handwritingProgress = mapProgressToAnimation(
-                    globalProgress,
-                    HANDWRITING_START_PROGRESS,
-                    HANDWRITING_END_PROGRESS
+                    progressPhase2,
+                    HOLOGRAM_HANDWRITING_START,
+                    HOLOGRAM_HANDWRITING_END
                 )
                 // Mettre à jour la progression de l'animation
                 handwritingController.setProgress(handwritingProgress)
@@ -1003,13 +1096,14 @@ export function createHologramEcranScrollAnimation(
     if (scrollTween && scrollTween.scrollTrigger) {
         const mainScrollTrigger = scrollTween.scrollTrigger
 
-        // Surveiller la progression et mettre à jour les transformations
+        // Surveiller la progression et mettre à jour les transformations (progressPhase2 = bloc About)
         let lastProgress = -1
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
+            const { progressPhase2 } = getPhaseProgress(progress, scrollValues)
             if (progress !== lastProgress) {
                 lastProgress = progress
-                updateHologramEcran(progress)
+                updateHologramEcran(progressPhase2)
             }
 
             requestAnimationFrame(updateLoop)
@@ -1018,7 +1112,7 @@ export function createHologramEcranScrollAnimation(
     } else {
         // Initialiser les valeurs dès le début
         updateHologramEcran(0)
-        
+
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -1026,7 +1120,8 @@ export function createHologramEcranScrollAnimation(
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                updateHologramEcran(self.progress)
+                const { progressPhase2 } = getPhaseProgress(self.progress, scrollValues)
+                updateHologramEcran(progressPhase2)
             }
         })
     }
@@ -1056,13 +1151,20 @@ export function configureAllScrollAnimations(
         const totalWidth = sections.reduce((sum, section) => sum + section.offsetWidth, 0)
         const viewportWidth = window.innerWidth
         const scrollDistance = totalWidth - viewportWidth
-        const initialScrollBlock = INITIAL_SCROLL_BLOCK
+        const scaleRatio = viewportWidth / VIEWPORT_REFERENCE_WIDTH
+        const initialScrollBlock = SECOND_SECTION_BLOCK_START * ROCKET_PAN_START_RATIO * scaleRatio
+        const phase1EndScroll = SECOND_SECTION_BLOCK_START * scaleRatio
+        const phase2StartScroll = SECOND_SECTION_BLOCK_START * scaleRatio
+        const phase2EndScroll = SECOND_SECTION_BLOCK_END * scaleRatio
         scrollValues = {
             scrollDistanceWithMovement: scrollDistance,
             scrollDistanceWithoutMovement: initialScrollBlock + scrollDistance,
             initialScrollBlock,
             totalWidth,
             viewportWidth,
+            phase1EndScroll,
+            phase2StartScroll,
+            phase2EndScroll,
         }
     }
 
@@ -1070,7 +1172,7 @@ export function configureAllScrollAnimations(
     const animations: ScrollAnimationConfig[] = []
 
     // 1. Animation de la fusée (utilise les valeurs uniformisées)
-    createRocketScrollAnimation(rocketElement, container, scrollValues, scrollTween)
+    createRocketScrollAnimation(rocketElement, container, scrollValues, scrollTween, sections[0] ?? null)
 
     // 2. Animation des feux de la fusée (utilise les valeurs uniformisées)
     createRocketFireScrollAnimation(rocketElement, container, scrollValues, scrollTween)

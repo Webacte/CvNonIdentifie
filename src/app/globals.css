@@ -10,6 +10,51 @@ body {
   overflow-x: hidden;
 }
 
+/* Scrollbar verticale native : même apparence que l’ancienne barre horizontale (fond #e6dbbd) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) #e6dbbd;
+}
+
+body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) #e6dbbd;
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #e6dbbd;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #e6dbbd;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
 html {
   min-height: 100%;
 }
@@ -21,6 +66,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  min-height: 100svh;
   background-color: #e6dbbd;
   background-image: 
     repeating-linear-gradient(
@@ -93,7 +139,7 @@ body::before {
   background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
 }
 
-/* Ligne de sol : à l'intérieur du horizontal-scroll-wrapper, elle scroll avec le contenu */
+/* Ligne de sol : à l'intérieur du horizontal-scroll-wrapper */
 .ground-line {
   position: absolute;
   top: 83.33%;
@@ -109,12 +155,31 @@ body::before {
   pointer-events: none;
 }
 
+@media (max-width: 768px) {
+  .ground-overcoat {
+    top: 65%;
+  }
+  .ground-line {
+    top: 65%;
+  }
+}
+
+/* Mobile ≤425px : sol remonté encore de 10% pour gagner de la hauteur utile */
+@media (max-width: 425px) {
+  .ground-overcoat {
+    top: 55%;
+  }
+  .ground-line {
+    top: 55%;
+  }
+}
+
 .handwriting-svg path {
   /* Rendre les lettres pleines avec fill, mais stroke plus fin pour la lisibilité */
   fill: currentColor;
   stroke: currentColor;
   /* Réduire le stroke-width pour améliorer la lisibilité */
-  stroke-width: 0.8;
+  stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
   /* Le fill-opacity sera contrôlé par JavaScript pour révéler progressivement */

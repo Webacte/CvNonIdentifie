@@ -22,50 +22,45 @@
     position: absolute;
     z-index: 12;
     /* Positionnement centré sur petit écran, décalé à gauche sur grand écran */
-    left: 50%;
+    left: 45%;
     top: 55%;
-    transform: translate(-50%, -50%);
-    /* Ajustement responsive : décaler vers la gauche sur grand écran */
+    /* Décalage global à gauche + 10% à droite + centrage vertical ; écarts entre breakpoints respectés plus bas */
+    transform: translate(calc(-50% - 4vw + 5vw), -50%);
     width: auto;
     max-width: 80vw;
 }
 
-/* Réduire légèrement la taille du SVG pour améliorer la lisibilité */
-.handwriting-wrapper svg {
-    /* Réduire la taille de 10% pour rendre les lettres plus petites mais garder l'espacement */
-    transform: scale(0.9);
-    transform-origin: center;
-}
-
-/* Sur grand écran, décaler vers la gauche */
-@media (min-width: 1200px) {
+/* Grands écrans : recentrer le handwriting */
+@media (min-width: 1588px) {
     .handwriting-wrapper {
-        transform: translate(calc(-50% - 8vw), -50%);
+        left: 37%;
     }
 }
 
-@media (min-width: 1600px) {
-    .handwriting-wrapper {
-        transform: translate(calc(-50% - 12vw), -50%);
-    }
-}
+/* Écartement des lettres : translateX incrémental sur les groupes (appliqué au chargement du SVG).
+   On évite scale() car il réduirait aussi les espacements. */
 
-/* Sur très grand écran, décaler encore plus */
-@media (min-width: 2000px) {
-    .handwriting-wrapper {
-        transform: translate(calc(-50% - 16vw), -50%);
-    }
-}
-
-/* Sur petit écran, centrer */
+/* Sur petit écran : plus petit et décalé à gauche pour rester dans l'hologramme */
 @media (max-width: 768px) {
     .handwriting-wrapper {
+        left: 31%;
+        top: 49%;
         transform: translate(-50%, -50%);
-        max-width: 90vw;
+        max-width: 38vw;
     }
-    
-    /* Sur mobile, réduire encore plus la taille si nécessaire */
-    .handwriting-wrapper svg {
-        transform: scale(0.85);
+}
+
+@media (max-width: 480px) {
+    .handwriting-wrapper {
+        left: 29%;
+        top: 57%;
+        max-width: 40vw;
+    }
+}
+
+/* Mobile ≤425px : handwriting remonté en proportion du sol (sol à 55%) */
+@media (max-width: 425px) {
+    .handwriting-wrapper {
+        top: 47%;
     }
 }

@@ -1,14 +1,15 @@
 'use client' // GSAP coté client
 
 import React, { useEffect, useRef, useState } from 'react'
-import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import '@/animations/gsap' // Enregistre les plugins GSAP
+import '@/animations/gsap'
 import { setupHorizontalScroll } from '@/animations/horizontalScroll'
 import { configureAllScrollAnimations } from '@/animations/scrollAnimations'
 import PresentationSection from './PresentationSection'
 import AboutSection from './AboutSection'
 import ProjectsSection from './ProjectsSection'
+import ProjetsSection from './ProjetsSection'
+import ContactSection from './ContactSection'
 import '../../styles/HomePage.css'
 
 // Force TypeScript à traiter ce fichier comme un module
@@ -24,6 +25,8 @@ export default function HomePage() {
     const section1Ref = useRef<HTMLElement>(null)
     const section2Ref = useRef<HTMLElement>(null)
     const section3Ref = useRef<HTMLElement>(null)
+    const section4Ref = useRef<HTMLElement>(null)
+    const section5Ref = useRef<HTMLElement>(null)
     const aboutSvgRef = useRef<HTMLDivElement>(null)
     const hologramSvgRef = useRef<HTMLDivElement>(null)
     const profileDescriptionSvgRef = useRef<HTMLDivElement>(null)
@@ -119,14 +122,13 @@ export default function HomePage() {
             // - on retire width/height fixes si présents
             s = s.replace(/\swidth="[^"]*"/, "");
             s = s.replace(/\sheight="[^"]*"/, "");
-            // - on met width/height en 100% directement sur le SVG
+            // - on met width/height en 200% directement sur le SVG
             s = s.replace(/<svg\b/, `<svg width="200%" height="200%" preserveAspectRatio="xMidYMid meet"`);
-      
+
             setProfileDescriptionSvgContent(s);
           })
           .catch(() => {});
       }, []);
-
 
     // Configuration du scroll horizontal contrôlé avec GSAP ScrollTrigger
     useEffect(() => {
@@ -134,7 +136,7 @@ export default function HomePage() {
 
         const container = horizontalContainerRef.current
         const wrapper = horizontalWrapperRef.current
-        const sections = [section1Ref.current, section2Ref.current, section3Ref.current].filter(Boolean) as HTMLElement[]
+        const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
 
         if (sections.length === 0) return
 
@@ -201,6 +203,8 @@ export default function HomePage() {
                     profileDescriptionSvgContent={profileDescriptionSvgContent}
                 />
                 <ProjectsSection ref={section3Ref} />
+                <ProjetsSection ref={section4Ref} />
+                <ContactSection ref={section5Ref} />
             </div>
         </div>
     )

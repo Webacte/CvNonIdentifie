@@ -9,7 +9,8 @@
 /* Conteneur principal pour le scroll horizontal */
 .horizontal-scroll-container {
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100svh;
     overflow: hidden;
     position: relative;
     margin: 0;
@@ -22,7 +23,8 @@
 .horizontal-scroll-wrapper {
     display: flex;
     flex-direction: row;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100svh;
     will-change: transform;
     position: relative;
 }
@@ -30,12 +32,22 @@
 /* Chaque section horizontale */
 .horizontal-section {
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100svh;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+}
+
+/* Titre des sections placeholder (Projets, Contact) */
+.placeholder-title {
+    font-family: 'SP-Caffeine', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: normal;
+    opacity: 0.5;
+    margin: 0;
 }
 
 .presentationContainer {
@@ -83,7 +95,7 @@
 .rocket-container {
     position: absolute;
     transform-box: fill-box;
-    transform-origin: 85% 50%;
+    transform-origin: 85% 60%;
     width: 300px;
     height: 300px;
     left: 40vw;
@@ -91,10 +103,15 @@
     z-index: 1;
 }
 
-/* Ajustement responsive pour mobile */
+/* Ajustement responsive pour tablette (768px) */
 @media (max-width: 768px) {
     .rocket-container {
         left: -10vw;
+    }
+    /* Remonter un peu le nom et la description */
+    #myName,
+    .descriptionContainer {
+        margin-top: -4vh;
     }
 }
 
@@ -144,6 +161,7 @@
     .about-svg-container {
         width: 150px; /* Taille d'origine restaurée */
         left: 5vw;
+        top: 75%;
     }
 }
 
@@ -152,6 +170,13 @@
     .about-svg-container {
         width: 120px; /* Taille d'origine restaurée */
         left: 2vw;
+    }
+}
+
+/* Mobile ≤425px : éléments remontés en proportion du sol (sol à 55%) */
+@media (max-width: 425px) {
+    .about-svg-container {
+        top: 65%;
     }
 }
 
@@ -168,21 +193,49 @@
     opacity: 1;
 }
 
-/* Ajustement responsive pour mobile */
+/* Le SVG s’adapte à la taille du conteneur (responsive) */
+.hologram-svg-container svg {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+}
+
+/* Ajustement responsive pour mobile : largeur fixe pour que le SVG scale */
 @media (max-width: 768px) {
     .hologram-svg-container {
-        right: 5vw;
+        left: 50%;
+        top: 51%;
+        right: auto;
+        width: 108vw;
+        max-width: 108vw;
+        transform: translate(-50%, -50%);
     }
 }
 
 /* Ajustement pour très petits écrans */
 @media (max-width: 480px) {
     .hologram-svg-container {
-        right: 2vw;
+        top: 57%;
+        width: 132vw;
+        max-width: 132vw;
+    }
+}
+
+/* Mobile ≤425px : hologramme remonté en proportion du sol (sol à 55%) */
+@media (max-width: 425px) {
+    .hologram-svg-container {
+        top: 47%;
     }
 }
 
 #hologramme {
     scale: .75;
     transform-origin: 450px 200px;
+}
+
+@media (max-width: 768px) {
+    #hologramme {
+        transform-origin: center center;
+    }
 }

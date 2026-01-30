@@ -1,4 +1,5 @@
 import Vivus from 'vivus'
+import { HANDWRITING_PROFILE_SCALE } from './constants'
 
 /**
  * Options pour l'animation handwriting
@@ -66,36 +67,46 @@ export function createHandwritingAnimation(
         return null
     }
 
-    // Corriger l'ordre d'écriture : trier les paths par ligne (Y) puis par position X (gauche-droite)
-    // pour que les lignes s'écrivent de haut en bas et de gauche à droite
-    if (paths.length > 1) {
-        const parent = paths[0].parentElement
-        if (parent) {
-            // Obtenir la position de chaque path
-            const pathsWithPosition = paths.map(path => {
-                const rect = path.getBoundingClientRect()
-                return { 
-                    path, 
-                    y: rect.top + rect.height / 2, // Centre Y du path
-                    x: rect.left + rect.width / 2   // Centre X du path
-                }
-            })
-            
-            // Trier d'abord par Y (haut vers bas), puis par X (gauche vers droite)
-            pathsWithPosition.sort((a, b) => {
-                // Si la différence Y est significative (> 5px), c'est une ligne différente
-                if (Math.abs(a.y - b.y) > 5) {
-                    return a.y - b.y // Trier par Y (haut vers bas)
-                }
-                // Sinon, même ligne, trier par X (gauche vers droite)
-                return a.x - b.x
-            })
-            
-            // Réorganiser les paths dans le DOM dans le bon ordre
-            pathsWithPosition.forEach(({ path }) => {
-                parent.appendChild(path)
-            })
-        }
+    // Réordonner chaque ligne gauche→droite et appliquer l'écartement via <g> wrapper
+    const LETTER_SPACING_GAP = 0.75
+    for (let line = 1; line <= 4; line++) {
+        const lineEl = svg.querySelector(`#line-${line}`)
+        if (!lineEl) continue
+        const pathList = Array.from(lineEl.querySelectorAll('path')) as SVGPathElement[]
+        if (pathList.length === 0) continue
+
+        const withPos = pathList.map((p) => {
+            const b = p.getBBox()
+            return { path: p, x: b.x + b.width / 2 }
+        })
+        withPos.sort((a, b) => a.x - b.x)
+
+        withPos.forEach(({ path }, i) => {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+            g.setAttribute('transform', `translate(${i * LETTER_SPACING_GAP}, 0)`)
+            g.appendChild(path)
+            lineEl.appendChild(g)
+        })
+    }
+
+    // Réduire la taille du contenu et le centrer dans le viewBox
+    const profile = svg.querySelector('#profile-desktop') as SVGGElement | null
+    if (profile?.parentNode) {
+        const b = profile.getBBox()
+        const cx = b.x + b.width / 2
+        const cy = b.y + b.height / 2
+        const viewBox = svg.getAttribute('viewBox')
+        const [, , vw, vh] = (viewBox || '0 0 263 91').split(/\s+/).map(Number)
+        const vbCx = (vw || 263) / 2
+        const vbCy = (vh || 91) / 2
+        const scale = HANDWRITING_PROFILE_SCALE
+        const wrap = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+        wrap.setAttribute(
+            'transform',
+            `translate(${vbCx},${vbCy}) scale(${scale}) translate(${-cx},${-cy})`
+        )
+        profile.parentNode.insertBefore(wrap, profile)
+        wrap.appendChild(profile)
     }
 
     // Valeurs par défaut pour Vivus
@@ -120,7 +131,7 @@ export function createHandwritingAnimation(
             duration,
             delay,
             timingFunction: timingFunction ?? linearTiming,
-            start: 'manual', // Ne pas démarrer automatiquement
+            start: 'manual',
         } as Vivus.VivusOptions)
     } catch (error) {
         console.warn('Erreur lors de la création de l\'animation Vivus:', error)
@@ -135,30 +146,49 @@ export function createHandwritingAnimation(
     // Vivus gère automatiquement l'invisibilité avec strokeDasharray/offset
     vivusInstance.setFrameProgress(0)
 
-    // Retourner le contrôleur
+    const pathList = Array.from(svg.querySelectorAll('path')) as SVGPathElement[]
+    const pathCount = pathList.length
+
+    // Remplissage plus réaliste : plus rapide au fur et à mesure, avec ease-out
+    const FILL_RAMP_RATIO = 0.35 // fill 0→1 sur les 35 % premiers du tracé de chaque lettre
+    const easeOut = (x: number) => 1 - (1 - x) * (1 - x)
+
+    function updateFillOpacity(progress: number) {
+        const p = Math.max(0, Math.min(1, progress))
+        for (let i = 0; i < pathCount; i++) {
+            const t = p * pathCount - i
+            if (t <= 0) {
+                pathList[i].style.fillOpacity = '0'
+                continue
+            }
+            const tFill = Math.min(1, t / FILL_RAMP_RATIO)
+            const opacity = easeOut(tFill)
+            pathList[i].style.fillOpacity = String(opacity)
+        }
+    }
+
+    updateFillOpacity(0)
+
     return {
         vivus: vivusInstance,
         play: () => {
             vivusInstance?.play()
         },
         restart: () => {
-            // Reset puis rejouer
             vivusInstance?.reset()
-            // Petit délai pour s'assurer que le reset est bien appliqué
+            updateFillOpacity(0)
             setTimeout(() => {
                 vivusInstance?.play()
             }, 10)
         },
         kill: () => {
-            // Arrêter l'animation et nettoyer
             vivusInstance?.stop()
             vivusInstance?.destroy()
         },
         setProgress: (progress: number) => {
-            // Clamper progress entre 0 et 1
             const clampedProgress = Math.max(0, Math.min(1, progress))
-            // Utiliser setFrameProgress pour contrôler précisément l'animation
             vivusInstance?.setFrameProgress(clampedProgress)
+            updateFillOpacity(clampedProgress)
         },
     }
 }
