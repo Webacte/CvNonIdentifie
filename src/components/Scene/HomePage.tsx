@@ -1,10 +1,13 @@
 'use client' // GSAP coté client
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import '@/animations/gsap'
 import { setupHorizontalScroll } from '@/animations/horizontalScroll'
 import { configureAllScrollAnimations } from '@/animations/scrollAnimations'
+import { observeViewport, getViewportMetrics } from '@/animations/viewport'
+import { computeCamera, applyCamera } from '@/animations/camera'
+import { sceneConfig } from '@/animations/sceneConfig'
 import PresentationSection from './PresentationSection'
 import AboutSection from './AboutSection'
 import ProjectsSection from './ProjectsSection'
@@ -21,6 +24,7 @@ export default function HomePage() {
     const portraitRef = useRef<HTMLImageElement>(null)
     const descriptionContainerRef = useRef<HTMLDivElement>(null)
     const horizontalContainerRef = useRef<HTMLDivElement>(null)
+    const stageRef = useRef<HTMLDivElement>(null)
     const horizontalWrapperRef = useRef<HTMLDivElement>(null)
     const section1Ref = useRef<HTMLElement>(null)
     const section2Ref = useRef<HTMLElement>(null)
@@ -30,6 +34,36 @@ export default function HomePage() {
     const aboutSvgRef = useRef<HTMLDivElement>(null)
     const hologramSvgRef = useRef<HTMLDivElement>(null)
     const profileDescriptionSvgRef = useRef<HTMLDivElement>(null)
+    const experiencesHabitationBackRef = useRef<HTMLDivElement>(null)
+    const experiencesHabitationFrontRef = useRef<HTMLDivElement>(null)
+    const alien2ContainerRef = useRef<HTMLDivElement>(null)
+    const experienceQuestTitreRef = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip1Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip2Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip3Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip4Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip5Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescrip6Ref = useRef<HTMLDivElement>(null)
+    const experienceQuestDescripRefs = [
+        experienceQuestDescrip1Ref,
+        experienceQuestDescrip2Ref,
+        experienceQuestDescrip3Ref,
+        experienceQuestDescrip4Ref,
+        experienceQuestDescrip5Ref,
+        experienceQuestDescrip6Ref,
+    ]
+    const robotHeadRef = useRef<HTMLDivElement>(null)
+    const robotHandRef = useRef<HTMLDivElement>(null)
+    const convoyeurProjetRef = useRef<HTMLDivElement>(null)
+    const scaniaTitreRef = useRef<HTMLDivElement | null>(null)
+    const scaniaDescRef = useRef<HTMLDivElement | null>(null)
+    const likethatTitreRef = useRef<HTMLDivElement | null>(null)
+    const likethatDescRef = useRef<HTMLDivElement | null>(null)
+    const scrollAnimationsCleanupRef = useRef<(() => void) | void>(undefined)
+    const horizontalScrollKillRef = useRef<(() => void) | null>(null)
+    const observeUnsubscribeRef = useRef<(() => void) | null>(null)
+    const lastViewportWRef = useRef<number>(0)
+    const lastViewportHRef = useRef<number>(0)
     const [profileDescriptionSvgContent, setProfileDescriptionSvgContent] = useState<string>('')
     const [rocketContent, setRocketContent] = useState<string>('')
     const [aboutSvgContent, setAboutSvgContent] = useState<string>('')
@@ -118,60 +152,165 @@ export default function HomePage() {
               s = s.replace(/<svg\b/, `<svg class="handwriting-svg"`);
             }
       
-            // 2) Sizing responsive (évite de casser le viewBox)
-            // - on retire width/height fixes si présents
+            // 2) Sizing responsive : on retire width/height fixes si présents (CSS gère width:100% height:auto)
             s = s.replace(/\swidth="[^"]*"/, "");
             s = s.replace(/\sheight="[^"]*"/, "");
-            // - on met width/height en 200% directement sur le SVG
-            s = s.replace(/<svg\b/, `<svg width="200%" height="200%" preserveAspectRatio="xMidYMid meet"`);
 
             setProfileDescriptionSvgContent(s);
           })
           .catch(() => {});
       }, []);
 
-    // Configuration du scroll horizontal contrôlé avec GSAP ScrollTrigger
-    useEffect(() => {
-        if (!horizontalContainerRef.current || !horizontalWrapperRef.current || !rocketContent) return
+    // Init GSAP + caméra avant paint (useLayoutEffect) ; double rAF pour attendre le layout.
+    // Tests manuels : refresh page -> pas de saut après 0.5–1s, juste fade-in 160ms ;
+    // zoom -> rebuild ok, stage centré ; resize -> pas de boucle ResizeObserver, scrub inchangé.
+    useLayoutEffect(() => {
+        if (!horizontalContainerRef.current || !stageRef.current || !horizontalWrapperRef.current || !rocketContent) return
 
         const container = horizontalContainerRef.current
+        const stage = stageRef.current
         const wrapper = horizontalWrapperRef.current
-        const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
 
-        if (sections.length === 0) return
+        stage.classList.remove('is-ready')
 
-        // Attendre que le DOM soit complètement rendu avant de calculer les dimensions
-        const timeout = setTimeout(async () => {
-            // S'assurer que la page est en haut pour que le pin fonctionne correctement
-            window.scrollTo(0, 0)
-
-            // Vérifier que toutes les sections ont leur taille finale
+        const runInit = (metrics: { width: number; height: number }) => {
+            const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
+            if (sections.length === 0) return false
             const allSectionsReady = sections.every(section => section.offsetWidth > 0 && section.offsetHeight > 0)
-            
-            if (!allSectionsReady) {
-                // Si les sections ne sont pas prêtes, réessayer
-                ScrollTrigger.refresh()
-                return
-            }
+            if (!allSectionsReady) return false
 
+            const camera = computeCamera({
+                viewportW: metrics.width,
+                viewportH: metrics.height,
+                worldW: sceneConfig.world.width,
+                worldH: sceneConfig.world.height,
+                ...sceneConfig.cameraOptions,
+            })
+            applyCamera(stage, camera)
 
-            // Configurer le scroll horizontal (calcule et définit automatiquement la largeur du wrapper)
-            const { scrollTween, scrollValues } = setupHorizontalScroll(container, wrapper, sections)
-
-            // Configurer toutes les animations qui suivent le scroll
-            configureAllScrollAnimations(container, wrapper, sections, rocketRef.current, scrollTween, scrollValues, portraitRef.current, descriptionContainerRef.current, aboutSvgRef.current, hologramSvgRef.current, profileDescriptionSvgRef.current)
-
-            // Rafraîchir ScrollTrigger pour s'assurer que tout est bien calculé
-            ScrollTrigger.refresh()
-            
-            // S'assurer que la page est toujours en haut après le refresh
-            window.scrollTo(0, 0)
-        }, 200) // Augmenter le délai pour s'assurer que tout est rendu
-
-        // Nettoyage
-        return () => {
-            clearTimeout(timeout)
+            scrollAnimationsCleanupRef.current?.()
+            scrollAnimationsCleanupRef.current = undefined
+            horizontalScrollKillRef.current?.()
+            horizontalScrollKillRef.current = null
             ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+
+            const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections, camera)
+            horizontalScrollKillRef.current = kill
+            scrollAnimationsCleanupRef.current = configureAllScrollAnimations(
+                container,
+                sections,
+                wrapper,
+                rocketRef.current,
+                scrollTween,
+                scrollValues,
+                portraitRef.current,
+                descriptionContainerRef.current,
+                aboutSvgRef.current,
+                hologramSvgRef.current,
+                profileDescriptionSvgRef.current,
+                experiencesHabitationBackRef.current,
+                experiencesHabitationFrontRef.current,
+                alien2ContainerRef.current,
+                () => convoyeurProjetRef.current,
+                robotHeadRef.current,
+                robotHandRef.current,
+                experienceQuestTitreRef,
+                experienceQuestDescripRefs,
+                scaniaTitreRef,
+                scaniaDescRef,
+                likethatTitreRef,
+                likethatDescRef
+            )
+            ScrollTrigger.refresh()
+            stage.classList.add('is-ready')
+            return true
+        }
+
+        const onResize = (metrics: { width: number; height: number }) => {
+            const w = Math.round(metrics.width)
+            const h = Math.round(metrics.height)
+            if (w === lastViewportWRef.current && h === lastViewportHRef.current) return
+            lastViewportWRef.current = w
+            lastViewportHRef.current = h
+
+            requestAnimationFrame(() => {
+                scrollAnimationsCleanupRef.current?.()
+                scrollAnimationsCleanupRef.current = undefined
+                horizontalScrollKillRef.current?.()
+                horizontalScrollKillRef.current = null
+                ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+
+                const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
+                if (sections.length === 0) return
+                const camera = computeCamera({
+                    viewportW: metrics.width,
+                    viewportH: metrics.height,
+                    worldW: sceneConfig.world.width,
+                    worldH: sceneConfig.world.height,
+                    ...sceneConfig.cameraOptions,
+                })
+                applyCamera(stage, camera)
+                const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections, camera)
+                horizontalScrollKillRef.current = kill
+                scrollAnimationsCleanupRef.current = configureAllScrollAnimations(
+                    container,
+                    sections,
+                    wrapper,
+                    rocketRef.current,
+                    scrollTween,
+                    scrollValues,
+                    portraitRef.current,
+                    descriptionContainerRef.current,
+                    aboutSvgRef.current,
+                    hologramSvgRef.current,
+                    profileDescriptionSvgRef.current,
+                    experiencesHabitationBackRef.current,
+                    experiencesHabitationFrontRef.current,
+                    alien2ContainerRef.current,
+                    () => convoyeurProjetRef.current,
+                    robotHeadRef.current,
+                    robotHandRef.current,
+                    experienceQuestTitreRef,
+                    experienceQuestDescripRefs,
+                    scaniaTitreRef,
+                    scaniaDescRef,
+                    likethatTitreRef,
+                    likethatDescRef
+            )
+                ScrollTrigger.refresh()
+            })
+        }
+
+        let rafId = 0
+        const scheduleInit = () => {
+            rafId = requestAnimationFrame(() => {
+                rafId = requestAnimationFrame(() => {
+                    window.scrollTo(0, 0)
+                    const metrics = getViewportMetrics(container)
+                    lastViewportWRef.current = Math.round(metrics.width)
+                    lastViewportHRef.current = Math.round(metrics.height)
+                    if (!runInit(metrics)) {
+                        ScrollTrigger.refresh()
+                        observeUnsubscribeRef.current = observeViewport(container, onResize)
+                        return
+                    }
+                    window.scrollTo(0, 0)
+                    observeUnsubscribeRef.current = observeViewport(container, onResize)
+                })
+            })
+        }
+        scheduleInit()
+
+        return () => {
+            cancelAnimationFrame(rafId)
+            observeUnsubscribeRef.current?.()
+            observeUnsubscribeRef.current = null
+            scrollAnimationsCleanupRef.current?.()
+            scrollAnimationsCleanupRef.current = undefined
+            horizontalScrollKillRef.current?.()
+            horizontalScrollKillRef.current = null
+            ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+            stage.classList.remove('is-ready')
         }
     }, [rocketContent])
 
@@ -181,9 +320,13 @@ export default function HomePage() {
             ref={horizontalContainerRef}
         >
             <div 
-                className="horizontal-scroll-wrapper" 
-                ref={horizontalWrapperRef}
+                className="horizontal-scroll-stage" 
+                ref={stageRef}
             >
+                <div 
+                    className="horizontal-scroll-wrapper" 
+                    ref={horizontalWrapperRef}
+                >
                 <div className="ground-overcoat" aria-hidden="true" />
                 <div className="ground-line" aria-hidden="true" />
                 <PresentationSection 
@@ -202,9 +345,26 @@ export default function HomePage() {
                     profileDescriptionSvgRef={profileDescriptionSvgRef}
                     profileDescriptionSvgContent={profileDescriptionSvgContent}
                 />
-                <ProjectsSection ref={section3Ref} />
-                <ProjetsSection ref={section4Ref} />
+                <ProjectsSection
+                    ref={section3Ref}
+                    habitationBackRef={experiencesHabitationBackRef}
+                    habitationFrontRef={experiencesHabitationFrontRef}
+                    alien2ContainerRef={alien2ContainerRef}
+                    experienceQuestTitreRef={experienceQuestTitreRef}
+                    experienceQuestDescripRefs={experienceQuestDescripRefs}
+                />
+                <ProjetsSection
+                    ref={section4Ref}
+                    robotHeadRef={robotHeadRef}
+                    robotHandRef={robotHandRef}
+                    convoyeurProjetRef={convoyeurProjetRef}
+                    scaniaTitreRef={scaniaTitreRef}
+                    scaniaDescRef={scaniaDescRef}
+                    likethatTitreRef={likethatTitreRef}
+                    likethatDescRef={likethatDescRef}
+                />
                 <ContactSection ref={section5Ref} />
+                </div>
             </div>
         </div>
     )

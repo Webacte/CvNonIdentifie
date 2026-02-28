@@ -1,15 +1,9 @@
+/* Breakpoints UI : 768 (md), 480, 425 (sm) — alignés sceneConfig/constants */
 .section-content {
     text-align: center;
     z-index: 2;
     width: 50vw;
     margin-left: 12vw;
-}
-
-@media (max-width: 768px) {
-    .section-content {
-        width: 80vw;
-        margin-left: 10vw;
-    }
 }
 
 #profileDescription {
@@ -22,26 +16,26 @@
     position: absolute;
     z-index: 12;
     /* Positionnement centré sur petit écran, décalé à gauche sur grand écran */
-    left: 45%;
-    top: 55%;
+    left: 64%;
+    top: 41%;
     /* Décalage global à gauche + 10% à droite + centrage vertical ; écarts entre breakpoints respectés plus bas */
     transform: translate(calc(-50% - 4vw + 5vw), -50%);
-    width: auto;
-    max-width: 80vw;
+    width: 45vw;
 }
 
-/* Grands écrans : recentrer le handwriting */
+/* Grands écrans (xl+) : recentrer le handwriting */
 @media (min-width: 1588px) {
     .handwriting-wrapper {
         left: 37%;
     }
 }
 
-/* Écartement des lettres : translateX incrémental sur les groupes (appliqué au chargement du SVG).
-   On évite scale() car il réduirait aussi les espacements. */
-
-/* Sur petit écran : plus petit et décalé à gauche pour rester dans l'hologramme */
+/* MQ UI regroupées : 768, 480, 425 */
 @media (max-width: 768px) {
+    .section-content {
+        width: 80vw;
+        margin-left: 10vw;
+    }
     .handwriting-wrapper {
         left: 31%;
         top: 49%;
@@ -58,7 +52,6 @@
     }
 }
 
-/* Mobile ≤425px : handwriting remonté en proportion du sol (sol à 55%) */
 @media (max-width: 425px) {
     .handwriting-wrapper {
         top: 47%;

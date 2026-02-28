@@ -9,6 +9,8 @@
 /* Conteneur principal pour le scroll horizontal */
 .horizontal-scroll-container {
     width: 100vw;
+    height: 100vh;
+    height: 100svh;
     min-height: 100vh;
     min-height: 100svh;
     overflow: hidden;
@@ -17,6 +19,30 @@
     padding: 0;
     top: 0;
     left: 0;
+}
+
+/* Stage : même largeur que le monde (1050px) pour que scale + offsetX donnent des marges gauche/droite égales */
+.horizontal-scroll-stage {
+    width: 1050px; /* WORLD_REFERENCE_WIDTH, doit rester aligné avec .horizontal-scroll-viewport-mask */
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: 0 0;
+    will-change: transform;
+    position: relative;
+}
+.horizontal-scroll-stage.is-ready {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 160ms ease;
+}
+
+/* Masque viewport : une seule section visible (largeur = WORLD_REFERENCE_WIDTH), pas de débord des sections voisines */
+.horizontal-scroll-viewport-mask {
+    width: 1050px; /* WORLD_REFERENCE_WIDTH */
+    overflow: hidden;
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh;
 }
 
 /* Wrapper qui se déplace horizontalement */
@@ -29,9 +55,9 @@
     position: relative;
 }
 
-/* Chaque section horizontale */
+/* Chaque section horizontale : largeur monde (surchargée en JS par WORLD_REFERENCE_WIDTH) */
 .horizontal-section {
-    width: 100vw;
+    width: 1050px; /* WORLD_REFERENCE_WIDTH, cohérent avec world + camera */
     min-height: 100vh;
     min-height: 100svh;
     flex-shrink: 0;
@@ -44,17 +70,68 @@
 /* Titre des sections placeholder (Projets, Contact) */
 .placeholder-title {
     font-family: 'SP-Caffeine', sans-serif;
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-size: clamp(1.2rem, 3.2vw, 2rem);
     font-weight: normal;
-    opacity: 0.5;
+    opacity: 1;
     margin: 0;
+}
+
+/* Section Contact : titre en haut à droite, SVG support-contact à gauche */
+.contact-section-placeholder {
+    justify-content: flex-start;
+    overflow: hidden;
+    /* Hauteur fixe pour éviter que le formulaire (position en %) bouge au focus */
+    height: 100vh;
+    height: 100svh;
+}
+
+.contact-section-placeholder .contact-section-title-wrapper {
+    position: absolute;
+    top: 10vh;
+    right: 6vw;
+    left: auto;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.contact-section-placeholder .placeholder-title {
+    margin: 0;
+}
+
+.contact-section-svg-wrapper {
+    position: absolute;
+    left: 15%;
+    top: 36.5%;
+    transform: translateY(-50%);
+    height: 63vh;
+    max-height: 63svh;
+    width: auto;
+    max-width: 85vw;
+    min-width: 60vw;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.contact-section-svg {
+    width: auto;
+    height: 100%;
+    max-height: 95vh;
+    max-height: 95svh;
+    object-fit: contain;
+    object-position: left center;
 }
 
 .presentationContainer {
     position: relative;
     height: 40vh;
     width: 90vw;
-    margin-top: 10vh;
+    margin-top: -5vh;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -83,7 +160,7 @@
     max-width: 400px;
     height: auto;
     object-fit: contain;
-    left: 50vw;
+    left: 40vw;
     top: 5vh;
     transform: translateX(-50%);
     z-index: 1;
@@ -91,35 +168,39 @@
     opacity: 0;
 }
 
-/* Conteneur de la fusée */
+/* Conteneur de la fusée (perspective pour rotateY sur #fumee) */
 .rocket-container {
     position: absolute;
     transform-box: fill-box;
     transform-origin: 85% 60%;
     width: 300px;
     height: 300px;
-    left: 40vw;
+    left: 10vw;
     top: -60vh;
     z-index: 1;
+    perspective: 900px;
+    transform-style: preserve-3d;
 }
 
-/* Ajustement responsive pour tablette (768px) */
-@media (max-width: 768px) {
-    .rocket-container {
-        left: -10vw;
-    }
-    /* Remonter un peu le nom et la description */
-    #myName,
-    .descriptionContainer {
-        margin-top: -4vh;
-    }
+/* Réduction de 1/3 de la fusée via scale, sans déplacer le centre de gravité (transform-origin) */
+.rocket-scaled {
+    width: 100%;
+    height: 100%;
+    transform: scale(0.6667); /* 2/3 de la taille d'origine */
+    transform-origin: 85% 60%;
+    transform-style: preserve-3d;
 }
 
-/* Ajustement pour très petits écrans */
-@media (max-width: 480px) {
-    .rocket-container {
-        left: -15vw;
-    }
+/* Contexte 3D pour le SVG fusée */
+.rocket-scaled svg {
+    transform-style: preserve-3d;
+    display: block;
+}
+
+/* Fumée fusée : miroir gauche-droite (scaleX), pas de transition. */
+.rocket-scaled #fumee {
+    transform-style: flat;
+    transition: none !important;
 }
 
 /* Styles pour les autres sections */
@@ -146,7 +227,7 @@
     width: 200px; /* Taille d'origine restaurée */
     height: auto;
     left: 10vw;
-    top: 80%;
+    top: 65%;
     transform: translateY(-50%);
     z-index: 12;
     overflow: visible;
@@ -156,38 +237,14 @@
     overflow: visible;
 }
 
-/* Ajustement responsive pour mobile */
-@media (max-width: 768px) {
-    .about-svg-container {
-        width: 150px; /* Taille d'origine restaurée */
-        left: 5vw;
-        top: 75%;
-    }
-}
-
-/* Ajustement pour très petits écrans */
-@media (max-width: 480px) {
-    .about-svg-container {
-        width: 120px; /* Taille d'origine restaurée */
-        left: 2vw;
-    }
-}
-
-/* Mobile ≤425px : éléments remontés en proportion du sol (sol à 55%) */
-@media (max-width: 425px) {
-    .about-svg-container {
-        top: 65%;
-    }
-}
-
 /* Conteneur SVG hologramme pour la section à propos */
 .hologram-svg-container {
     position: absolute;
     transform-box: fill-box;
     width: auto;
     height: auto;
-    left: 10vw;
-    top: 55%;
+    left: 11vw;
+    top: 42%;
     transform: translateY(-50%);
     z-index: 12;
     opacity: 1;
@@ -201,8 +258,25 @@
     display: block;
 }
 
-/* Ajustement responsive pour mobile : largeur fixe pour que le SVG scale */
+#hologramme {
+    scale: .75;
+    transform-origin: 450px 200px;
+}
+
+/* MQ UI : breakpoints 768 (md), 480, 425 (sm) — alignés sceneConfig/constants */
 @media (max-width: 768px) {
+    .rocket-container {
+        left: -10vw;
+    }
+    #myName,
+    .descriptionContainer {
+        margin-top: -4vh;
+    }
+    .about-svg-container {
+        width: 150px;
+        left: 5vw;
+        top: 75%;
+    }
     .hologram-svg-container {
         left: 50%;
         top: 51%;
@@ -211,10 +285,19 @@
         max-width: 108vw;
         transform: translate(-50%, -50%);
     }
+    #hologramme {
+        transform-origin: center center;
+    }
 }
 
-/* Ajustement pour très petits écrans */
 @media (max-width: 480px) {
+    .rocket-container {
+        left: -15vw;
+    }
+    .about-svg-container {
+        width: 120px;
+        left: 2vw;
+    }
     .hologram-svg-container {
         top: 57%;
         width: 132vw;
@@ -222,20 +305,11 @@
     }
 }
 
-/* Mobile ≤425px : hologramme remonté en proportion du sol (sol à 55%) */
 @media (max-width: 425px) {
+    .about-svg-container {
+        top: 65%;
+    }
     .hologram-svg-container {
         top: 47%;
-    }
-}
-
-#hologramme {
-    scale: .75;
-    transform-origin: 450px 200px;
-}
-
-@media (max-width: 768px) {
-    #hologramme {
-        transform-origin: center center;
     }
 }

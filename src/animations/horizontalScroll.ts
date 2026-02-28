@@ -1,170 +1,199 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import type { Camera } from './camera'
 import {
-    ROCKET_PAN_START_RATIO,
+    FIRST_SECTION_PAN_SCROLL,
+    PHASE2_EARLY_START_OFFSET,
     SECOND_SECTION_BLOCK_START,
     SECOND_SECTION_BLOCK_END,
     THIRD_SECTION_BLOCK_START,
     THIRD_SECTION_BLOCK_END,
-    SCROLL_FROM_THIRD_BLOCK,
-    VIEWPORT_REFERENCE_WIDTH,
+    FOURTH_SECTION_BLOCK_START,
+    FOURTH_SECTION_BLOCK_END,
+    FIFTH_SECTION_BLOCK_START,
+    FIFTH_SECTION_BLOCK_END,
 } from './constants'
+import { sceneConfig } from './sceneConfig'
 
 /**
- * Valeurs de scroll uniformisées pour toutes les animations
+ * Valeurs de scroll uniformisées pour toutes les animations (en px pour ScrollTrigger et scrollAnimations).
  */
 export interface ScrollValues {
-    /** Distance de scroll avec mouvement d'écran (distance horizontale réelle) */
+    /** Distance de scroll avec mouvement d'écran (distance horizontale réelle) en px */
     scrollDistanceWithMovement: number
-    /** Distance totale de scroll de la souris (inclut le bloc initial, plus grande) */
+    /** Distance totale du scroll (inclut les pauses) en px */
     scrollDistanceWithoutMovement: number
-    /** Distance du bloc initial (scroll bloqué au début) */
+    /** Distance du bloc initial (scroll bloqué au début) en px */
     initialScrollBlock: number
-    /** Largeur totale du contenu */
+    /** Largeur totale du contenu en px (world × scale) */
     totalWidth: number
-    /** Largeur du viewport */
+    /** Largeur du viewport en px */
     viewportWidth: number
     /** Position de scroll (px) à laquelle la phase 1 (Présentation) se termine = début bloc About */
     phase1EndScroll: number
     /** Position de scroll (px) à laquelle la phase 2 (About) commence */
     phase2StartScroll: number
+    /** Position de scroll (px) à laquelle alien et hologramme commencent (avant phase 2). */
+    phase2EarlyStartScroll: number
     /** Position de scroll (px) à laquelle la phase 2 (About) se termine */
     phase2EndScroll: number
+    /** Fin de la phase 1 pour la fusée uniquement (px). La fusée s'anime indépendamment du déplacement de l'écran. */
+    rocketPhase1EndScroll: number
+    /** Progression 0–1 du ScrollTrigger à la fin du bloc Expérience (pour animation convoyeur). */
+    progressAtEndOfThirdBlock: number
+    /** Progression 0–1 du ScrollTrigger à la fin du bloc Projets (pour animation convoyeur). */
+    progressAtEndOfFourthBlock: number
+    /** Progression 0–1 au début de la phase convoyeur : avant la fin Expérience, pour lancer l’animation avant d’arriver sur Projets. */
+    progressAtConvoyeurPhaseStart: number
 }
 
 /**
- * Configure le scroll horizontal contrôlé
- * Convertit le scroll vertical en mouvement horizontal
- * Retourne le tween et les valeurs de scroll uniformisées
+ * Configure le scroll horizontal contrôlé (World + Camera).
+ * Wrapper.x en unités monde ; ScrollTrigger end en px (world × scale).
+ * Retourne le tween, les valeurs de scroll uniformisées et une fonction kill pour teardown/rebuild.
  */
 export function setupHorizontalScroll(
     container: HTMLElement,
+    stage: HTMLElement,
     wrapper: HTMLElement,
-    sections: HTMLElement[]
-): { scrollTween: gsap.core.Tween; scrollValues: ScrollValues } {
-    // Calculer la largeur totale nécessaire pour le scroll horizontal
-    const totalWidth = sections.reduce((sum, section) => sum + section.offsetWidth, 0)
-    const viewportWidth = window.innerWidth
-    const scrollDistance = totalWidth - viewportWidth
+    sections: HTMLElement[],
+    camera: Camera
+): { scrollTween: gsap.core.Tween; scrollValues: ScrollValues; kill: () => void } {
+    const { scale: cameraScale, viewportW } = camera
+    const WORLD_REFERENCE_WIDTH = sceneConfig.world.width
+    const totalWorldWidth = sections.length * WORLD_REFERENCE_WIDTH
+    const travelWorld = totalWorldWidth - WORLD_REFERENCE_WIDTH
 
-    // Réinitialiser toutes les positions avant de configurer
-    gsap.set(wrapper, {
-        x: 0,
-        clearProps: 'transform'
+    // Réinitialiser wrapper
+    gsap.set(wrapper, { x: 0, clearProps: 'transform' })
+    gsap.set(container, { clearProps: 'transform,top,left' })
+    gsap.set(wrapper, { width: totalWorldWidth })
+    sections.forEach((section) => {
+        gsap.set(section, { width: WORLD_REFERENCE_WIDTH, flexShrink: 0 })
     })
 
-    // S'assurer que le container n'a pas de transform initial
-    gsap.set(container, {
-        clearProps: 'transform,top,left'
-    })
+    // Premier écran : fixe comme les autres blocs (0 à SECOND_SECTION_BLOCK_START), puis pan sur FIRST_SECTION_PAN_SCROLL
+    const initialScrollBlockWorld = SECOND_SECTION_BLOCK_START
+    const secondBlockStartWorld = SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
+    const secondBlockEndWorld = SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
+    const secondBlockDurationWorld = secondBlockEndWorld - secondBlockStartWorld
+    const thirdBlockStartWorld = THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
+    const thirdBlockEndWorld = THIRD_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
+    const thirdBlockDurationWorld = thirdBlockEndWorld - thirdBlockStartWorld
+    const fourthBlockStartWorld = FOURTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
+    const fourthBlockEndWorld = FOURTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
+    const fourthBlockDurationWorld = fourthBlockEndWorld - fourthBlockStartWorld
+    const fifthBlockStartWorld = FIFTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
+    const fifthBlockEndWorld = FIFTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
+    const fifthBlockDurationWorld = fifthBlockEndWorld - fifthBlockStartWorld
 
-    // Définir la largeur du wrapper pour permettre le scroll
-    gsap.set(wrapper, {
-        width: totalWidth,
-    })
+    const scrollBeforeSecondBlockWorld = FIRST_SECTION_PAN_SCROLL
+    const scrollBeforeThirdBlockWorld = thirdBlockStartWorld - secondBlockEndWorld
+    const scrollBeforeFourthBlockWorld = fourthBlockStartWorld - thirdBlockEndWorld
+    const scrollBeforeFifthBlockWorld = fifthBlockStartWorld - fourthBlockEndWorld
 
-    // Créer le scroll horizontal contrôlé
-    // Le scroll vertical déclenche le mouvement horizontal
-    // Le scroll est bloqué pendant les premiers pixels, puis commence
-    
-    const scaleRatio = viewportWidth / VIEWPORT_REFERENCE_WIDTH
-    const initialScrollBlock = SECOND_SECTION_BLOCK_START * ROCKET_PAN_START_RATIO * scaleRatio
-    const secondBlockStart = SECOND_SECTION_BLOCK_START * scaleRatio
-    const secondBlockEnd = SECOND_SECTION_BLOCK_END * scaleRatio
-    const secondBlockDuration = secondBlockEnd - secondBlockStart
-    const thirdBlockStart = THIRD_SECTION_BLOCK_START * scaleRatio
-    const thirdBlockEnd = THIRD_SECTION_BLOCK_END * scaleRatio
-    const thirdBlockDuration = thirdBlockEnd - thirdBlockStart
-    const scrollFromThirdBlock = SCROLL_FROM_THIRD_BLOCK * scaleRatio
+    const scrollDistanceWithoutMovementWorld =
+        initialScrollBlockWorld +
+        scrollBeforeSecondBlockWorld +
+        secondBlockDurationWorld +
+        scrollBeforeThirdBlockWorld +
+        thirdBlockDurationWorld +
+        scrollBeforeFourthBlockWorld +
+        fourthBlockDurationWorld +
+        scrollBeforeFifthBlockWorld +
+        fifthBlockDurationWorld
 
-    const scrollBeforeSecondBlock = secondBlockStart - initialScrollBlock
+    const totalScrollPx = scrollDistanceWithoutMovementWorld * cameraScale
+    const travelPx = travelWorld * cameraScale
 
-    // scrollBeforeThirdBlock : distance de scroll vertical entre la fin du bloc About et le début du bloc Expérience
-    const scrollBeforeThirdBlock = thirdBlockStart - secondBlockEnd
+    const initialScrollBlockPx = initialScrollBlockWorld * cameraScale
+    const secondBlockStartPx = secondBlockStartWorld * cameraScale
+    const secondBlockEndPx = secondBlockEndWorld * cameraScale
 
-    // Position X pour afficher la section Expérience (section 3) : largeur des sections 0 + 1
-    const xPositionAtThirdBlock = sections.length >= 3
-        ? -(sections[0].offsetWidth + sections[1].offsetWidth)
-        : -scrollDistance
-
-    // Distance totale de scroll incluant tous les blocs (initial, move1, block2, move2, block3, move3)
-    const scrollDistanceWithoutMovement = initialScrollBlock + scrollBeforeSecondBlock + secondBlockDuration + scrollBeforeThirdBlock + thirdBlockDuration + scrollFromThirdBlock
-
-    // Position X pour afficher la section About (section 1) : largeur de la section 0
-    const xPositionAtSecondBlock = sections.length >= 1 ? -sections[0].offsetWidth : 0
-    
-    const scrollDistanceWithMovement = scrollDistance // Distance avec mouvement d'écran (distance horizontale réelle)
-    
-    // Créer l'objet de valeurs uniformisées
+    const phase2EarlyStartPx = Math.max(0, secondBlockStartPx - PHASE2_EARLY_START_OFFSET * cameraScale)
+    const cumulativeWorldAtEndOfThird =
+        initialScrollBlockWorld +
+        scrollBeforeSecondBlockWorld +
+        secondBlockDurationWorld +
+        scrollBeforeThirdBlockWorld +
+        thirdBlockDurationWorld
+    const cumulativeWorldAtEndOfFourth =
+        cumulativeWorldAtEndOfThird + scrollBeforeFourthBlockWorld + fourthBlockDurationWorld
+    /* Début phase convoyeur : au premier quart du bloc Expérience, pour que l’animation démarre bien avant d’arriver sur Projets. */
+    const cumulativeWorldAtConvoyeurPhaseStart =
+        cumulativeWorldAtEndOfThird - thirdBlockDurationWorld * 1.5
     const scrollValues: ScrollValues = {
-        scrollDistanceWithMovement,
-        scrollDistanceWithoutMovement,
-        initialScrollBlock,
-        totalWidth,
-        viewportWidth,
-        phase1EndScroll: secondBlockStart,
-        phase2StartScroll: secondBlockStart,
-        phase2EndScroll: secondBlockEnd,
+        scrollDistanceWithMovement: travelPx,
+        scrollDistanceWithoutMovement: totalScrollPx,
+        initialScrollBlock: initialScrollBlockPx,
+        totalWidth: totalWorldWidth * cameraScale,
+        viewportWidth: viewportW,
+        phase1EndScroll: secondBlockStartPx,
+        phase2StartScroll: secondBlockStartPx,
+        phase2EarlyStartScroll: phase2EarlyStartPx,
+        phase2EndScroll: secondBlockEndPx,
+        rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * cameraScale,
+        progressAtEndOfThirdBlock: cumulativeWorldAtEndOfThird / scrollDistanceWithoutMovementWorld,
+        progressAtEndOfFourthBlock: cumulativeWorldAtEndOfFourth / scrollDistanceWithoutMovementWorld,
+        progressAtConvoyeurPhaseStart: Math.max(0, cumulativeWorldAtConvoyeurPhaseStart / scrollDistanceWithoutMovementWorld),
     }
-    
-    // Créer une timeline avec plusieurs phases : bloc initial, mouvement, bloc deuxième section, mouvement final
+
+    // Positions wrapper.x en unités monde (négatives)
+    const xPositionAtSecondBlockWorld = -WORLD_REFERENCE_WIDTH
+    const xPositionAtThirdBlockWorld = -2 * WORLD_REFERENCE_WIDTH
+    const xPositionAtFourthBlockWorld = -3 * WORLD_REFERENCE_WIDTH
+    const xPositionAtFifthBlockWorld = -4 * WORLD_REFERENCE_WIDTH
+
+    const initialBlockDuration = initialScrollBlockWorld / scrollDistanceWithoutMovementWorld
+    const firstMovementDuration = scrollBeforeSecondBlockWorld / scrollDistanceWithoutMovementWorld
+    const secondBlockDurationRatio = secondBlockDurationWorld / scrollDistanceWithoutMovementWorld
+    const scrollBeforeThirdBlockDuration = scrollBeforeThirdBlockWorld / scrollDistanceWithoutMovementWorld
+    const thirdBlockDurationRatio = thirdBlockDurationWorld / scrollDistanceWithoutMovementWorld
+    const scrollBeforeFourthBlockDuration = scrollBeforeFourthBlockWorld / scrollDistanceWithoutMovementWorld
+    const fourthBlockDurationRatio = fourthBlockDurationWorld / scrollDistanceWithoutMovementWorld
+    const scrollBeforeFifthBlockDuration = scrollBeforeFifthBlockWorld / scrollDistanceWithoutMovementWorld
+    const fifthBlockDurationRatio = fifthBlockDurationWorld / scrollDistanceWithoutMovementWorld
+
     const timeline = gsap.timeline({
         scrollTrigger: {
             trigger: container,
             start: 'top top',
-            end: () => `+=${scrollDistanceWithoutMovement}`,
+            end: () => `+=${totalScrollPx}`,
             pin: true,
             pinSpacing: true,
             scrub: 1,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onEnter: () => {
-                gsap.set(container, {
-                    clearProps: 'top,left'
-                })
+                gsap.set(container, { clearProps: 'top,left' })
             },
             onLeave: () => {
-                gsap.set(container, {
-                    clearProps: 'top,left'
-                })
+                gsap.set(container, { clearProps: 'top,left' })
             },
-            onUpdate: (self) => {
-                const scrollY = self.progress * scrollDistanceWithoutMovement
-                let phase = 'bloc initial'
-                if (scrollY >= thirdBlockEnd) phase = 'après bloc Expérience'
-                else if (scrollY >= thirdBlockStart) phase = 'bloc Expérience'
-                else if (scrollY >= secondBlockEnd) phase = 'mouvement vers Expérience'
-                else if (scrollY >= secondBlockStart) phase = 'bloc About'
-                else if (scrollY >= initialScrollBlock) phase = 'mouvement vers About'
-                console.log(
-                    `[Scroll] ${Math.round(scrollY)} px / ${Math.round(scrollDistanceWithoutMovement)} | progress: ${(self.progress * 100).toFixed(1)}% | ${phase}`
-                )
-            }
-        }
+        },
     })
-    
-    // Calculer les durées relatives pour chaque phase de la timeline
-    const initialBlockDuration = initialScrollBlock / scrollDistanceWithoutMovement
-    const firstMovementDuration = scrollBeforeSecondBlock / scrollDistanceWithoutMovement
-    const secondBlockDurationRatio = secondBlockDuration / scrollDistanceWithoutMovement
-    const scrollBeforeThirdBlockDuration = scrollBeforeThirdBlock / scrollDistanceWithoutMovement
-    const thirdBlockDurationRatio = thirdBlockDuration / scrollDistanceWithoutMovement
-    const scrollFromThirdBlockDuration = scrollFromThirdBlock / scrollDistanceWithoutMovement
 
-    // Ajouter les animations à la timeline avec les différentes phases
     timeline
-        .to(wrapper, { x: 0, duration: initialBlockDuration, ease: 'none' }) // Bloc initial : reste à 0
-        .to(wrapper, { x: xPositionAtSecondBlock, duration: firstMovementDuration, ease: 'none' }) // Premier mouvement jusqu'à la section About
-        .to(wrapper, { x: xPositionAtSecondBlock, duration: secondBlockDurationRatio, ease: 'none' }) // Bloc section About : reste à la position atteinte
-        .to(wrapper, { x: xPositionAtThirdBlock, duration: scrollBeforeThirdBlockDuration, ease: 'none' }) // Mouvement jusqu'à la section Expérience
-        .to(wrapper, { x: xPositionAtThirdBlock, duration: thirdBlockDurationRatio, ease: 'none' }) // Bloc section Expérience : reste sur place
-        .to(wrapper, { x: -scrollDistanceWithMovement, duration: scrollFromThirdBlockDuration, ease: 'none' }) // Dernier mouvement jusqu'à la fin
-    
-    // Retourner le tween principal de la timeline pour containerAnimation
-    const scrollTween = timeline as any as gsap.core.Tween
+        .to(wrapper, { x: 0, duration: initialBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtSecondBlockWorld, duration: firstMovementDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtSecondBlockWorld, duration: secondBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtThirdBlockWorld, duration: scrollBeforeThirdBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtThirdBlockWorld, duration: thirdBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFourthBlockWorld, duration: scrollBeforeFourthBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFourthBlockWorld, duration: fourthBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFifthBlockWorld, duration: scrollBeforeFifthBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFifthBlockWorld, duration: fifthBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: -travelWorld, duration: 0, ease: 'none' })
 
-    // Rafraîchir ScrollTrigger pour s'assurer que tout est bien calculé
+    const scrollTween = timeline as unknown as gsap.core.Tween
+
+    const kill = () => {
+        const st = (timeline as { scrollTrigger?: { kill: () => void } }).scrollTrigger
+        if (st) st.kill()
+        timeline.kill()
+    }
+
     ScrollTrigger.refresh()
 
-    return { scrollTween, scrollValues }
+    return { scrollTween, scrollValues, kill }
 }

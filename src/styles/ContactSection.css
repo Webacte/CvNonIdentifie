@@ -1,0 +1,304 @@
+/* Formulaire contact en superposition du support-contact.svg */
+
+.contact-form-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    pointer-events: none;
+    font-family: 'SP-Caffeine', sans-serif;
+}
+
+.contact-form-overlay .contact-field {
+    pointer-events: auto;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Variables pour adapter le label à l'espace (surcharger par champ si besoin) */
+    --contact-padding-top: 1.5em;        /* espace réservé au-dessus pour le label flottant */
+    --contact-label-nudge: 0.45em;       /* décalage vers le haut quand vide / sans focus */
+    --contact-label-float-gap: 0.85em;   /* espace au-dessus de l'input quand label flottant */
+    --contact-label-float-size: 0.75rem; /* taille du label quand flottant */
+    padding-top: var(--contact-padding-top);
+}
+
+/* Champ : wrapper input + label flottant */
+.contact-field .contact-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    font-family: 'SP-Caffeine', sans-serif;
+    font-size: 1rem;
+    color: inherit;
+    opacity: 0.8;
+    pointer-events: none;
+    transition: transform 0.2s ease, font-size 0.2s ease, opacity 0.2s ease;
+    transform-origin: center bottom;
+    /* Position par défaut : utilise --contact-label-nudge (réglable par champ) */
+    transform: translateY(calc(-1 * var(--contact-label-nudge)));
+}
+
+/* Label en rouge pour les champs en erreur */
+.contact-field.has-error .contact-label {
+    color: #c00;
+}
+
+/* Labels et texte centrés pour nom, prénom, société, email, message */
+.contact-field-nom .contact-label,
+.contact-field-prenom .contact-label,
+.contact-field-societe .contact-label,
+.contact-field-email .contact-label,
+.contact-field-message .contact-label {
+    text-align: center;
+}
+
+.contact-field-nom .contact-input,
+.contact-field-prenom .contact-input,
+.contact-field-societe .contact-input,
+.contact-field-email .contact-input {
+    text-align: center;
+}
+
+/* Message : label centré au-dessus de la zone comme les autres */
+.contact-field-message .contact-label {
+    text-align: center;
+    transform-origin: center bottom;
+    top: 70%;
+}
+
+/* Label flottant : au-dessus du champ quand focus ou rempli (une règle par champ) */
+.contact-field-nom:focus-within .contact-label,
+.contact-field-nom.is-filled .contact-label {
+    transform: translateY(-4.4em);
+    font-size: 0.65rem;
+}
+
+.contact-field-prenom:focus-within .contact-label,
+.contact-field-prenom.is-filled .contact-label {
+    transform: translateY(-1.5em);
+    font-size: 0.65rem;
+}
+
+.contact-field-societe:focus-within .contact-label,
+.contact-field-societe.is-filled .contact-label {
+    transform: translate(-9.5vw, -1.5vh);
+    font-size: .65rem;
+}
+
+.contact-field-email:focus-within .contact-label,
+.contact-field-email.is-filled .contact-label {
+    transform: translateY(-5vh);
+    font-size: .65rem;
+}
+
+.contact-field-message:focus-within .contact-label,
+.contact-field-message.is-filled .contact-label {
+    transform: translate(-4vw, -18.5vh);
+    font-size: .65rem;
+}
+
+.contact-field-message:focus-within .contact-textarea,
+.contact-field-message.is-filled .contact-textarea {
+    margin-top: 3.8vh;
+    margin-left: 2.5vw;
+    width: 80%;
+}
+
+.contact-field .contact-input {
+    width: 100%;
+    padding: 0.5em 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'SP-Caffeine', sans-serif;
+    font-size: 1rem;
+    color: inherit;
+    box-sizing: border-box;
+}
+
+/* Inputs une ligne : taille fixe (celle du parent), texte qui défile à l'intérieur au focus (comportement natif) */
+.contact-field input.contact-input {
+    min-width: 0;
+}
+
+.contact-field .contact-textarea {
+    height: 9em;
+    resize: none;
+}
+
+/* Contourner le fond jaune/bleu de l'autofill Chrome */
+.contact-field input:-webkit-autofill,
+.contact-field input:-webkit-autofill:hover,
+.contact-field input:-webkit-autofill:focus,
+.contact-field input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px transparent inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Bouton Valider : position absolute sur le SVG */
+.contact-submit-wrapper {
+    pointer-events: auto;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    top: 41%;
+    left: 50.5%;
+    width: 13.5%;
+    min-width: 100px;
+    rotate: 27deg;
+    height: 4.5%;
+    min-height: 1.5em;
+    contain: layout style;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
+}
+
+.contact-submit-btn {
+    border: none;
+    outline: none;
+    outline-offset: 0;
+    background: transparent;
+    font-family: 'SP-Caffeine', sans-serif;
+    font-size: 1rem;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    min-width: 5.5em;
+    box-sizing: border-box;
+    box-shadow: none;
+    width: 100%;
+    height: 100%;
+}
+
+.contact-submit-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.contact-submit-btn:hover:not(:disabled) {
+    opacity: 1;
+}
+
+.contact-submit-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Messages de statut du formulaire */
+.contact-form-error,
+.contact-form-success {
+    pointer-events: auto;
+    position: absolute;
+    font-family: 'SP-Caffeine', sans-serif;
+    font-size: 0.85rem;
+    text-align: center;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 5%;
+}
+
+.contact-form-error {
+    color: #c00;
+}
+
+.contact-form-success {
+    color: inherit;
+    opacity: 0.9;
+}
+
+/* Positionnement de base : à ajuster en CSS selon le SVG */
+.contact-field-nom {
+    top: 3.5%;
+    left: 16%;
+    width: 13.5%;
+    min-width: 100px;
+    rotate: -4deg;
+}
+
+/* Prénom : label fixé au haut du champ, seule la zone écrite se décale (margin-top sur l'input) */
+.contact-field-prenom {
+    top: 6.8%;
+    left: 36%;
+    width: 13.5%;
+    min-width: 120px;
+    rotate: 11deg;
+    padding-top: 0.75em;
+}
+/* Label ancré en haut : ne bouge pas quand on ajuste l'input */
+.contact-field-prenom .contact-label {
+    bottom: auto;
+    top: 1.5em;
+    transform-origin: center top;
+    transform: translateY(0);
+}
+/* Ajuster uniquement la zone écrite (plus bas = valeur plus grande) — le label ne bouge pas */
+.contact-field-prenom .contact-input {
+    margin-top: -.5em;
+}
+
+.contact-field-societe {
+    top: 22%;
+    left: 24.5%;
+    width: 16.5%;
+    min-width: 160px;
+}
+
+.contact-field-email {
+    top: 13.5%;
+    left: 42%;
+    width: 19%;
+    min-width: 180px;
+    rotate: -19deg;
+}
+
+.contact-field-message {
+    top: 37%;
+    left: 19%;
+    width: 30%;
+    min-width: 200px;
+    min-height: 100px;
+}
+
+@media (max-width: 768px) {
+    .contact-field-nom,
+    .contact-field-prenom,
+    .contact-field-societe,
+    .contact-field-email,
+    .contact-field-message {
+        width: 70%;
+        left: 15%;
+        min-width: 140px;
+    }
+    .contact-field-nom {
+        top: 24%;
+    }
+    .contact-field-prenom {
+        top: 32%;
+    }
+    .contact-field-societe {
+        top: 40%;
+    }
+    .contact-field-email {
+        top: 48%;
+    }
+    .contact-field-message {
+        top: 56%;
+        width: 70%;
+        min-height: 80px;
+    }
+    .contact-submit-wrapper {
+        top: 68%;
+        left: 50%;
+        width: 40%;
+        min-width: 80px;
+    }
+}

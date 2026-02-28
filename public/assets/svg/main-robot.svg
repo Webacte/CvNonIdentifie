@@ -7,7 +7,7 @@
 </mask>
 <path d="M44.3449 -2H69.1725C75.7999 -2 81.1725 3.37258 81.1725 10H77.1725C77.1725 5.58172 73.5908 2 69.1725 2H48.3449L44.3449 -2ZM48.3449 2M79.1725 57.2308H46.3449H79.1725M44.3449 57.2308V-2L48.3449 2V57.2308H44.3449ZM69.1725 -2C75.7999 -2 81.1725 3.37258 81.1725 10V57.2308H77.1725V10C77.1725 5.58172 73.5908 2 69.1725 2V-2Z" fill="black" mask="url(#path-1-inside-1_14_212)"/>
 </g>
-<rect id="rectangle-22" x="47.3449" y="1" width="17.3103" height="26.6154" fill="white" stroke="black" stroke-width="2"/>
+<rect id="rectangle-22" x="47.3449" y="1" width="17.3103" height="26.6154" stroke="black" stroke-width="2"/>
 </g>
 <g id="poing">
 <rect id="rectangle-20" x="45.4139" y="58.2307" width="65.5862" height="64.7692" stroke="black" stroke-width="2"/>
