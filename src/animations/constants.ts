@@ -180,7 +180,7 @@ export const ROCKET_FUMEE_ROTATE = -10
 export const ROCKET_FUMEE_LANDED_ROTATE = 0
 
 /** Nombre de pulses pour l’alternance miroir (scaleX 1/-1) de #fumee en position atterrie. */
-export const ROCKET_FUMEE_PULSE_COUNT = 5
+export const ROCKET_FUMEE_PULSE_COUNT = 25
 
 /** Opacité des feux (#feu1, #feu2, #feu3) à la fin de l'animation (écran Contact). */
 export const ROCKET_FIRE_OPACITY_END = 0
