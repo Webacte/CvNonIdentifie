@@ -128,6 +128,19 @@ export const MOBILE_MAX_WIDTH = 600
 /** Seuil viewport (px) : tablette, atterrissage remonté d’une hauteur fusée. */
 export const TABLET_MAX_WIDTH = 768
 
+/**
+ * Seuil viewport (px) : au-dessus, la fusée utilise ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP
+ * pour limiter la descente (éviter qu'elle descende trop bas sur grands écrans).
+ */
+export const LARGE_DESKTOP_MIN_WIDTH = 1500
+
+/**
+ * Pourcentage (0–1) hauteur viewport pour le point le plus bas de la trajectoire fusée
+ * sur écrans ≥ LARGE_DESKTOP_MIN_WIDTH. Plus la valeur est basse, moins la fusée descend.
+ * Ex. 0.85 = 85 % de la hauteur (fusée moins bas qu'avec 0.95).
+ */
+export const ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP = 0.85
+
 /** Coefficient pour le mouvement horizontal de la fusée (progress X). */
 export const ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER = 3
 
@@ -470,6 +483,16 @@ export const EXP_BATTANT_ROTATE_END = 0
 
 /** Scale X de l’élément #convoyeur (enfant du SVG convoyeur-projet, section Projets). */
 export const CONVOYEUR_SCALE_X = .8
+/** Facteur multiplicatif pour scale X sur écrans > breakpoint (ex. 1.2 = 20 % de plus). Le convoyeur atteint mieux le centre de la section Projets. */
+export const CONVOYEUR_SCALE_X_LARGE_MULTIPLIER = 1.12
+/** Seuil (px) : au-dessus on applique le facteur scale X pour grands écrans. */
+export const CONVOYEUR_SCALE_X_BREAKPOINT_PX = 1500
+/** Retourne le scale X du convoyeur selon la largeur viewport. */
+export function getConvoyeurScaleX(viewportWidthPx: number): number {
+    return viewportWidthPx > CONVOYEUR_SCALE_X_BREAKPOINT_PX
+        ? CONVOYEUR_SCALE_X * CONVOYEUR_SCALE_X_LARGE_MULTIPLIER
+        : CONVOYEUR_SCALE_X
+}
 /** Scale Y de l’élément #convoyeur (enfant du SVG convoyeur-projet, section Projets). */
 export const CONVOYEUR_SCALE_Y = .6
 /** Hauteur du viewBox du SVG convoyeur-projet (unités SVG), pour calcul du top %. */
@@ -477,10 +500,35 @@ export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
 /** Décalage vertical (top) en % de la hauteur du viewBox du SVG convoyeur-projet (0–100). Ex. 40 = top 40 %. */
 export const CONVOYEUR_TOP_PERCENT = 40
 
-/** Hauteur Y (%) pour head/hand-robot au-dessus du convoyeur (en entrée). Ajustable. */
-export const ROBOT_ABOVE_CONVOYEUR_Y_PERCENT = 50.5
-/** Hauteur Y (%) pour head/hand-robot au niveau du sol (après chute). Ajustable. */
+// ----- Robot au-dessus du convoyeur : adaptatif selon la largeur d'écran -----
+/** Seuil (px) : au-dessus on applique l'offset Y pour grands écrans. Modifiable ici. */
+export const ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX = 1500
+/** Hauteur Y (%) de base pour head/hand-robot au-dessus du convoyeur (écrans ≤ breakpoint). */
+export const ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT = 50.5
+/** Hauteur Y (%) de base pour head/hand-robot au niveau du sol (après chute). Ajustable. */
 export const ROBOT_GROUND_Y_PERCENT = 61
+/** Écart (Δ) entre début et fin de l'animation Y. Conservé pour tous les écrans. */
+export const ROBOT_ABOVE_TO_GROUND_Y_GAP = ROBOT_GROUND_Y_PERCENT - ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT
+/** Offset Y (%) de base pour les écrans > breakpoint. Positif = plus bas, négatif = plus haut. Réglé pour la position de départ. */
+export const ROBOT_Y_OFFSET_LARGE = -11.5
+/** Hauteur viewport de référence (px) où les positions sont correctes. Sur écrans plus hauts (ex. 904px), la position finale (sol) reçoit plus d'offset pour éviter que la tête soit trop basse. */
+export const ROBOT_Y_REFERENCE_HEIGHT = 768
+/** Retourne { above, ground } selon la largeur et hauteur viewport. above = offset plein ; ground = offset × (viewportH / refH) pour que sur écrans plus hauts le sol remonte. */
+export function getRobotYPercentByViewport(viewportWidthPx: number, viewportHeightPx?: number): { above: number, ground: number } {
+    const offset = viewportWidthPx > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX ? ROBOT_Y_OFFSET_LARGE : 0
+    const h = viewportHeightPx != null && viewportHeightPx > 0 ? viewportHeightPx : ROBOT_Y_REFERENCE_HEIGHT
+    const heightFactor = Math.max(0.7, Math.min(1.4, h / ROBOT_Y_REFERENCE_HEIGHT))
+    return {
+        above: ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT + offset,
+        ground: ROBOT_GROUND_Y_PERCENT + offset * heightFactor,
+    }
+}
+/** Retourne la valeur Y (%) au-dessus du convoyeur selon la largeur viewport. */
+export function getRobotAboveConvoyeurYPercent(viewportWidthPx: number): number {
+    return getRobotYPercentByViewport(viewportWidthPx).above
+}
+/** @deprecated Utiliser getRobotAboveConvoyeurYPercent(window.innerWidth) pour un comportement adaptatif. */
+export const ROBOT_ABOVE_CONVOYEUR_Y_PERCENT = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT
 /** Chute diagonale : décalage X (vw) à droite au moment de l'atterrissage. Ajustable. */
 export const ROBOT_FALL_DIAGONAL_X_VW = 4
 /** Après atterrissage : déplacement X (vw) supplémentaire vers la droite (roule sur le sol). Ajustable. */
@@ -489,10 +537,16 @@ export const ROBOT_FALL_ROLL_RIGHT_X_VW = 16
 export const ROBOT_HEAD_ROLL_DEG = 360
 /** Rotation totale (degrés) pendant la chute et la roulade de la main-robot. Ex. 360 = un tour. Ajustable. */
 export const ROBOT_HAND_ROLL_DEG = 279
+/** Sur écrans > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX : décalage X (vw) en plus à la fin de la course de la main uniquement. */
+export const ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE = 1
 /** Ratio 0–1 : fraction de la phase fall pour la chute diagonale (reste = roule à droite). Ex. 0.4 = 40% diagonal, 60% roll right. */
 export const ROBOT_FALL_DIAGONAL_RATIO = 0.4
 /** Origine de la rotation pour la roulade. Ex. "center bottom" = roule sur le bord bas. */
 export const ROBOT_ROLL_TRANSFORM_ORIGIN = 'center bottom'
+/** Début (0–1) de la transition progressive transform-origin de 'center bottom' vers 'center center'. */
+export const ROBOT_FALL_ORIGIN_BLEND_START = 0.15
+/** Fin (0–1) de la transition : au-delà, on reste à 'center center'. */
+export const ROBOT_FALL_ORIGIN_BLEND_END = 0.5
 /** Facteur de réduction de taille pour head-robot et hand-robot (0–1). */
 export const ROBOT_SIZE_SCALE = 0.85
 /** Début des animations robots : après la fin du glissement convoyeur (EXP_CONVEYOR_SLIDE_END). */

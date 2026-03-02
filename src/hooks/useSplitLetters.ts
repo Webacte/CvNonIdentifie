@@ -5,10 +5,10 @@ import { useEffect } from 'react'
 import SplitType from 'split-type'
 import { gsap } from 'gsap'
 
-const DURATION = 2
+const DURATION = 0.5
 const EASE = 'power2.out'
-const SCALE_HOVER = 1.33
-const SCALE_OTHERS = 0.9
+const SCALE_HOVER = 1.18
+const SCALE_OTHERS = 0.96
 
 export interface UseSplitLettersOptions {
     /** Sélecteur des éléments à splitter (ex. `.placeholder-title`). Si absent, le conteneur lui-même est splitté. */
@@ -22,13 +22,13 @@ function setupElement(el: HTMLElement): { split: SplitType; cleanup: () => void 
 
     const onCharEnter = (e: Event) => {
         const target = e.currentTarget as HTMLElement
-        gsap.to(target, { scale: SCALE_HOVER, duration: DURATION, ease: EASE })
+        gsap.to(target, { zoom: SCALE_HOVER, duration: DURATION, ease: EASE, overwrite: true })
         const others = chars.filter((c) => c !== target)
-        gsap.to(others, { scale: SCALE_OTHERS, duration: DURATION, ease: EASE })
+        gsap.to(others, { zoom: SCALE_OTHERS, duration: DURATION, ease: EASE, overwrite: true })
     }
 
     const onBlockLeave = () => {
-        gsap.to(chars, { scale: 1, duration: DURATION, ease: EASE })
+        gsap.to(chars, { zoom: 1, duration: DURATION, ease: EASE, overwrite: true })
     }
 
     chars.forEach((char) => {
@@ -48,7 +48,7 @@ function setupElement(el: HTMLElement): { split: SplitType; cleanup: () => void 
 
 /**
  * Découpe le texte en lettres (SplitType) et attache l’effet au survol :
- * lettre survolée → scale 1.33, les autres → scale 0.9, en 2 s.
+ * lettre survolée → zoom 1.18, les autres → 0.96, durée 0.5 s.
  * Respecte prefers-reduced-motion.
  */
 export function useSplitLetters(

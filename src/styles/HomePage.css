@@ -67,6 +67,14 @@
     position: relative;
 }
 
+/* Lettrages animés (SplitType .char) : zoom au survol, vertical-align pour ancrage vertical */
+.presentationContainer .char,
+.contact-section-title-wrapper .char {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+}
+
 /* Titre des sections placeholder (Projets, Contact) */
 .placeholder-title {
     font-family: 'SP-Caffeine', sans-serif;
@@ -74,6 +82,8 @@
     font-weight: normal;
     opacity: 1;
     margin: 0;
+    /* Hauteur de ligne fixe pour éviter que les lettres remontent lors du dégonflement */
+    line-height: 1.4;
 }
 
 /* Section Contact : titre en haut à droite, SVG support-contact à gauche */
@@ -118,6 +128,14 @@
     z-index: 1;
 }
 
+@media (min-width: 1500px) {
+    .contact-section-svg-wrapper {
+        left: 16%;
+        top: 29%;
+        height: 50vh;
+    }
+}
+
 .contact-section-svg {
     width: auto;
     height: 100%;
@@ -142,15 +160,35 @@
     z-index: 2;
 }
 
+@media (min-width: 1500px) {
+    .presentationContainer {
+        margin-top: -25vh;
+    }
+}
+
 #myName {
     font-size: 7vw;
     font-weight: 10;
+    /* Hauteur de ligne fixe pour éviter que les lettres remontent lors du dégonflement */
+    line-height: 1.4;
+}
+
+@media (min-width: 1500px) {
+    #myName {
+        font-size: 6vw;
+    }
 }
 
 .descriptionContainer {
     font-size: 3.5vw;
     font-weight: 10;
     opacity: 0;
+}
+
+@media (min-width: 1500px) {
+    .descriptionContainer {
+        font-size: 2.5vw;
+    }
 }
 
 /* Image portrait */
@@ -160,13 +198,19 @@
     max-width: 400px;
     height: auto;
     object-fit: contain;
-    left: 40vw;
+    left: 50%;
     top: 5vh;
     transform: translateX(-50%);
     z-index: 1;
     border-radius: 100%;
     opacity: 0;
 }
+
+/* @media (min-width: 1500px) {
+    .portrait-image {
+        left: 33vw;
+    }
+} */
 
 /* Conteneur de la fusée (perspective pour rotateY sur #fumee) */
 .rocket-container {
@@ -233,6 +277,12 @@
     overflow: visible;
 }
 
+@media (min-width: 1500px) {
+    .about-svg-container {
+        top: 55%;
+    }
+}
+
 .about-svg-container svg {
     overflow: visible;
 }
@@ -248,6 +298,12 @@
     transform: translateY(-50%);
     z-index: 12;
     opacity: 1;
+}
+
+@media (min-width: 1500px) {
+    .hologram-svg-container {
+        top: 36.5%;
+    }
 }
 
 /* Le SVG s’adapte à la taille du conteneur (responsive) */

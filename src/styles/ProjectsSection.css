@@ -261,6 +261,12 @@
     }
 }
 
+@media (min-width: 1500px) {
+    .quest-descrip-container {
+        top: 12vh;
+    }
+}
+
 /* Habitation au centre : 3/4 de l'écran (rabaissée de 10 %) */
 /* isolation: isolate pour que les z-index 0 / 1 / 2 s’appliquent bien entre eux */
 .experiences-habitation-container {
@@ -324,6 +330,13 @@
         width: 59vw;
         left: 54.7%;
         max-width: 59vw;
+    }
+}
+
+@media (min-width: 1500px) {
+    .experiences-habitation-container {
+        top: 37.5%;
+        width: 45vw;
     }
 }
 
@@ -473,6 +486,18 @@
     }
 }
 
+@media (min-width: 1500px) {
+    .experiences-mask-chemine {
+        left: 4.5%;
+        width: 15.6%;
+        bottom: 25.5%;
+        height: 49%;
+        --cut: 140px;
+        -webkit-clip-path: polygon(var(--cut) 20%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+        clip-path: polygon(var(--cut) 20%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+    }
+}
+
 /* Masque convoyeur (#convoyeur translate(-700, 0) → bande gauche du viewBox) */
 /* Base : idéal vers 1349px */
 .experiences-mask-convoyeur {
@@ -490,6 +515,15 @@
     }
 }
 
+@media (min-width: 1500px) {
+    .experiences-mask-convoyeur {
+        left: 4.5%;
+        width: 93.5%;
+        bottom: 25.5%;
+        height: 22%;
+    }
+}
+
 /* Extraterrestre à gauche (alien2) - flip horizontal */
 .experiences-extraterrestre-container.alien2 {
     position: absolute;
@@ -500,6 +534,14 @@
     height: auto;
     z-index: 20;
     overflow: visible;
+}
+
+@media (min-width: 1500px) {
+    .experiences-extraterrestre-container.alien2 {
+        left: 1vw;
+        top: 46.8%;
+        width: 96px;
+    }
 }
 
 .experiences-extraterrestre-container svg {
@@ -542,6 +584,14 @@
     width: 120%;
     z-index: 4;
     pointer-events: none;
+}
+
+@media (min-width: 1500px) {
+    .projets-convoyeur-svg {
+        left: -66%;
+        bottom: 46.5%;
+        height: 19%;
+    }
 }
 
 

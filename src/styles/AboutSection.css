@@ -24,9 +24,10 @@
 }
 
 /* Grands écrans (xl+) : recentrer le handwriting */
-@media (min-width: 1588px) {
+@media (min-width: 1500px) {
     .handwriting-wrapper {
-        left: 37%;
+        left: 70.5%;
+        top: 37%;
     }
 }
 

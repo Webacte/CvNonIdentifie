@@ -172,9 +172,24 @@ body::before {
   }
 }
 
+@media (min-width: 1500px) {
+  .ground-overcoat {
+    top: 53.5%;
+  }
+  .ground-line {
+    top: 53%;
+  }
+}
+
 .handwriting-svg {
     width: 100%;
     height: auto;
+}
+
+@media (min-width: 1500px) {
+  .handwriting-svg {
+    width: 83%;
+  }
 }
 
 .handwriting-svg path {

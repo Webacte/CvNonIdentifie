@@ -21,6 +21,8 @@ import {
     MOBILE_SMALL_MAX_WIDTH,
     MOBILE_MAX_WIDTH,
     TABLET_MAX_WIDTH,
+    LARGE_DESKTOP_MIN_WIDTH,
+    ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP,
     ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
     ROCKET_X_BASE_SPEED_EASE,
     ROCKET_END_X_MIN_PX,
@@ -164,7 +166,7 @@ import {
     EXP_CHIMNEY_RISE_Y,
     EXP_CONVEYOR_SLIDE_X,
     EXP_CONVEYOR_START_X,
-    CONVOYEUR_SCALE_X,
+    getConvoyeurScaleX,
     CONVOYEUR_SCALE_Y,
     CONVOYEUR_TOP_PERCENT,
     CONVOYEUR_PROJET_VIEWBOX_HEIGHT,
@@ -180,13 +182,14 @@ import {
     EXP_QUEST_WRITE_RATIO,
     EXP_QUEST_STAY_RATIO,
     EXP_QUEST_ERASE_RATIO,
-    ROBOT_ABOVE_CONVOYEUR_Y_PERCENT,
-    ROBOT_GROUND_Y_PERCENT,
+    getRobotYPercentByViewport,
     ROBOT_SIZE_SCALE,
     ROBOT_FALL_DIAGONAL_X_VW,
     ROBOT_FALL_ROLL_RIGHT_X_VW,
     ROBOT_FALL_DIAGONAL_RATIO,
     ROBOT_ROLL_TRANSFORM_ORIGIN,
+    ROBOT_FALL_ORIGIN_BLEND_START,
+    ROBOT_FALL_ORIGIN_BLEND_END,
     ROBOT_HEAD_SLIDE_START,
     ROBOT_HEAD_SLIDE_END,
     ROBOT_HEAD_FALL_START,
@@ -196,6 +199,8 @@ import {
     ROBOT_HAND_FALL_START,
     ROBOT_HAND_FALL_END,
     ROBOT_HAND_ROLL_DEG,
+    ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE,
+    ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX,
     ROBOT_HEAD_ROLL_DEG,
     PROJET_SCANIA_TEXT_START,
     PROJET_SCANIA_TEXT_END,
@@ -429,6 +434,8 @@ export function createRocketScrollAnimation(
         if (w <= MOBILE_MAX_WIDTH) return referenceHeight * 0.72
         // Tablette 601–768px : remonter d’une hauteur de fusée (trop bas sinon)
         if (w <= TABLET_MAX_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE - ROCKET_HEIGHT_PX
+        // Écrans larges (≥1500px) : limiter la descente pour éviter que la fusée aille trop bas
+        if (w >= LARGE_DESKTOP_MIN_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP
         return referenceHeight * ROCKET_END_Y_PERCENTAGE
     }
 
@@ -1898,8 +1905,9 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
         }
 
         const convoyeurTranslateY = CONVOYEUR_PROJET_VIEWBOX_HEIGHT * (CONVOYEUR_TOP_PERCENT / 100)
+        const convoyeurScaleX = getConvoyeurScaleX(typeof window !== 'undefined' ? window.innerWidth : 1500)
         if (conv && !convoyeurInited) {
-            setSvgTransform(conv, `translate(${EXP_CONVEYOR_START_X}, ${convoyeurTranslateY}) scale(${CONVOYEUR_SCALE_X}, ${CONVOYEUR_SCALE_Y})`)
+            setSvgTransform(conv, `translate(${EXP_CONVEYOR_START_X}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
             convoyeurInited = true
         }
         if (batt && !battantInited) {
@@ -1983,19 +1991,22 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 const slideX =
                     EXP_CONVEYOR_START_X +
                     (EXP_CONVEYOR_SLIDE_X - EXP_CONVEYOR_START_X) * conveyorSlideProgress
-                setSvgTransform(conv, `translate(${slideX}, ${convoyeurTranslateY}) scale(${CONVOYEUR_SCALE_X}, ${CONVOYEUR_SCALE_Y})`)
+                setSvgTransform(conv, `translate(${slideX}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
             }
         }
 
         // Animation head-robot et hand-robot
         if (robotHeadElement || robotHandElement) {
+            const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1500
+            const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800
+            const { above: robotAboveYPercent, ground: robotGroundYPercent } = getRobotYPercentByViewport(viewportW, viewportH)
             if (!robotsInited) {
                 robotsInited = true
                 if (robotHeadElement) {
                     gsap.set(robotHeadElement, {
                         position: 'absolute',
                         left: '50%',
-                        top: `${ROBOT_ABOVE_CONVOYEUR_Y_PERCENT}%`,
+                        top: `${robotAboveYPercent}%`,
                         xPercent: -50,
                         yPercent: -50,
                         x: '-50vw',
@@ -2008,7 +2019,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     gsap.set(robotHandElement, {
                         position: 'absolute',
                         left: '50%',
-                        top: `${ROBOT_ABOVE_CONVOYEUR_Y_PERCENT}%`,
+                        top: `${robotAboveYPercent}%`,
                         xPercent: -50,
                         yPercent: -50,
                         x: '-50vw',
@@ -2030,20 +2041,29 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 let transformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
                 if (headSlideProgress < 1) {
                     headX = -50 + 50.5 * headSlideProgress
-                    headYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT
+                    headYPercent = robotAboveYPercent
                     headRotation = 0
                 } else if (headFallProgress <= 0) {
                     headX = .5
-                    headYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT
+                    headYPercent = robotAboveYPercent
                     headRotation = 0
                 } else {
-                    transformOrigin = 'center center'
                     const diagonalProgress = Math.min(1, headFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
+                    // Transition progressive 50% 100% → 50% 50% (évite le saut visuel)
+                    if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
+                        transformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
+                    } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
+                        transformOrigin = 'center center'
+                    } else {
+                        const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
+                        const originY = 100 - 50 * t
+                        transformOrigin = `50% ${originY}%`
+                    }
                     const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
                         ? Math.max(0, (headFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
                         : 0
-                    headYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT +
-                        (ROBOT_GROUND_Y_PERCENT - ROBOT_ABOVE_CONVOYEUR_Y_PERCENT) * diagonalProgress
+                    headYPercent = robotAboveYPercent +
+                        (robotGroundYPercent - robotAboveYPercent) * diagonalProgress
                     headX = diagonalProgress < 1
                         ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
                         : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * rollRightProgress
@@ -2067,24 +2087,36 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 let transformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
                 if (handSlideProgress < 1) {
                     handX = -50 + 50 * handSlideProgress
-                    handYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT
+                    handYPercent = robotAboveYPercent
                     handRotation = 0
                 } else if (handFallProgress <= 0) {
                     handX = 0
-                    handYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT
+                    handYPercent = robotAboveYPercent
                     handRotation = 0
                 } else {
-                    transformOrigin = 'center center'
                     const diagonalProgress = Math.min(1, handFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
+                    // Transition progressive 50% 100% → 50% 50% (évite le saut visuel)
+                    if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
+                        transformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
+                    } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
+                        transformOrigin = 'center center'
+                    } else {
+                        const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
+                        const originY = 100 - 50 * t
+                        transformOrigin = `50% ${originY}%`
+                    }
                     const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
                         ? Math.max(0, (handFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
                         : 0
-                    handYPercent = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT +
-                        ((ROBOT_GROUND_Y_PERCENT + .5) - ROBOT_ABOVE_CONVOYEUR_Y_PERCENT) * diagonalProgress
+                    handYPercent = robotAboveYPercent +
+                        ((robotGroundYPercent + .5) - robotAboveYPercent) * diagonalProgress
                     handX = diagonalProgress < 1
                         ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
                         : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * rollRightProgress
                     handRotation = ROBOT_HAND_ROLL_DEG * handFallProgress
+                }
+                if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX && handFallProgress >= 1) {
+                    handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE
                 }
                 gsap.set(robotHandElement, {
                     opacity: handOpacity,
