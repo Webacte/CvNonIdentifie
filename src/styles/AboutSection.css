@@ -11,50 +11,23 @@
     font-weight: 10;
 }
 
-/* Conteneur pour l'animation handwriting */
+/* Conteneur handwriting : --profile-text-* (Responsive Tokens sur stage, numériques) */
 .handwriting-wrapper {
     position: absolute;
     z-index: 12;
-    /* Positionnement centré sur petit écran, décalé à gauche sur grand écran */
-    left: 64%;
-    top: 41%;
-    /* Décalage global à gauche + 10% à droite + centrage vertical ; écarts entre breakpoints respectés plus bas */
+    left: calc(var(--profile-text-left, 64) * 1%);
+    top: calc(var(--profile-text-top, 41) * 1%);
     transform: translate(calc(-50% - 4vw + 5vw), -50%);
-    width: 45vw;
+    width: calc(var(--profile-text-width, 45) * 1vw);
+    max-width: var(--profile-text-max-width, none);
 }
 
-/* Grands écrans (xl+) : recentrer le handwriting */
-@media (min-width: 1500px) {
-    .handwriting-wrapper {
-        left: 70.5%;
-        top: 37%;
-    }
-}
-
-/* MQ UI regroupées : 768, 480, 425 */
 @media (max-width: 768px) {
+    .handwriting-wrapper {
+        transform: translate(-50%, -50%);
+    }
     .section-content {
         width: 80vw;
         margin-left: 10vw;
-    }
-    .handwriting-wrapper {
-        left: 31%;
-        top: 49%;
-        transform: translate(-50%, -50%);
-        max-width: 38vw;
-    }
-}
-
-@media (max-width: 480px) {
-    .handwriting-wrapper {
-        left: 29%;
-        top: 57%;
-        max-width: 40vw;
-    }
-}
-
-@media (max-width: 425px) {
-    .handwriting-wrapper {
-        top: 47%;
     }
 }

@@ -86,27 +86,37 @@
 
 .contact-field-societe:focus-within .contact-label,
 .contact-field-societe.is-filled .contact-label {
-    transform: translate(-9.5vw, -1.5vh);
-    font-size: .65rem;
+    transform: translate(
+        calc(var(--contact-societe-label-tx-vw, -9.5) * 1vw),
+        calc(var(--contact-societe-label-ty-vh, -1.5) * 1vh)
+    );
+    font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
 }
 
 .contact-field-email:focus-within .contact-label,
 .contact-field-email.is-filled .contact-label {
-    transform: translateY(-5vh);
-    font-size: .65rem;
+    transform: translate(
+        calc(var(--contact-email-label-tx-vh, 0) * 1vh),
+        calc(var(--contact-email-label-ty-vh, -5) * 1vh)
+    );
+    font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
 }
 
 .contact-field-message:focus-within .contact-label,
 .contact-field-message.is-filled .contact-label {
-    transform: translate(-4vw, -18.5vh);
-    font-size: .65rem;
+    transform: translate(
+        calc(var(--contact-message-label-tx-vw, -4) * 1vw),
+        calc(var(--contact-message-label-ty-vh, -18.5) * 1vh)
+    );
+    font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
 }
 
 .contact-field-message:focus-within .contact-textarea,
 .contact-field-message.is-filled .contact-textarea {
-    margin-top: 3.8vh;
-    margin-left: 2.5vw;
-    width: 80%;
+    border-radius: 91% / 150%;
+    margin-top: calc(var(--contact-message-textarea-focus-mt-vh, 3.8) * 1vh);
+    margin-left: calc(var(--contact-message-textarea-focus-ml-vw, 2.5) * 1vw);
+    width: calc(var(--contact-message-textarea-focus-width, 80) * 1%);
 }
 
 .contact-field .contact-input {
@@ -127,8 +137,27 @@
 }
 
 .contact-field .contact-textarea {
-    height: 9em;
+    height: 11.5em;
     resize: none;
+}
+
+/* Scrollbar .contact-textarea : thumb arrondi, fond rgba(0,0,0,0.2) */
+/* Firefox */
+.contact-textarea {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+/* WebKit (Chrome/Edge/Safari) */
+.contact-textarea::-webkit-scrollbar {
+    width: 10px;
+}
+.contact-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+.contact-textarea::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.2);
+    background-clip: padding-box;
 }
 
 /* Contourner le fond jaune/bleu de l'autofill Chrome */
@@ -148,12 +177,12 @@
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    top: 41%;
-    left: 50.5%;
-    width: 13.5%;
+    top: calc(var(--contact-submit-top, 41) * 1%);
+    left: calc(var(--contact-submit-left, 50.5) * 1%);
+    width: calc(var(--contact-submit-width, 13.5) * 1%);
     min-width: 100px;
-    rotate: 27deg;
-    height: 4.5%;
+    rotate: calc(var(--contact-submit-rotate-deg, 27) * 1deg);
+    height: calc(var(--contact-submit-height, 4.5) * 1%);
     min-height: 1.5em;
     contain: layout style;
     transform: translateZ(0);
@@ -226,11 +255,11 @@
 
 /* Prénom : label fixé au haut du champ, seule la zone écrite se décale (margin-top sur l'input) */
 .contact-field-prenom {
-    top: 6.8%;
-    left: 36%;
-    width: 13.5%;
+    top: calc(var(--contact-prenom-top, 6.8) * 1%);
+    left: calc(var(--contact-prenom-left, 36) * 1%);
+    width: calc(var(--contact-prenom-width, 13.5) * 1%);
     min-width: 120px;
-    rotate: 11deg;
+    rotate: calc(var(--contact-prenom-rotate-deg, 11) * 1deg);
     padding-top: 0.75em;
 }
 /* Label ancré en haut : ne bouge pas quand on ajuste l'input */
@@ -246,22 +275,22 @@
 }
 
 .contact-field-societe {
-    top: 22%;
-    left: 24.5%;
-    width: 16.5%;
+    top: calc(var(--contact-societe-top, 22) * 1%);
+    left: calc(var(--contact-societe-left, 24.5) * 1%);
+    width: calc(var(--contact-societe-width, 16.5) * 1%);
     min-width: 160px;
 }
 
 .contact-field-email {
-    top: 13.5%;
-    left: 42%;
-    width: 19%;
+    top: calc(var(--contact-email-top, 13.5) * 1%);
+    left: calc(var(--contact-email-left, 42) * 1%);
+    width: calc(var(--contact-email-width, 19) * 1%);
     min-width: 180px;
     rotate: -19deg;
 }
 
 .contact-field-message {
-    top: 37%;
+    top: calc(var(--contact-message-top, 37) * 1%);
     left: 19%;
     width: 30%;
     min-width: 200px;

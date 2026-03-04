@@ -67,12 +67,13 @@
     position: relative;
 }
 
-/* Lettrages animés (SplitType .char) : zoom au survol, vertical-align pour ancrage vertical */
+/* Lettrages animés (SplitType .char) : scale au survol (transform, pas zoom = pas de reflow) */
 .presentationContainer .char,
 .contact-section-title-wrapper .char {
     display: inline-block;
     vertical-align: middle;
     line-height: 1;
+    transform-origin: center center;
 }
 
 /* Titre des sections placeholder (Projets, Contact) */
@@ -113,27 +114,19 @@
 
 .contact-section-svg-wrapper {
     position: absolute;
-    left: 15%;
-    top: 36.5%;
+    left: calc(var(--contact-svg-left, 15) * 1%);
+    top: calc(var(--contact-svg-top, 36.5) * 1%);
     transform: translateY(-50%);
-    height: 63vh;
+    height: calc(var(--contact-svg-height-vh, 63) * 1vh);
     max-height: 63svh;
     width: auto;
-    max-width: 85vw;
-    min-width: 60vw;
+    max-width: var(--contact-svg-max-width, 85vw);
+    min-width: var(--contact-svg-min-width, 60vw);
     display: flex;
     align-items: center;
     justify-content: flex-start;
     pointer-events: none;
     z-index: 1;
-}
-
-@media (min-width: 1500px) {
-    .contact-section-svg-wrapper {
-        left: 16%;
-        top: 29%;
-        height: 50vh;
-    }
 }
 
 .contact-section-svg {
@@ -145,11 +138,12 @@
     object-position: left center;
 }
 
+/* margin-top via token numérique (--presentation-margin-top-vh * 1vh), défaut -5, 1920×1080 = -35 */
 .presentationContainer {
     position: relative;
     height: 40vh;
     width: 90vw;
-    margin-top: -5vh;
+    margin-top: calc(var(--presentation-margin-top-vh, -5) * 1vh);
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -160,35 +154,17 @@
     z-index: 2;
 }
 
-@media (min-width: 1500px) {
-    .presentationContainer {
-        margin-top: -25vh;
-    }
-}
-
+/* Typo section présentation : entièrement pilotée par tokens (base-vw + delta-vw numériques). */
 #myName {
-    font-size: 7vw;
+    font-size: calc((var(--home-myname-font-size-base-vw, 7) * 1vw) + (var(--home-myname-font-size-delta-vw, 0) * 1vw));
     font-weight: 10;
-    /* Hauteur de ligne fixe pour éviter que les lettres remontent lors du dégonflement */
     line-height: 1.4;
 }
 
-@media (min-width: 1500px) {
-    #myName {
-        font-size: 6vw;
-    }
-}
-
 .descriptionContainer {
-    font-size: 3.5vw;
+    font-size: calc((var(--home-description-font-size-base-vw, 3.5) * 1vw) + (var(--home-description-font-size-delta-vw, 0) * 1vw));
     font-weight: 10;
     opacity: 0;
-}
-
-@media (min-width: 1500px) {
-    .descriptionContainer {
-        font-size: 2.5vw;
-    }
 }
 
 /* Image portrait */
@@ -212,15 +188,15 @@
     }
 } */
 
-/* Conteneur de la fusée (perspective pour rotateY sur #fumee) */
+/* Conteneur de la fusée : position/taille via --rocket-* (Responsive Tokens) */
 .rocket-container {
     position: absolute;
     transform-box: fill-box;
     transform-origin: 85% 60%;
-    width: 300px;
-    height: 300px;
-    left: 10vw;
-    top: -60vh;
+    width: var(--rocket-width, 300px);
+    height: var(--rocket-height, 300px);
+    left: var(--rocket-left, 10vw);
+    top: var(--rocket-top, -60vh);
     z-index: 1;
     perspective: 900px;
     transform-style: preserve-3d;
@@ -264,46 +240,34 @@
     font-weight: 10;
 }
 
-/* Conteneur SVG pour la section à propos */
+/* Conteneur SVG section à propos : --about-alien-* (Responsive Tokens) */
 .about-svg-container {
     position: absolute;
     transform-box: fill-box;
-    width: 200px; /* Taille d'origine restaurée */
+    width: var(--about-alien-width, 200px);
     height: auto;
-    left: 10vw;
-    top: 65%;
+    left: var(--about-alien-left, 10vw);
+    top: calc(var(--about-alien-top, 65) * 1%);
     transform: translateY(-50%);
     z-index: 12;
     overflow: visible;
-}
-
-@media (min-width: 1500px) {
-    .about-svg-container {
-        top: 55%;
-    }
 }
 
 .about-svg-container svg {
     overflow: visible;
 }
 
-/* Conteneur SVG hologramme pour la section à propos */
+/* Conteneur SVG hologramme : --about-hologram-* (Responsive Tokens) */
 .hologram-svg-container {
     position: absolute;
     transform-box: fill-box;
-    width: auto;
+    width: var(--about-hologram-width, auto);
     height: auto;
-    left: 11vw;
-    top: 42%;
-    transform: translateY(-50%);
+    left: var(--about-hologram-left, 11vw);
+    top: calc(var(--about-hologram-top, 42) * 1%);
+    transform: var(--about-hologram-transform, translateY(-50%));
     z-index: 12;
     opacity: 1;
-}
-
-@media (min-width: 1500px) {
-    .hologram-svg-container {
-        top: 36.5%;
-    }
 }
 
 /* Le SVG s’adapte à la taille du conteneur (responsive) */
@@ -319,53 +283,24 @@
     transform-origin: 450px 200px;
 }
 
-/* MQ UI : breakpoints 768 (md), 480, 425 (sm) — alignés sceneConfig/constants */
+/* MQ 768 : marges et transform-origin (layout rocket/about/hologram via Responsive Tokens) */
 @media (max-width: 768px) {
-    .rocket-container {
-        left: -10vw;
-    }
     #myName,
     .descriptionContainer {
         margin-top: -4vh;
-    }
-    .about-svg-container {
-        width: 150px;
-        left: 5vw;
-        top: 75%;
-    }
-    .hologram-svg-container {
-        left: 50%;
-        top: 51%;
-        right: auto;
-        width: 108vw;
-        max-width: 108vw;
-        transform: translate(-50%, -50%);
     }
     #hologramme {
         transform-origin: center center;
     }
 }
 
-@media (max-width: 480px) {
-    .rocket-container {
-        left: -15vw;
-    }
-    .about-svg-container {
-        width: 120px;
-        left: 2vw;
-    }
-    .hologram-svg-container {
-        top: 57%;
-        width: 132vw;
-        max-width: 132vw;
-    }
-}
-
-@media (max-width: 425px) {
-    .about-svg-container {
-        top: 65%;
-    }
-    .hologram-svg-container {
-        top: 47%;
+/* Réduction des mouvements : cycles feu/fumée fusée et effets animés lourds (layout inchangé) */
+@media (prefers-reduced-motion: reduce) {
+    .rocket-scaled #fumee,
+    .rocket-scaled #feu1,
+    .rocket-scaled #feu2,
+    .rocket-scaled #feu3 {
+        animation: none !important;
+        transition: none !important;
     }
 }

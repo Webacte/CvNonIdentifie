@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 100" preserveAspectRatio="none">
+  <!-- Trait vertical style crayon/dessin : irr�gulier, visible, graphite -->
+  <path d="M10,0 Q12,8 9,16 Q11,24 8.5,32 Q10.5,40 9,48 Q11.5,56 8,64 Q10,72 9.2,80 Q8.5,88 10,100" 
+        fill="none" stroke="#2a2a2a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <path d="M10,0 Q8.5,10 11,18 Q9,26 10.5,34 Q8.8,42 10,50 Q9.2,58 10.8,66 Q8.5,74 10,82 Q9.5,90 10.5,100" 
+        fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+</svg>

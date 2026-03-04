@@ -8,6 +8,8 @@ import { configureAllScrollAnimations } from '@/animations/scrollAnimations'
 import { observeViewport, getViewportMetrics } from '@/animations/viewport'
 import { computeCamera, applyCamera } from '@/animations/camera'
 import { sceneConfig } from '@/animations/sceneConfig'
+import { computeResponsiveTokens, applyResponsiveTokens } from '@/scene/responsiveTokens'
+import { runTokensDebugSnapshot } from '@/scene/tokensDebug'
 import PresentationSection from './PresentationSection'
 import AboutSection from './AboutSection'
 import ProjectsSection from './ProjectsSection'
@@ -179,6 +181,9 @@ export default function HomePage() {
             const allSectionsReady = sections.every(section => section.offsetWidth > 0 && section.offsetHeight > 0)
             if (!allSectionsReady) return false
 
+            const tokens = computeResponsiveTokens(metrics)
+            applyResponsiveTokens(stage, tokens)
+
             const camera = computeCamera({
                 viewportW: metrics.width,
                 viewportH: metrics.height,
@@ -187,6 +192,9 @@ export default function HomePage() {
                 ...sceneConfig.cameraOptions,
             })
             applyCamera(stage, camera)
+            if (typeof window !== 'undefined' && ((window as Window & { __TOKENS_DEBUG__?: boolean }).__TOKENS_DEBUG__ || (window as Window & { __TOKENS_DEBUG_OVERLAY__?: boolean }).__TOKENS_DEBUG_OVERLAY__)) {
+                requestAnimationFrame(() => requestAnimationFrame(() => runTokensDebugSnapshot(metrics, stage, camera)))
+            }
 
             scrollAnimationsCleanupRef.current?.()
             scrollAnimationsCleanupRef.current = undefined
@@ -219,7 +227,8 @@ export default function HomePage() {
                 scaniaTitreRef,
                 scaniaDescRef,
                 likethatTitreRef,
-                likethatDescRef
+                likethatDescRef,
+                tokens
             )
             ScrollTrigger.refresh()
             stage.classList.add('is-ready')
@@ -242,6 +251,8 @@ export default function HomePage() {
 
                 const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
                 if (sections.length === 0) return
+                const tokens = computeResponsiveTokens(metrics)
+                applyResponsiveTokens(stage, tokens)
                 const camera = computeCamera({
                     viewportW: metrics.width,
                     viewportH: metrics.height,
@@ -250,6 +261,9 @@ export default function HomePage() {
                     ...sceneConfig.cameraOptions,
                 })
                 applyCamera(stage, camera)
+                if (typeof window !== 'undefined' && ((window as Window & { __TOKENS_DEBUG__?: boolean }).__TOKENS_DEBUG__ || (window as Window & { __TOKENS_DEBUG_OVERLAY__?: boolean }).__TOKENS_DEBUG_OVERLAY__)) {
+                    requestAnimationFrame(() => requestAnimationFrame(() => runTokensDebugSnapshot(metrics, stage, camera)))
+                }
                 const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections, camera)
                 horizontalScrollKillRef.current = kill
                 scrollAnimationsCleanupRef.current = configureAllScrollAnimations(
@@ -275,8 +289,9 @@ export default function HomePage() {
                     scaniaTitreRef,
                     scaniaDescRef,
                     likethatTitreRef,
-                    likethatDescRef
-            )
+                    likethatDescRef,
+                    tokens
+                )
                 ScrollTrigger.refresh()
             })
         }

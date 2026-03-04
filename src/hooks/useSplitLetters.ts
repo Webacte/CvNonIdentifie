@@ -20,15 +20,18 @@ function setupElement(el: HTMLElement): { split: SplitType; cleanup: () => void 
     const chars = split.chars
     if (!chars || chars.length === 0) return null
 
+    // transform + scale évite le reflow (zoom CSS provoque des reflows = lag au survol)
+    gsap.set(chars, { transformOrigin: 'center center', force3D: true })
+
     const onCharEnter = (e: Event) => {
         const target = e.currentTarget as HTMLElement
-        gsap.to(target, { zoom: SCALE_HOVER, duration: DURATION, ease: EASE, overwrite: true })
+        gsap.to(target, { scale: SCALE_HOVER, duration: DURATION, ease: EASE, overwrite: true, force3D: true })
         const others = chars.filter((c) => c !== target)
-        gsap.to(others, { zoom: SCALE_OTHERS, duration: DURATION, ease: EASE, overwrite: true })
+        gsap.to(others, { scale: SCALE_OTHERS, duration: DURATION, ease: EASE, overwrite: true, force3D: true })
     }
 
     const onBlockLeave = () => {
-        gsap.to(chars, { zoom: 1, duration: DURATION, ease: EASE, overwrite: true })
+        gsap.to(chars, { scale: 1, duration: DURATION, ease: EASE, overwrite: true, force3D: true })
     }
 
     chars.forEach((char) => {
@@ -48,7 +51,7 @@ function setupElement(el: HTMLElement): { split: SplitType; cleanup: () => void 
 
 /**
  * Découpe le texte en lettres (SplitType) et attache l’effet au survol :
- * lettre survolée → zoom 1.18, les autres → 0.96, durée 0.5 s.
+ * lettre survolée → scale 1.18, les autres → 0.96, durée 0.5 s (transform pour éviter reflow/zoom).
  * Respecte prefers-reduced-motion.
  */
 export function useSplitLetters(

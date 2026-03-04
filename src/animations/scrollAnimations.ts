@@ -2,6 +2,8 @@ import type { RefObject } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { ScrollValues } from './horizontalScroll'
+import type { ResponsiveTokens } from '@/scene/responsiveTokens'
+import { CONVOYEUR_END_CORRECTION_GOLDEN } from '@/scene/responsiveTokens'
 import {
     ROCKET_ANIMATION_START_DELAY,
     ROCKET_PROGRESS_RANGE_RATIO,
@@ -20,6 +22,8 @@ import {
     ROCKET_Y_COMPLETION_425_FACTOR,
     MOBILE_SMALL_MAX_WIDTH,
     MOBILE_MAX_WIDTH,
+    ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL,
+    ROCKET_END_Y_PERCENTAGE_MOBILE,
     TABLET_MAX_WIDTH,
     LARGE_DESKTOP_MIN_WIDTH,
     ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP,
@@ -211,6 +215,41 @@ import {
     PROJET_ERASE_RATIO,
 } from './constants'
 import { createHandwritingAnimation } from './handwriting'
+
+/** Smoothstep pour transition douce (t=0→0, t=1→1, dérivée nulle aux bords). */
+function smoothstep(x: number): number {
+    const t = Math.max(0, Math.min(1, x))
+    return t * t * (3 - 2 * t)
+}
+
+function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t
+}
+
+/** Largeur de référence pour interpolation large desktop (tWide=1 à 1920px). */
+const ROCKET_WIDE_DESKTOP_WIDTH = 1920
+
+/** Paramètres responsive fusée : centralise seuils 425/375/600/768, interpolation 1500–1920 pour large desktop. */
+function getRocketResponsiveParams(viewportW: number, _viewportH: number): {
+    endYRatio: number
+    endYOffsetPx: number
+    yCompletionProgress: number
+} {
+    if (viewportW <= GROUND_LINE_425_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_425, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR }
+    if (viewportW <= MOBILE_SMALL_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR }
+    if (viewportW <= MOBILE_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_MOBILE, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR }
+    if (viewportW <= TABLET_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE, endYOffsetPx: -ROCKET_HEIGHT_PX, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS }
+    // Desktop > 768px : interpolation douce entre 1500 et 1920 (évite seuil brutal)
+    const tWide = smoothstep((viewportW - LARGE_DESKTOP_MIN_WIDTH) / (ROCKET_WIDE_DESKTOP_WIDTH - LARGE_DESKTOP_MIN_WIDTH))
+    const endYRatio = lerp(ROCKET_END_Y_PERCENTAGE, ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP, tWide)
+    return { endYRatio, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS }
+}
+
+/** Transform-origin alien selon viewport (mobile ≤ ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX). */
+function getAlienResponsiveParams(viewportW: number): { transformOrigin: 'right bottom' | 'bottom center' } {
+    const useMobile = typeof viewportW === 'number' && viewportW <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX
+    return { transformOrigin: useMobile ? 'right bottom' : 'bottom center' }
+}
 
 type Point = {x: number, y: number}
 /**
@@ -413,30 +452,22 @@ export function createRocketScrollAnimation(
     const rocketStartRotate = ROCKET_START_ROTATE
     const rocketEndRotate = ROCKET_END_ROTATE
     
-    const getScaleRatio = () => window.innerWidth / VIEWPORT_REFERENCE_WIDTH
+    const getScaleRatio = () => (scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : VIEWPORT_REFERENCE_WIDTH)) / VIEWPORT_REFERENCE_WIDTH
 
     const getRocketEndX = () => {
         const scaleRatio = getScaleRatio()
         return Math.max(scrollDistance * ROCKET_END_X_MIN_RATIO, ROCKET_END_X_MIN_PX * scaleRatio)
     }
-    
+
+    const viewportW = scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1050)
+    const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
+    const rocketParams = getRocketResponsiveParams(viewportW, viewportH)
+
     const getRocketEndY = () => {
-        const referenceHeight = firstSection?.offsetHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 0)
-        if (typeof window === 'undefined') {
-            return referenceHeight * ROCKET_END_Y_PERCENTAGE
-        }
-        const w = window.innerWidth
-        // ≤425px : sol à 55%, fusée atterrit sur la ligne de sol
-        if (w <= GROUND_LINE_425_MAX_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE_425
-        // ≤375px : fusée descend plus, atterrit à 76% de la hauteur du viewport
-        if (w <= MOBILE_SMALL_MAX_WIDTH) return referenceHeight * 0.76
-        // ≤600px : atterrit à 72%
-        if (w <= MOBILE_MAX_WIDTH) return referenceHeight * 0.72
-        // Tablette 601–768px : remonter d’une hauteur de fusée (trop bas sinon)
-        if (w <= TABLET_MAX_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE - ROCKET_HEIGHT_PX
-        // Écrans larges (≥1500px) : limiter la descente pour éviter que la fusée aille trop bas
-        if (w >= LARGE_DESKTOP_MIN_WIDTH) return referenceHeight * ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP
-        return referenceHeight * ROCKET_END_Y_PERCENTAGE
+        const referenceHeight = firstSection?.offsetHeight ?? viewportH
+        if (typeof window === 'undefined') return referenceHeight * ROCKET_END_Y_PERCENTAGE
+        const params = getRocketResponsiveParams(viewportW, viewportH)
+        return referenceHeight * params.endYRatio + params.endYOffsetPx
     }
 
     gsap.set(rocketElement, {
@@ -447,14 +478,7 @@ export function createRocketScrollAnimation(
         force3D: true,
     })
 
-    const getYCompletionProgress = () => {
-        if (typeof window === 'undefined') return ROCKET_Y_COMPLETION_PROGRESS
-        const w = window.innerWidth
-        if (w <= GROUND_LINE_425_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR
-        if (w <= MOBILE_SMALL_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR
-        if (w <= MOBILE_MAX_WIDTH) return ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR
-        return ROCKET_Y_COMPLETION_PROGRESS
-    }
+    const getYCompletionProgress = () => (typeof window === 'undefined' ? ROCKET_Y_COMPLETION_PROGRESS : rocketParams.yCompletionProgress)
 
     const updateRocketPositionX = (progress: number) => {
         const yCompletionProgress = getYCompletionProgress()
@@ -491,7 +515,7 @@ export function createRocketScrollAnimation(
 
     /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). */
     const getLandedPosition = () => {
-        const referenceHeight = firstSection?.offsetHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 0)
+        const referenceHeight = firstSection?.offsetHeight ?? viewportH
         const landedX =
             scrollValues.scrollDistanceWithMovement +
             scrollValues.viewportWidth -
@@ -634,10 +658,7 @@ export function createRocketFireScrollAnimation(
     const scrollDistance = scrollValues.scrollDistanceWithMovement
     const horizontalProgressMultiplier = 3
 
-    const getScaleRatio = () => {
-        const currentViewportWidth = window.innerWidth
-        return currentViewportWidth / VIEWPORT_REFERENCE_WIDTH
-    }
+    const getScaleRatio = () => (scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : VIEWPORT_REFERENCE_WIDTH)) / VIEWPORT_REFERENCE_WIDTH
 
     const getFireMinX = () => {
         const scaleRatio = getScaleRatio()
@@ -877,9 +898,9 @@ export function createAlienScrollAnimation(
         y: jambesBasDroiteStartY,
         force3D: true,
     })
-    const alienTransformOrigin = typeof window !== 'undefined' && window.innerWidth <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX ? 'right bottom' : 'bottom center'
+    const alienParams = getAlienResponsiveParams(scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1050))
     gsap.set(extraterrestre, {
-        transformOrigin: alienTransformOrigin,
+        transformOrigin: alienParams.transformOrigin,
         rotation: extraterrestreStartRotate,
         force3D: true,
     })
@@ -988,8 +1009,8 @@ export function createAlienScrollAnimation(
         gsap.set(jambesHautDroite, { rotation: jambesHautDroiteRotate, force3D: true })
         gsap.set(jambesBasDroite, { rotation: jambesBasDroiteRotate, x: jambesBasDroiteX, y: jambesBasDroiteY, force3D: true })
         
-        const transformOrigin = typeof window !== 'undefined' && window.innerWidth <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX ? 'right bottom' : 'bottom center'
-        gsap.set(extraterrestre, { transformOrigin, rotation: extraterrestreRotate, force3D: true })
+        const alienTransform = getAlienResponsiveParams(scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1050))
+        gsap.set(extraterrestre, { transformOrigin: alienTransform.transformOrigin, rotation: extraterrestreRotate, force3D: true })
     }
 
     // Initialiser les valeurs dès le début pour éviter les sauts
@@ -1033,11 +1054,11 @@ export function createAlienScrollAnimation(
     }
 }
 
-function getHologramBasesStartPositions(): {
+function getHologramBasesStartPositions(viewportWidth?: number): {
     baseDroite: Point
     baseGauche: Point
 } {
-    const w = typeof window !== 'undefined' ? window.innerWidth : 1200
+    const w = viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1200)
     const desktopDroite = { x: HOLOGRAM_BASES_DESKTOP_DROITE_X, y: HOLOGRAM_BASES_DESKTOP_DROITE_Y }
     const desktopGauche = { x: HOLOGRAM_BASES_DESKTOP_GAUCHE_X, y: HOLOGRAM_BASES_DESKTOP_GAUCHE_Y }
     if (w > HOLOGRAM_BASES_TABLET_MAX) {
@@ -1085,7 +1106,7 @@ export function createHologramBasesScrollAnimation(
     if (!baseDroite || !baseGauche) return
 
     const applyInitialBases = () => {
-        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions()
+        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions(scrollValues.viewportWidth)
         gsap.set(baseDroite, {
             x: startD.x,
             y: startD.y,
@@ -1112,7 +1133,7 @@ export function createHologramBasesScrollAnimation(
 
     // Fonction pour mettre à jour les transformations en fonction du progress (progressPhase2 = bloc About)
     const updateHologramBases = (progressPhase2: number) => {
-        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions()
+        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions(scrollValues.viewportWidth)
 
         const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_BASES_ANIMATION_START, HOLOGRAM_BASES_ANIMATION_END)
 
@@ -1845,6 +1866,8 @@ export interface ProjectsSectionScrollAnimationParams {
     robotHandElement?: HTMLElement | null
     /** Getter du conteneur du SVG convoyeur-projet (section Projets), pour résolution après chargement async */
     getConvoyeurProjetElement?: () => HTMLElement | null
+    /** Tokens responsive (robot above/ground Y %) — priorité sur getComputedStyle et getRobotYPercentByViewport */
+    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent'>
 }
 
 /**
@@ -1877,6 +1900,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     let loggedFirstElementsFound = false
     let loggedFirstProgressInRange = false
     let loggedNeverInRange = false
+    let loggedProgressOne = false
     let frameCount = 0
 
     if (DEBUG_PROJETS_CONVOYEUR) console.log('[Projets convoyeur] boucle rAF démarrée')
@@ -1905,7 +1929,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
         }
 
         const convoyeurTranslateY = CONVOYEUR_PROJET_VIEWBOX_HEIGHT * (CONVOYEUR_TOP_PERCENT / 100)
-        const convoyeurScaleX = getConvoyeurScaleX(typeof window !== 'undefined' ? window.innerWidth : 1500)
+        const convoyeurScaleX = getConvoyeurScaleX(scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1500))
         if (conv && !convoyeurInited) {
             setSvgTransform(conv, `translate(${EXP_CONVEYOR_START_X}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
             convoyeurInited = true
@@ -1951,24 +1975,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     conveyorSlideProgress,
                 })
             }
-            if (DEBUG_PROJETS_CONVOYEUR && frameCount % 120 === 0 && progressProjets > 0) {
-                const conveyorRotateProgress = mapProgressToAnimation(
-                    progressProjets,
-                    EXP_CONVEYOR_ROTATE_START,
-                    EXP_CONVEYOR_ROTATE_END
-                )
-                const conveyorSlideProgress = mapProgressToAnimation(
-                    progressProjets,
-                    EXP_CONVEYOR_SLIDE_START,
-                    EXP_CONVEYOR_SLIDE_END
-                )
-                console.log('[Projets convoyeur] tick (toutes les ~2s)', {
-                    progress,
-                    progressProjets,
-                    conveyorRotateProgress,
-                    conveyorSlideProgress,
-                })
-            }
             const conveyorRotateProgress = mapProgressToAnimation(
                 progressProjets,
                 EXP_CONVEYOR_ROTATE_START,
@@ -1988,18 +1994,57 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 setSvgTransform(batt, `translate(${EXP_BATTANT_OFFSET_X}, ${EXP_BATTANT_OFFSET_Y}) rotate(${battantRotation}) scale(${battantScaleX}, ${EXP_BATTANT_SCALE_Y})`)
             }
             if (conv) {
+                const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
+                const correctionStr = stage ? getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim() : ''
+                const correctionParsed = correctionStr ? parseFloat(correctionStr) : NaN
+                const correctionPx = Number.isNaN(correctionParsed) ? CONVOYEUR_END_CORRECTION_GOLDEN : correctionParsed
                 const slideX =
                     EXP_CONVEYOR_START_X +
-                    (EXP_CONVEYOR_SLIDE_X - EXP_CONVEYOR_START_X) * conveyorSlideProgress
+                    (EXP_CONVEYOR_SLIDE_X + correctionPx - EXP_CONVEYOR_START_X) * conveyorSlideProgress
                 setSvgTransform(conv, `translate(${slideX}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
+                if (DEBUG_PROJETS_CONVOYEUR && progressProjets >= 1 && !loggedProgressOne) {
+                    loggedProgressOne = true
+                    const finalSlideX = EXP_CONVEYOR_SLIDE_X + correctionPx
+                    const tokens = stage ? {
+                        '--convoyeur-left-px': getComputedStyle(stage).getPropertyValue('--convoyeur-left-px').trim(),
+                        '--convoyeur-bottom-px': getComputedStyle(stage).getPropertyValue('--convoyeur-bottom-px').trim(),
+                        '--convoyeur-w-px': getComputedStyle(stage).getPropertyValue('--convoyeur-w-px').trim(),
+                        '--convoyeur-end-correction-x-px': getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim(),
+                        '--robot-above-y-percent': getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim(),
+                        '--exp-hab-top-px': getComputedStyle(stage).getPropertyValue('--exp-hab-top-px').trim(),
+                        '--exp-hab-left-px': getComputedStyle(stage).getPropertyValue('--exp-hab-left-px').trim(),
+                    } : {}
+                    console.log('[Projets] progressProjets >= 1 — tokens appliqués et slideX final', { tokens, finalSlideX, progressProjets })
+                }
             }
         }
 
-        // Animation head-robot et hand-robot
+        // Animation head-robot et hand-robot : priorité tokens injectés > vars CSS stage (parseFloat safe, fallback golden) > getRobotYPercentByViewport
         if (robotHeadElement || robotHandElement) {
-            const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1500
-            const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800
-            const { above: robotAboveYPercent, ground: robotGroundYPercent } = getRobotYPercentByViewport(viewportW, viewportH)
+            const viewportW = scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1500)
+            const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
+            const fallbackFromViewport = getRobotYPercentByViewport(viewportW, viewportH)
+            const stage = (container?.closest?.('.horizontal-scroll-stage') ?? robotHeadElement?.closest?.('.horizontal-scroll-stage') ?? robotHandElement?.closest?.('.horizontal-scroll-stage')) as HTMLElement | null
+            const parseTokenPercent = (val: string, goldenFallback: number): number => {
+                const n = parseFloat(val)
+                return Number.isNaN(n) ? goldenFallback : n
+            }
+            const ROBOT_ABOVE_GOLDEN = 50
+            const ROBOT_GROUND_GOLDEN = 61
+            let robotAboveYPercent: number
+            let robotGroundYPercent: number
+            if (params.responsiveTokens != null) {
+                robotAboveYPercent = params.responsiveTokens.robotAboveYPercent
+                robotGroundYPercent = params.responsiveTokens.robotGroundYPercent
+            } else if (stage) {
+                const tokenAbove = getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim()
+                const tokenGround = getComputedStyle(stage).getPropertyValue('--robot-ground-y-percent').trim()
+                robotAboveYPercent = tokenAbove ? parseTokenPercent(tokenAbove, ROBOT_ABOVE_GOLDEN) : fallbackFromViewport.above
+                robotGroundYPercent = tokenGround ? parseTokenPercent(tokenGround, ROBOT_GROUND_GOLDEN) : fallbackFromViewport.ground
+            } else {
+                robotAboveYPercent = fallbackFromViewport.above
+                robotGroundYPercent = fallbackFromViewport.ground
+            }
             if (!robotsInited) {
                 robotsInited = true
                 if (robotHeadElement) {
@@ -2166,12 +2211,14 @@ export function configureAllScrollAnimations(
     scaniaTitreRef?: RefObject<HTMLDivElement | null>,
     scaniaDescRef?: RefObject<HTMLDivElement | null>,
     likethatTitreRef?: RefObject<HTMLDivElement | null>,
-    likethatDescRef?: RefObject<HTMLDivElement | null>
+    likethatDescRef?: RefObject<HTMLDivElement | null>,
+    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent'>
 ): (() => void) | void {
     // Si scrollValues n'est pas fourni, calculer les valeurs (fallback)
     if (!scrollValues) {
         const totalWidth = sections.reduce((sum, section) => sum + section.offsetWidth, 0)
-        const viewportWidth = window.innerWidth
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1050
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
         const scrollDistance = totalWidth - viewportWidth
         const scaleRatio = viewportWidth / VIEWPORT_REFERENCE_WIDTH
         const initialScrollBlock = SECOND_SECTION_BLOCK_START * scaleRatio
@@ -2219,6 +2266,7 @@ export function configureAllScrollAnimations(
             initialScrollBlock,
             totalWidth,
             viewportWidth,
+            viewportHeight,
             phase1EndScroll,
             phase2StartScroll,
             phase2EarlyStartScroll: phase2EarlyStartScroll,
@@ -2287,6 +2335,7 @@ export function configureAllScrollAnimations(
         robotHeadElement: robotHeadElement ?? null,
         robotHandElement: robotHandElement ?? null,
         getConvoyeurProjetElement: getConvoyeurProjetElement ?? undefined,
+        responsiveTokens: responsiveTokens ?? undefined,
     })
     if (projectsCleanup) cleanups.push(projectsCleanup)
 

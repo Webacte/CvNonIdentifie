@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
 import React from 'react'
+import dynamic from 'next/dynamic'
 import './globals.css'
 import '@/animations/gsap'
+
+const InkScrollWindowOverlay = dynamic(
+  () => import('@/components/InkScroll/InkScrollWindowOverlay'),
+  { ssr: false }
+)
 
 export const metadata: Metadata = {
   title: 'Portfolio Animé',
@@ -30,6 +36,7 @@ export default function RootLayout({
     <html lang="fr">
       <body suppressHydrationWarning>
         {children}
+        <InkScrollWindowOverlay />
       </body>
     </html>
   )

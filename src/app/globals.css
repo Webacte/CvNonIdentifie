@@ -32,7 +32,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Scrollbar papier/croquis : track invisible, thumb fin et discret */
+/* Scrollbar : mobile/tablette (pointer: coarse) = visible ; desktop (pointer: fine) = discrète (overlay ink) */
 html,
 body {
   scrollbar-width: thin;
@@ -61,6 +61,42 @@ body::-webkit-scrollbar-thumb {
 html::-webkit-scrollbar-thumb:hover,
 body::-webkit-scrollbar-thumb:hover {
   background-color: rgba(30, 30, 30, 0.18);
+}
+
+@media (pointer: fine) {
+  html,
+  body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(30, 30, 30, 0.06) transparent;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 8px;
+  }
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background-color: rgba(30, 30, 30, 0.06);
+    border: 2px solid transparent;
+  }
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(30, 30, 30, 0.12);
+  }
+}
+
+@media (pointer: coarse) {
+  html,
+  body {
+    scrollbar-color: rgba(30, 30, 30, 0.12) transparent;
+  }
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background-color: rgba(30, 30, 30, 0.12);
+  }
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(30, 30, 30, 0.22);
+  }
 }
 
 html {
@@ -105,7 +141,7 @@ body::before {
    Mobile-first : base = petit écran, puis min-width pour tablette / desktop. */
 .ground-overcoat {
   position: absolute;
-  top: 60%;
+  top: calc(var(--ground-overcoat-top, 60) * 1%);
   left: 0;
   width: 100%;
   min-width: 100%;
@@ -139,7 +175,7 @@ body::before {
 /* Ligne de sol : à l'intérieur du horizontal-scroll-wrapper */
 .ground-line {
   position: absolute;
-  top: 70%;
+  top: calc(var(--ground-line-top, 70) * 1%);
   left: 0;
   width: 100%;
   min-width: 100%;
@@ -152,44 +188,13 @@ body::before {
   pointer-events: none;
 }
 
-/* Tablette : viewport ≥ 425px (aligné breakpoints UI) */
-@media (min-width: 425px) {
-  .ground-overcoat {
-    top: 75%;
-  }
-  .ground-line {
-    top: 75%;
-  }
-}
 
-/* Desktop : viewport ≥ 769px — s’applique uniquement aux grands écrans */
-@media (min-width: 769px) {
-  .ground-overcoat {
-    top: 68%;
-  }
-  .ground-line {
-    top: 67%;
-  }
-}
+/* Ground/handwriting via tokens — s’applique uniquement aux grands écrans */
 
-@media (min-width: 1500px) {
-  .ground-overcoat {
-    top: 53.5%;
-  }
-  .ground-line {
-    top: 53%;
-  }
-}
 
 .handwriting-svg {
-    width: 100%;
+    width: calc(var(--handwriting-svg-width, 100) * 1%);
     height: auto;
-}
-
-@media (min-width: 1500px) {
-  .handwriting-svg {
-    width: 83%;
-  }
 }
 
 .handwriting-svg path {

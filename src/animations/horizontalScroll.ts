@@ -29,6 +29,8 @@ export interface ScrollValues {
     totalWidth: number
     /** Largeur du viewport en px */
     viewportWidth: number
+    /** Hauteur du viewport en px (pour fusée, robot, hologramme) */
+    viewportHeight: number
     /** Position de scroll (px) à laquelle la phase 1 (Présentation) se termine = début bloc About */
     phase1EndScroll: number
     /** Position de scroll (px) à laquelle la phase 2 (About) commence */
@@ -59,7 +61,7 @@ export function setupHorizontalScroll(
     sections: HTMLElement[],
     camera: Camera
 ): { scrollTween: gsap.core.Tween; scrollValues: ScrollValues; kill: () => void } {
-    const { scale: cameraScale, viewportW } = camera
+    const { scale: cameraScale, viewportW, viewportH } = camera
     const WORLD_REFERENCE_WIDTH = sceneConfig.world.width
     const totalWorldWidth = sections.length * WORLD_REFERENCE_WIDTH
     const travelWorld = totalWorldWidth - WORLD_REFERENCE_WIDTH
@@ -128,6 +130,7 @@ export function setupHorizontalScroll(
         initialScrollBlock: initialScrollBlockPx,
         totalWidth: totalWorldWidth * cameraScale,
         viewportWidth: viewportW,
+        viewportHeight: viewportH,
         phase1EndScroll: secondBlockStartPx,
         phase2StartScroll: secondBlockStartPx,
         phase2EarlyStartScroll: phase2EarlyStartPx,

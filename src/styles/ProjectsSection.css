@@ -10,14 +10,15 @@
     overflow: hidden;
 }
 
-/* Titre et descrip quest (section Expérience) - en dessous de habitation et extraterrestre */
+/* Titre quest : --quest-titre-* (Responsive Tokens) */
 .quest-titre-container {
     position: absolute;
-    left: 2vw;
-    top: 5vh;
+    left: var(--quest-titre-left, 2vw);
+    top: var(--quest-titre-top, 5vh);
     z-index: 10;
-    width: 50vw;
-    max-height: 15vh;
+    width: var(--quest-titre-max-width, 50vw);
+    max-width: var(--quest-titre-max-width, 50vw);
+    max-height: var(--quest-titre-max-height, 15vh);
     pointer-events: none;
     opacity: 0;
 }
@@ -30,10 +31,10 @@
 
 .quest-descrip-container {
     position: absolute;
-    top: 16vh;
+    top: var(--quest-descrip-top, 16vh);
     z-index: 10;
-    max-width: 40vw;
-    max-height: 25vh;
+    max-width: var(--quest-descrip-max-width, 40vw);
+    max-height: var(--quest-descrip-max-height, 25vh);
     pointer-events: none;
     overflow: hidden;
     opacity: 0;
@@ -95,6 +96,42 @@
     mask-image: conic-gradient(from 90deg at 0% 0%, #000 var(--a), transparent 0);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
+}
+
+/* Fallback si conic-gradient dans mask non supporté : pas de masque conique, effet de révélation simplifié (fade) */
+@supports not (mask-image: conic-gradient(from 90deg at 0% 0%, #000 0deg, transparent 0deg)) {
+    .quest-erase-mask,
+    .quest-descrip-cycle-0 .quest-erase-mask-1,
+    .quest-descrip-cycle-0 .quest-erase-mask-2,
+    .quest-descrip-cycle-0 .quest-erase-mask-3,
+    .quest-descrip-cycle-0 .quest-erase-mask-4,
+    .quest-descrip-cycle-1 .quest-erase-mask-1,
+    .quest-descrip-cycle-1 .quest-erase-mask-2,
+    .quest-descrip-cycle-1 .quest-erase-mask-3,
+    .quest-descrip-cycle-1 .quest-erase-mask-4,
+    .quest-descrip-cycle-2 .quest-erase-mask-1,
+    .quest-descrip-cycle-2 .quest-erase-mask-2,
+    .quest-descrip-cycle-2 .quest-erase-mask-3,
+    .quest-descrip-cycle-2 .quest-erase-mask-4,
+    .quest-descrip-cycle-3 .quest-erase-mask-1,
+    .quest-descrip-cycle-3 .quest-erase-mask-2,
+    .quest-descrip-cycle-3 .quest-erase-mask-3,
+    .quest-descrip-cycle-3 .quest-erase-mask-4,
+    .quest-descrip-cycle-4 .quest-erase-mask-1,
+    .quest-descrip-cycle-4 .quest-erase-mask-2,
+    .quest-descrip-cycle-4 .quest-erase-mask-3,
+    .quest-descrip-cycle-4 .quest-erase-mask-4,
+    .quest-descrip-cycle-5 .quest-erase-mask-1,
+    .quest-descrip-cycle-5 .quest-erase-mask-2,
+    .quest-descrip-cycle-5 .quest-erase-mask-3,
+    .quest-descrip-cycle-5 .quest-erase-mask-4,
+    .projets-scania-container .quest-descrip-cycle-4 .quest-erase-mask-1,
+    .projets-likethat-container .quest-descrip-cycle-4 .quest-erase-mask-1 {
+        -webkit-mask-image: none;
+        mask-image: none;
+        /* Révélation par opacité en fallback (effet fade) */
+        opacity: 0.85;
+    }
 }
 
 .quest-descrip-cycle-0 {
@@ -227,117 +264,21 @@
     mask-image: conic-gradient(from 315deg at 50% 50%, #000 var(--a), transparent 0);
 }
 
-@media (max-width: 768px) {
-    .quest-titre-container {
-        max-width: 45vw;
-    }
-    .quest-descrip-container {
-        max-width: 55vw;
-    }
-}
-
-@media (max-width: 480px) {
-    .quest-titre-container {
-        max-width: 55vw;
-    }
-    .quest-descrip-container {
-        max-width: 65vw;
-    }
-}
-
-@media (max-width: 425px) {
-    .quest-titre-container {
-        top: 1.5vh;
-        left: 1.5vw;
-    }
-    .quest-descrip-container {
-        top: 10vh;
-    }
-}
-
-@media (max-width: 320px) {
-    .quest-descrip-container {
-        max-width: 70vw;
-    }
-}
-
-@media (min-width: 1500px) {
-    .quest-descrip-container {
-        top: 12vh;
-    }
-}
-
 /* Habitation au centre : 3/4 de l'écran (rabaissée de 10 %) */
 /* isolation: isolate pour que les z-index 0 / 1 / 2 s’appliquent bien entre eux */
+/* Tokens px compensés par --camera-scale (réf. golden 1348×768 : 779, 461, 1032, 500) */
 .experiences-habitation-container {
     position: absolute;
-    left: 50%;
-    top: 59%;
+    left: calc(var(--exp-hab-left-px, 779) / var(--camera-scale, 1) * 1px);
+    top: calc(var(--exp-hab-top-px, 461) / var(--camera-scale, 1) * 1px);
     transform: translate(-50%, -50%);
-    width: 65vw;
-    height: 65vh;
-    max-width: 65vw;
-    max-height: 65vh;
+    width: calc(var(--exp-hab-w-px, 1032) / var(--camera-scale, 1) * 1px);
+    height: calc(var(--exp-hab-h-px, 500) / var(--camera-scale, 1) * 1px);
+    max-width: calc(var(--exp-hab-w-px, 1032) / var(--camera-scale, 1) * 1px);
+    max-height: calc(var(--exp-hab-h-px, 500) / var(--camera-scale, 1) * 1px);
     z-index: 20;
     isolation: isolate;
     overflow: visible;
-}
-
-/* 769px à 900px : interpolation top ~65.5% */
-@media (min-width: 769px) and (max-width: 900px) {
-    .experiences-habitation-container {
-        top: 65.5%;
-        width: 78vw;
-        left: 67.5%;
-        max-width: 87vw;
-    }
-}
-
-/* 901px à 1050px : interpolation top ~63.5% */
-@media (min-width: 901px) and (max-width: 1050px) {
-    .experiences-habitation-container {
-        top: 63.5%;
-        width: 87vw;
-        left: 66%;
-        max-width: 87vw;
-    }
-}
-
-/* 1051px à 1200px : interpolation top ~61% */
-@media (min-width: 1051px) and (max-width: 1200px) {
-    .experiences-habitation-container {
-        top: 61%;
-        width: 78vw;
-        left: 65.5%;
-        max-width: 87vw;
-    }
-}
-
-/* 1201px à 1348px : interpolation top ~60% */
-@media (min-width: 1201px) and (max-width: 1348px) {
-    .experiences-habitation-container {
-        top: 60%;
-        width: 87vw;
-        left: 65%;
-        max-width: 87vw;
-    }
-}
-
-/* 1349px et plus : top 59%, width 85vw -> 74vw */
-@media (min-width: 1349px) {
-    .experiences-habitation-container {
-        top: 46.8%;
-        width: 59vw;
-        left: 54.7%;
-        max-width: 59vw;
-    }
-}
-
-@media (min-width: 1500px) {
-    .experiences-habitation-container {
-        top: 37.5%;
-        width: 45vw;
-    }
 }
 
 .experiences-habitation-layer {
@@ -391,40 +332,23 @@
     pointer-events: none;
 }
 
-/* Masque cheminée (chemine-fumee translate(0, 200) → zone bas centre-gauche du viewBox 1722×512) */
-/* Base : écrans larges (1350px et plus) */
+/* Masque cheminée : Responsive Tokens (golden <=1349 : bottom 18, height 59 numériques ; wide 1920 : 12.5, 68). Clip via --mask-chemine-clip-raw (pas d’auto-référence). */
 .experiences-mask-chemine {
-    left: 4%;
+    left: var(--mask-chemine-left, 5%);
     width: 15.6%;
-    bottom: 35%;
-    height: 42%;
+    bottom: calc(var(--mask-chemine-bottom, 18) * 1%);
+    height: calc(var(--mask-chemine-height, 59) * 1%);
     --cut: 140px;
-    -webkit-clip-path: polygon(var(--cut) 25%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-    clip-path: polygon(var(--cut) 25%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-}
-
-/* MQ masque cheminée : 1349, 768, 480, 425, 320 */
-@media (max-width: 1349px) {
-    .experiences-mask-chemine {
-        bottom: 18%;
-        height: 57%;
-        -webkit-clip-path: polygon(65% 28%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%);
-        clip-path: polygon(65% 28%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%);
-    }
+    -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+    clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
 }
 
 @media (max-width: 768px) {
-    .experiences-habitation-container {
-        top: 50%;
-        width: 87vw;
-        left: 70%;
-        max-width: 87vw;
-    }
     .experiences-mask-chemine {
         bottom: 37%;
         height: 43%;
-        -webkit-clip-path: polygon(var(--cut) 27%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-        clip-path: polygon(var(--cut) 27%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 34%;
@@ -440,8 +364,8 @@
     .experiences-mask-chemine {
         bottom: 42%;
         height: 28%;
-        -webkit-clip-path: polygon(var(--cut) 28%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-        clip-path: polygon(var(--cut) 28%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 36%;
@@ -453,19 +377,11 @@
 }
 
 @media (max-width: 425px) {
-    .experiences-habitation-container {
-        top: 46%;
-        left: 74%;
-        width: 97.5vw;
-        height: 97.5vh;
-        max-width: 97.5vw;
-        max-height: 97.5vh;
-    }
     .experiences-mask-chemine {
         bottom: 53%;
         height: 27%;
-        -webkit-clip-path: polygon(var(--cut) 28.5%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-        clip-path: polygon(var(--cut) 28.5%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 46%;
@@ -481,67 +397,29 @@
     .experiences-mask-chemine {
         bottom: 44%;
         height: 25%;
-        -webkit-clip-path: polygon(var(--cut) 29%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-        clip-path: polygon(var(--cut) 29%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
 }
 
-@media (min-width: 1500px) {
-    .experiences-mask-chemine {
-        left: 4.5%;
-        width: 15.6%;
-        bottom: 25.5%;
-        height: 49%;
-        --cut: 140px;
-        -webkit-clip-path: polygon(var(--cut) 20%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-        clip-path: polygon(var(--cut) 20%, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
-    }
-}
-
-/* Masque convoyeur (#convoyeur translate(-700, 0) → bande gauche du viewBox) */
-/* Base : idéal vers 1349px */
+/* Masque convoyeur : Responsive Tokens (golden 1348 : bottom 8.5, height 37 numériques ; wide 1920 : 12.5, 33) */
 .experiences-mask-convoyeur {
-    left: 22.5%;
-    width: 75.5%;
-    bottom: 17.5%;
-    height: 29%;
+    left: var(--mask-convoyeur-left, 4.5%);
+    width: var(--mask-convoyeur-width, 93.5%);
+    bottom: calc(var(--mask-convoyeur-bottom, 8.5) * 1%);
+    height: calc(var(--mask-convoyeur-height, 37) * 1%);
 }
 
-/* Tablettes / écrans moyens : entre 769px et 1348px */
-@media (min-width: 769px) and (max-width: 1348px) {
-    .experiences-mask-convoyeur {
-        bottom: 30%;
-        height: 17%;
-    }
-}
-
-@media (min-width: 1500px) {
-    .experiences-mask-convoyeur {
-        left: 4.5%;
-        width: 93.5%;
-        bottom: 25.5%;
-        height: 22%;
-    }
-}
-
-/* Extraterrestre à gauche (alien2) - flip horizontal */
+/* Alien2 dans le stage (scalé) : left/width en px compensés, top en % (réf. golden 1348 : -26.96px, 59.5%, 98px). */
 .experiences-extraterrestre-container.alien2 {
     position: absolute;
-    left: -2vw;
-    top: 59.5%;
+    left: calc(var(--exp-alien2-left-px, -26.96) / var(--camera-scale, 1) * 1px);
+    top: calc(var(--exp-alien2-top-percent, 59.5) * 1%);
     transform: translateY(-50%) scaleX(-1);
-    width: 98px;
+    width: calc(var(--exp-alien2-width-px, 98) * 1px);
     height: auto;
     z-index: 20;
     overflow: visible;
-}
-
-@media (min-width: 1500px) {
-    .experiences-extraterrestre-container.alien2 {
-        left: 1vw;
-        top: 46.8%;
-        width: 96px;
-    }
 }
 
 .experiences-extraterrestre-container svg {
@@ -564,8 +442,8 @@
 
 .projets-robot-head-container,
 .projets-robot-hand-container {
-    max-width: 16vw;
-    max-height: 25vh;
+    max-width: var(--robot-max-width, 16vw);
+    max-height: var(--robot-max-height, 25vh);
 }
 
 .projets-robot-head-container svg,
@@ -575,23 +453,17 @@
     display: block;
 }
 
-/* Convoyeur-projet : SVG affiché directement (classe + agrandissement au chargement dans ProjetsSection). À adapter : left, bottom, width, z-index. */
+/* Convoyeur : tokens px compensés par --camera-scale (golden 1348×768 : -700, 188, 1481). --convoyeur-h : auto (golden/near) ou numérique % (wide 1920 : 16). */
 .projets-convoyeur-svg {
     display: block;
     position: absolute;
-    left: -61%;
-    bottom: 32%;
-    width: 120%;
+    left: calc(var(--convoyeur-left-px, -700) / var(--camera-scale, 1) * 1px);
+    bottom: calc(var(--convoyeur-bottom-px, 188) / var(--camera-scale, 1) * 1px);
+    width: calc(var(--convoyeur-w-px, 1481) / var(--camera-scale, 1) * 1px);
+    height: auto;
+    height: calc(var(--convoyeur-h) * 1%);
     z-index: 4;
     pointer-events: none;
-}
-
-@media (min-width: 1500px) {
-    .projets-convoyeur-svg {
-        left: -66%;
-        bottom: 46.5%;
-        height: 19%;
-    }
 }
 
 
@@ -609,10 +481,10 @@
 .projets-scania-container,
 .projets-likethat-container {
     position: absolute;
-    top: 5vh;
-    right: 10vw;
+    top: var(--projets-text-top, 5vh);
+    right: var(--projets-text-right, 10vw);
     z-index: 2;
-    max-width: 40vw;
+    max-width: var(--projets-text-max-width, 40vw);
     pointer-events: none;
     overflow: hidden;
     opacity: 0;

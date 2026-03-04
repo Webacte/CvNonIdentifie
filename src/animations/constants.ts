@@ -125,6 +125,12 @@ export const MOBILE_SMALL_MAX_WIDTH = 375
 /** Seuil viewport (px) : en dessous, atterrissage à 72% hauteur. */
 export const MOBILE_MAX_WIDTH = 600
 
+/** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand ≤375px. */
+export const ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL = 0.76
+
+/** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand ≤600px. */
+export const ROCKET_END_Y_PERCENTAGE_MOBILE = 0.72
+
 /** Seuil viewport (px) : tablette, atterrissage remonté d’une hauteur fusée. */
 export const TABLET_MAX_WIDTH = 768
 
@@ -136,10 +142,10 @@ export const LARGE_DESKTOP_MIN_WIDTH = 1500
 
 /**
  * Pourcentage (0–1) hauteur viewport pour le point le plus bas de la trajectoire fusée
- * sur écrans ≥ LARGE_DESKTOP_MIN_WIDTH. Plus la valeur est basse, moins la fusée descend.
- * Ex. 0.85 = 85 % de la hauteur (fusée moins bas qu'avec 0.95).
+ * sur large desktop (interpolation 1500–1920). 1920×1080 : fusée remontée de 1/6 de la distance au top.
+ * Affiner si besoin : deltaRatio = deltaPx / referenceHeight à 1920×1080, puis = ROCKET_END_Y_PERCENTAGE - deltaRatio.
  */
-export const ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP = 0.85
+export const ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP = 0.8
 
 /** Coefficient pour le mouvement horizontal de la fusée (progress X). */
 export const ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER = 3

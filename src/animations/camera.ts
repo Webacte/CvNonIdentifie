@@ -59,4 +59,5 @@ export function applyCamera(stageEl: HTMLElement, camera: Camera): void {
         scale: camera.scale,
         force3D: true,
     })
+    stageEl.style.setProperty('--camera-scale', String(camera.scale))
 }
