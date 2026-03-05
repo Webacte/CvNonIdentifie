@@ -2,6 +2,7 @@
 
 import React, { forwardRef, useRef, useState } from 'react'
 import { useSplitLetters } from '@/hooks/useSplitLetters'
+import InkScroll from '@/components/InkScroll/InkScroll'
 import '../../styles/HomePage.css'
 import '../../styles/ContactSection.css'
 
@@ -111,6 +112,7 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                     src="/assets/svg/support-contact.svg"
                     alt=""
                     className="contact-section-svg"
+                    draggable={false}
                 />
             </div>
             <form
@@ -198,18 +200,20 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                     <label htmlFor="contact-message" className="contact-label">
                         Message
                     </label>
-                    <textarea
-                        id="contact-message"
-                        name="message"
-                        value={formState.message}
-                        onChange={updateField('message')}
-                        className="contact-input contact-textarea"
-                        rows={4}
-                        autoComplete="off"
-                        required
-                        aria-required="true"
-                        aria-invalid={!!fieldErrors.message}
-                    />
+                    <InkScroll variant="textarea">
+                        <textarea
+                            id="contact-message"
+                            name="message"
+                            value={formState.message}
+                            onChange={updateField('message')}
+                            className="contact-input contact-textarea"
+                            rows={4}
+                            autoComplete="off"
+                            required
+                            aria-required="true"
+                            aria-invalid={!!fieldErrors.message}
+                        />
+                    </InkScroll>
                 </div>
                 <div className="contact-submit-wrapper">
                     <button

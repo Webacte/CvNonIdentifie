@@ -5,7 +5,7 @@
   right: 6px;
   top: 10px;
   bottom: 10px;
-  width: 20px;
+  width: 28px;
   z-index: 99999;
   pointer-events: auto;
 }
@@ -22,7 +22,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 20px;
+  width: 28px;
   background-image: url("/assets/svg/track.svg");
   background-repeat: repeat-y;
   background-position: center top;
@@ -42,9 +42,16 @@
   background-size: contain;
   will-change: transform, top, height;
   pointer-events: auto;
-  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  touch-action: none;
 }
 
-.inkScrollWindow__thumb:active {
-  cursor: grabbing;
+/* Override position thumb (toutes tailles) */
+.inkScrollWindow__thumb[data-ink-scroll-thumb] {
+  left: 60%;
 }
+
+/* Curseur grab/grabbing géré par cursors.css (SVG custom) */

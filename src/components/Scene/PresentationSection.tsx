@@ -32,6 +32,7 @@ const PresentationSection = forwardRef<HTMLElement, PresentationSectionProps>(
                     src="/assets/img/portrait.jpeg" 
                     alt="Portrait de Benjamin Pochon"
                     className="portrait-image"
+                    draggable={false}
                 />
                 <div ref={rocketRef} className="rocket-container">
                     <div className="rocket-scaled" dangerouslySetInnerHTML={{ __html: rocketContent }} />

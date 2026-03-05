@@ -1,0 +1,63 @@
+/* Curseurs custom PNG — centralisés, desktop uniquement (pointer: fine) */
+
+@media (pointer: fine) {
+  /* PNG à 3/4 (dossier small/) pour curseurs en 75 % de la taille d’origine */
+  :root {
+    --cur-default: url("/assets/svg/pointer/small/default.png");
+    --cur-pointer: url("/assets/svg/pointer/small/pointer.png");
+    --cur-text: url("/assets/svg/pointer/small/text.png");
+    --cur-grab: url("/assets/svg/pointer/small/grab.png");
+    --cur-grabbing: url("/assets/svg/pointer/small/grabbing.png");
+  }
+
+  /* base partout */
+  html,
+  body {
+    cursor: var(--cur-default) 0 0, default;
+  }
+
+  /* pointer sur interactifs : couvrir large */
+  a[href],
+  button,
+  [role="button"],
+  [role="link"],
+  summary,
+  label[for],
+  [data-cursor="pointer"],
+  .is-clickable {
+    cursor: var(--cur-pointer) 0 0, pointer;
+  }
+
+  /* text : doit gagner contre html cursor */
+  input,
+  textarea,
+  select,
+  [contenteditable="true"],
+  [data-cursor="text"] {
+    cursor: var(--cur-text) 0 0, text !important;
+  }
+
+  /* thumb : doit être hoverable */
+  .ink-scroll__thumb {
+    pointer-events: auto;
+    cursor: var(--cur-grab) 0 0, grab;
+    width: 100%;
+  }
+
+  /* Pendant le drag du thumb : grabbing sur toute la page (souris peut quitter le thumb) */
+  html.is-dragging-scrollbar,
+  html.is-dragging-scrollbar body {
+    cursor: var(--cur-grabbing) 0 0, grabbing;
+  }
+
+  html.is-dragging-scrollbar .ink-scroll__thumb {
+    cursor: var(--cur-grabbing) 0 0, grabbing;
+  }
+}
+
+@media (pointer: coarse) {
+  html,
+  body {
+    cursor: auto;
+  }
+}

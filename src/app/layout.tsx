@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import React from 'react'
 import dynamic from 'next/dynamic'
 import './globals.css'
+import '@/styles/cursors.css'
+import '@/styles/ErrorFallback.css'
 import '@/animations/gsap'
 
 const InkScrollWindowOverlay = dynamic(
@@ -37,6 +39,26 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {children}
         <InkScrollWindowOverlay />
+        <noscript>
+          <div className="error-fallback" role="main">
+            <div className="error-fallback__inner">
+              <img
+                src="/assets/svg/error-robot.svg"
+                alt="Illustration d'un robot pour indiquer une erreur"
+                className="error-fallback__image"
+                width="93"
+                height="124"
+              />
+              <h1 className="error-fallback__title">JavaScript requis</h1>
+              <p className="error-fallback__text">
+                Vous etes bien sur le portfolio de Benjamin Pochon, mais celui-ci nécessite JavaScript pour fonctionner correctement. Merci de le réactiver dans votre navigateur.
+              </p>
+              <div className="error-fallback__actions">
+                <a href="/" className="error-fallback__link">Retour sur le portfolio</a>
+              </div>
+            </div>
+          </div>
+        </noscript>
       </body>
     </html>
   )

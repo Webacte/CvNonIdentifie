@@ -3,7 +3,6 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { ScrollValues } from './horizontalScroll'
 import type { ResponsiveTokens } from '@/scene/responsiveTokens'
-import { CONVOYEUR_END_CORRECTION_GOLDEN } from '@/scene/responsiveTokens'
 import {
     ROCKET_ANIMATION_START_DELAY,
     ROCKET_PROGRESS_RANGE_RATIO,
@@ -62,6 +61,8 @@ import {
     ROCKET_LANDED_X_LEFT_OFFSET,
     ROCKET_LANDED_Y_PERCENTAGE,
     ROCKET_LANDED_ROTATE,
+    ROCKET_LANDED_X_1920,
+    ROCKET_LANDED_Y_1920,
     ROCKET_FUMEE_OPACITY_END,
     ROCKET_FUMEE_ROTATE,
     ROCKET_FUMEE_PULSE_COUNT,
@@ -467,7 +468,11 @@ export function createRocketScrollAnimation(
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
         if (typeof window === 'undefined') return referenceHeight * ROCKET_END_Y_PERCENTAGE
         const params = getRocketResponsiveParams(viewportW, viewportH)
-        return referenceHeight * params.endYRatio + params.endYOffsetPx
+        const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
+        const ratioStr = stage ? getComputedStyle(stage).getPropertyValue('--rocket-end-y-ratio').trim() : ''
+        const ratioParsed = ratioStr ? parseFloat(ratioStr) : NaN
+        const endYRatio = (Number.isNaN(ratioParsed) || ratioParsed < 0 || ratioParsed > 1) ? params.endYRatio : ratioParsed
+        return referenceHeight * endYRatio + params.endYOffsetPx
     }
 
     gsap.set(rocketElement, {
@@ -513,17 +518,20 @@ export function createRocketScrollAnimation(
         return currentY
     }
 
-    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). */
+    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). */
     const getLandedPosition = () => {
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
-        const landedX =
+        const baseLandedX =
             scrollValues.scrollDistanceWithMovement +
             scrollValues.viewportWidth -
             (rocketElement.offsetWidth || 0) -
             ROCKET_LANDED_X_RIGHT_OFFSET -
             (rocketElement.offsetLeft || 0) -
             ROCKET_LANDED_X_LEFT_OFFSET
-        const landedY = referenceHeight * ROCKET_LANDED_Y_PERCENTAGE
+        const baseLandedY = referenceHeight * ROCKET_LANDED_Y_PERCENTAGE
+        const tWide = smoothstep((viewportW - LARGE_DESKTOP_MIN_WIDTH) / (ROCKET_WIDE_DESKTOP_WIDTH - LARGE_DESKTOP_MIN_WIDTH))
+        const landedX = lerp(baseLandedX, ROCKET_LANDED_X_1920, tWide)
+        const landedY = lerp(baseLandedY, ROCKET_LANDED_Y_1920, tWide)
         return { landedX, landedY }
     }
     
@@ -1876,6 +1884,8 @@ export interface ProjectsSectionScrollAnimationParams {
  * Retourne une fonction cleanup pour annuler la boucle rAF.
  */
 const DEBUG_PROJETS_CONVOYEUR = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development'
+/** Calibration robot-hand end X : activer avec window.__DEBUG_ROBOT_HAND_END_X__ = true */
+const DEBUG_ROBOT_HAND_END_X = typeof window !== 'undefined' && !!(window as Window & { __DEBUG_ROBOT_HAND_END_X__?: boolean }).__DEBUG_ROBOT_HAND_END_X__
 
 export function createProjectsSectionScrollAnimation(params: ProjectsSectionScrollAnimationParams): (() => void) | void {
     const { scrollValues, scrollTween, getConvoyeurProjetElement, robotHeadElement, robotHandElement } = params
@@ -1901,6 +1911,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     let loggedFirstProgressInRange = false
     let loggedNeverInRange = false
     let loggedProgressOne = false
+    let loggedHandEndX = false
     let frameCount = 0
 
     if (DEBUG_PROJETS_CONVOYEUR) console.log('[Projets convoyeur] boucle rAF démarrée')
@@ -1995,16 +2006,14 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             }
             if (conv) {
                 const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
-                const correctionStr = stage ? getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim() : ''
-                const correctionParsed = correctionStr ? parseFloat(correctionStr) : NaN
-                const correctionPx = Number.isNaN(correctionParsed) ? CONVOYEUR_END_CORRECTION_GOLDEN : correctionParsed
+                const endCorrection = parseFloat(stage ? getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim() : '') || 0
                 const slideX =
                     EXP_CONVEYOR_START_X +
-                    (EXP_CONVEYOR_SLIDE_X + correctionPx - EXP_CONVEYOR_START_X) * conveyorSlideProgress
+                    (EXP_CONVEYOR_SLIDE_X + endCorrection - EXP_CONVEYOR_START_X) * conveyorSlideProgress
                 setSvgTransform(conv, `translate(${slideX}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
                 if (DEBUG_PROJETS_CONVOYEUR && progressProjets >= 1 && !loggedProgressOne) {
                     loggedProgressOne = true
-                    const finalSlideX = EXP_CONVEYOR_SLIDE_X + correctionPx
+                    const finalSlideX = EXP_CONVEYOR_SLIDE_X + endCorrection
                     const tokens = stage ? {
                         '--convoyeur-left-px': getComputedStyle(stage).getPropertyValue('--convoyeur-left-px').trim(),
                         '--convoyeur-bottom-px': getComputedStyle(stage).getPropertyValue('--convoyeur-bottom-px').trim(),
@@ -2158,10 +2167,20 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     handX = diagonalProgress < 1
                         ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
                         : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * rollRightProgress
+                    if (diagonalProgress >= 1) {
+                        if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX) {
+                            handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE * rollRightProgress
+                        }
+                        if (stage) {
+                            const handEndXDelta = parseFloat(getComputedStyle(stage).getPropertyValue('--robot-hand-end-x-delta')) || 0
+                            if (DEBUG_ROBOT_HAND_END_X && !loggedHandEndX && rollRightProgress >= 1) {
+                                loggedHandEndX = true
+                                console.log('[robot-hand end X]', { handXBase: handX, handEndXDelta, endXFinal: handX + handEndXDelta })
+                            }
+                            handX += handEndXDelta * rollRightProgress
+                        }
+                    }
                     handRotation = ROBOT_HAND_ROLL_DEG * handFallProgress
-                }
-                if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX && handFallProgress >= 1) {
-                    handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE
                 }
                 gsap.set(robotHandElement, {
                     opacity: handOpacity,

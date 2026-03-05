@@ -79,7 +79,9 @@ function useInkScrollWindowOverlay() {
 
     const handleThumbMouseDown = (e: MouseEvent) => {
       if (!rail || !thumb) return
+      e.preventDefault()
       isDraggingRef.current = true
+      document.documentElement.classList.add('is-dragging-scrollbar')
       dragStartYRef.current = e.clientY
       dragStartScrollRef.current = window.scrollY
     }
@@ -111,6 +113,7 @@ function useInkScrollWindowOverlay() {
     const handleMouseUp = () => {
       const wasDragging = isDraggingRef.current
       isDraggingRef.current = false
+      document.documentElement.classList.remove('is-dragging-scrollbar')
       if (wasDragging) {
         setTimeout(() => { didDragRef.current = false }, 0)
       } else {
@@ -170,8 +173,8 @@ export default function InkScrollWindowOverlay() {
 
   return (
     <div className={styles.inkScrollWindow} ref={wrapperRef} aria-hidden="true">
-      <div className={styles.inkScrollWindow__rail} ref={railRef}>
-        <div className={styles.inkScrollWindow__thumb} ref={thumbRef} />
+      <div className={`${styles.inkScrollWindow__rail} ink-scroll__rail`} ref={railRef}>
+        <div className={`${styles.inkScrollWindow__thumb} ink-scroll__thumb`} ref={thumbRef} />
       </div>
     </div>
   )

@@ -9,8 +9,14 @@ import {
     VIEWPORT_REFERENCE_WIDTH,
     GROUND_LINE_425_MAX_WIDTH,
     MOBILE_MAX_WIDTH,
+    MOBILE_SMALL_MAX_WIDTH,
     TABLET_MAX_WIDTH,
     LARGE_DESKTOP_MIN_WIDTH,
+    ROCKET_END_Y_PERCENTAGE,
+    ROCKET_END_Y_PERCENTAGE_425,
+    ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL,
+    ROCKET_END_Y_PERCENTAGE_MOBILE,
+    ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP,
 } from '@/animations/constants'
 
 /** Seuils de breakpoint (px) alignés sceneConfig/constants. */
@@ -60,6 +66,20 @@ export function getTWide(w: number, h: number): number {
     return fw * fh
 }
 
+/** Seuils midDesktop : 1536×864. tMid = 0 sur 1348/1366×768, → 1 à 1536×864. */
+const MID_WIDTH_MIN = 1366
+const MID_WIDTH_MAX = 1536
+const MID_HEIGHT_MIN = 768
+const MID_HEIGHT_MAX = 864
+
+/** Facteur d'interpolation midDesktop : fwMid * fhMid pour 1366→1536 et 768→864. */
+export function getTMid(w: number, h: number): number {
+    if (w <= MID_WIDTH_MIN || h < MID_HEIGHT_MIN) return 0
+    const fwMid = smoothstep((w - MID_WIDTH_MIN) / (MID_WIDTH_MAX - MID_WIDTH_MIN))
+    const fhMid = smoothstep((h - MID_HEIGHT_MIN) / (MID_HEIGHT_MAX - MID_HEIGHT_MIN))
+    return fwMid * fhMid
+}
+
 /** Preset 1920×1080 (valeurs numériques : % stockés en nombre, vh/vw idem). Typo delta -2 pour rendu correct à 1920. */
 const WIDE_1920_1080 = {
     groundLineTop: 45,
@@ -95,12 +115,13 @@ const WIDE_1920_1080 = {
     contactEmailWidth: 17,
     contactEmailLabelTxVh: 3,
     contactEmailLabelTyVh: -4,
-    contactMessageTop: 25.5,
+    contactMessageTop: 25.1,
     contactMessageTextareaFocusMtVh: 0.4,
     contactMessageTextareaFocusMlVw: 0.3,
     contactMessageTextareaFocusWidth: 93,
+    contactMessageLabelTop: 50,
     contactMessageLabelTxVw: -4,
-    contactMessageLabelTyVh: -14,
+    contactMessageLabelTyVh: -10,
     contactSubmitTop: 28,
     contactSubmitLeft: 48.5,
     contactSubmitWidth: 12.5,
@@ -114,9 +135,53 @@ const WIDE_1920_1080 = {
     convoyeurBottomPx: 1075,
     convoyeurWPx: 2200,
     convoyeurH: 16,
-    convoyeurEndCorrectionXPx: 10,
+    convoyeurEndCorrectionXPx: -4,
     robotAboveYPercent: 33.5,
     robotGroundYPercent: 40.5,
+    /** Delta X (vw) en fin de course robot-hand sur wide 1920×1080 — 0 = fin à 14vw (aligné tête), pas de saut. */
+    robotHandEndXDeltaVw: 1.1,
+    rocketEndYRatio: 0.8,
+} as const
+
+/** Preset 1536×864 (midDesktop). Valeurs cibles exactes à cette résolution ; interpolation douce 1366×768 → 1536×864 → 1920×1080. */
+const MID_1536_864 = {
+    homeMynameFontSizeDeltaVw: -1,
+    homeDescriptionFontSizeDeltaVw: -1,
+    presentationMarginTopVh: -24,
+    expHabTopPx: 465,
+    expHabWPx: 1050,
+    convoyeurLeftPx: -1030,
+    convoyeurBottomPx: 587,
+    convoyeurWPx: 1900,
+    convoyeurH: 20.5,
+    convoyeurEndCorrectionXPx: 0,
+    maskConvoyeurBottom: 12,
+    maskConvoyeurHeight: 33,
+    robotAboveYPercent: 38.0,
+    robotGroundYPercent: 47.0,
+    rocketEndYRatio: 0.75,
+    contactPrenomTop: 5.2,
+    contactPrenomLeft: 34.5,
+    contactPrenomWidth: 12.5,
+    contactPrenomRotateDeg: 10,
+    contactSocieteTop: 16.8,
+    contactSocieteLeft: 24.5,
+    contactSocieteWidth: 14.7,
+    contactEmailTop: 10,
+    contactEmailLeft: 40.5,
+    contactEmailWidth: 17,
+    contactSubmitTop: 32.2,
+    contactSubmitLeft: 47.5,
+    contactSubmitWidth: 12.5,
+    contactNomTop: 2.4,
+    contactNomLeft: 16.8,
+    contactNomWidth: 12.5,
+    contactNomMinWidthPx: 100,
+    contactNomRotateDeg: -5,
+    contactMessageTop: 22.9,
+    contactMessageTextareaFocusMtVh: 6.5,
+    contactMessageTextareaFocusMlVw: 0,
+    contactMessageTextareaFocusWidth: 98,
 } as const
 
 const PRESENTATION_MARGIN_TOP_VH_BASE = -5
@@ -136,6 +201,106 @@ function parseVh(s: string): number {
 function parsePx(s: string, fallback: number): number {
     const n = parseFloat(String(s).trim())
     return Number.isNaN(n) ? fallback : n
+}
+
+/** Applique le mix midDesktop (1536×864) sur les clés concernées. Si tMid === 0, ne modifie rien. Appelé avant applyWideDesktopMix. */
+function applyMidDesktopMix(
+    cssVars: Record<string, string>,
+    w: number,
+    h: number
+): void {
+    const tMid = getTMid(w, h)
+    if (tMid === 0) return
+
+    const deltaMyname = parseVw(cssVars['--home-myname-font-size-delta-vw'] ?? '0vw')
+    const deltaDesc = parseVw(cssVars['--home-description-font-size-delta-vw'] ?? '0vw')
+    cssVars['--home-myname-font-size-delta-vw'] = String(Math.round(lerp(deltaMyname, MID_1536_864.homeMynameFontSizeDeltaVw, tMid)))
+    cssVars['--home-description-font-size-delta-vw'] = String(Math.round(lerp(deltaDesc, MID_1536_864.homeDescriptionFontSizeDeltaVw, tMid)))
+
+    const presentation = parseFloat(cssVars['--presentation-margin-top-vh'] ?? String(PRESENTATION_MARGIN_TOP_VH_BASE)) || PRESENTATION_MARGIN_TOP_VH_BASE
+    cssVars['--presentation-margin-top-vh'] = String(Math.round(lerp(presentation, MID_1536_864.presentationMarginTopVh, tMid)))
+
+    const expHabTop = parsePx(cssVars['--exp-hab-top-px'] ?? '', EXP_HAB_GOLDEN.topPx)
+    const expHabW = parsePx(cssVars['--exp-hab-w-px'] ?? '', EXP_HAB_GOLDEN.wPx)
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(expHabTop, MID_1536_864.expHabTopPx, tMid)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(expHabW, MID_1536_864.expHabWPx, tMid)))
+
+    const convoyeurLeft = parsePx(cssVars['--convoyeur-left-px'] ?? '', CONVOYEUR_GOLDEN.leftPx)
+    const convoyeurBottom = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', CONVOYEUR_GOLDEN.bottomPx)
+    const convoyeurW = parsePx(cssVars['--convoyeur-w-px'] ?? '', CONVOYEUR_GOLDEN.wPx)
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(convoyeurLeft, MID_1536_864.convoyeurLeftPx, tMid)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(convoyeurBottom, MID_1536_864.convoyeurBottomPx, tMid)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(convoyeurW, MID_1536_864.convoyeurWPx, tMid)))
+
+    const convoyeurHRaw = cssVars['--convoyeur-h'] ?? 'auto'
+    const convoyeurHBase = convoyeurHRaw === 'auto' ? 0 : parsePercent(convoyeurHRaw)
+    cssVars['--convoyeur-h'] = String(lerp(convoyeurHBase, MID_1536_864.convoyeurH, tMid).toFixed(1))
+
+    const convoyeurEndCorrection = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', CONVOYEUR_END_CORRECTION_GOLDEN)
+    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(convoyeurEndCorrection, MID_1536_864.convoyeurEndCorrectionXPx, tMid)))
+
+    const maskConvoyeurBottom = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5%')
+    const maskConvoyeurHeight = parsePercent(cssVars['--mask-convoyeur-height'] ?? '37%')
+    cssVars['--mask-convoyeur-bottom'] = String(Math.round(lerp(maskConvoyeurBottom, MID_1536_864.maskConvoyeurBottom, tMid)))
+    cssVars['--mask-convoyeur-height'] = String(Math.round(lerp(maskConvoyeurHeight, MID_1536_864.maskConvoyeurHeight, tMid)))
+
+    const robotAbove = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
+    const robotGround = parseFloat(cssVars['--robot-ground-y-percent'] ?? '61') || 61
+    cssVars['--robot-above-y-percent'] = String(lerp(robotAbove, MID_1536_864.robotAboveYPercent, tMid).toFixed(1))
+    cssVars['--robot-ground-y-percent'] = String(lerp(robotGround, MID_1536_864.robotGroundYPercent, tMid).toFixed(1))
+
+    const rocketEndYRatio = parseFloat(cssVars['--rocket-end-y-ratio'] ?? '0.95') || 0.95
+    cssVars['--rocket-end-y-ratio'] = String(lerp(rocketEndYRatio, MID_1536_864.rocketEndYRatio, tMid).toFixed(2))
+
+    const contactPrenomTop = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const contactPrenomLeft = parsePercent(cssVars['--contact-prenom-left'] ?? '36')
+    const contactPrenomWidth = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5')
+    const contactPrenomRotate = parseFloat(cssVars['--contact-prenom-rotate-deg'] ?? '11') || 11
+    cssVars['--contact-prenom-top'] = String(lerp(contactPrenomTop, MID_1536_864.contactPrenomTop, tMid).toFixed(1))
+    cssVars['--contact-prenom-left'] = String(lerp(contactPrenomLeft, MID_1536_864.contactPrenomLeft, tMid).toFixed(1))
+    cssVars['--contact-prenom-width'] = String(lerp(contactPrenomWidth, MID_1536_864.contactPrenomWidth, tMid).toFixed(1))
+    cssVars['--contact-prenom-rotate-deg'] = String(lerp(contactPrenomRotate, MID_1536_864.contactPrenomRotateDeg, tMid).toFixed(1))
+
+    const contactSocieteTop = parsePercent(cssVars['--contact-societe-top'] ?? '22')
+    const contactSocieteLeft = parsePercent(cssVars['--contact-societe-left'] ?? '24.5')
+    const contactSocieteWidth = parsePercent(cssVars['--contact-societe-width'] ?? '16.5')
+    cssVars['--contact-societe-top'] = String(lerp(contactSocieteTop, MID_1536_864.contactSocieteTop, tMid).toFixed(1))
+    cssVars['--contact-societe-left'] = String(lerp(contactSocieteLeft, MID_1536_864.contactSocieteLeft, tMid).toFixed(1))
+    cssVars['--contact-societe-width'] = String(lerp(contactSocieteWidth, MID_1536_864.contactSocieteWidth, tMid).toFixed(1))
+
+    const contactEmailTop = parsePercent(cssVars['--contact-email-top'] ?? '13.5')
+    const contactEmailLeft = parsePercent(cssVars['--contact-email-left'] ?? '42')
+    const contactEmailWidth = parsePercent(cssVars['--contact-email-width'] ?? '19')
+    cssVars['--contact-email-top'] = String(lerp(contactEmailTop, MID_1536_864.contactEmailTop, tMid).toFixed(1))
+    cssVars['--contact-email-left'] = String(lerp(contactEmailLeft, MID_1536_864.contactEmailLeft, tMid).toFixed(1))
+    cssVars['--contact-email-width'] = String(lerp(contactEmailWidth, MID_1536_864.contactEmailWidth, tMid).toFixed(1))
+
+    const contactSubmitTop = parsePercent(cssVars['--contact-submit-top'] ?? '41')
+    const contactSubmitLeft = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
+    const contactSubmitWidth = parsePercent(cssVars['--contact-submit-width'] ?? '13.5')
+    cssVars['--contact-submit-top'] = String(lerp(contactSubmitTop, MID_1536_864.contactSubmitTop, tMid).toFixed(1))
+    cssVars['--contact-submit-left'] = String(lerp(contactSubmitLeft, MID_1536_864.contactSubmitLeft, tMid).toFixed(1))
+    cssVars['--contact-submit-width'] = String(lerp(contactSubmitWidth, MID_1536_864.contactSubmitWidth, tMid).toFixed(1))
+
+    const contactNomTop = parsePercent(cssVars['--contact-nom-top'] ?? '3.5')
+    const contactNomLeft = parsePercent(cssVars['--contact-nom-left'] ?? '16')
+    const contactNomWidth = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
+    const contactNomMinWidthPx = parsePx(cssVars['--contact-nom-min-width-px'] ?? '100', 100)
+    const contactNomRotate = parseFloat(cssVars['--contact-nom-rotate-deg'] ?? '-4') || -4
+    cssVars['--contact-nom-top'] = String(lerp(contactNomTop, MID_1536_864.contactNomTop, tMid).toFixed(1))
+    cssVars['--contact-nom-left'] = String(lerp(contactNomLeft, MID_1536_864.contactNomLeft, tMid).toFixed(1))
+    cssVars['--contact-nom-width'] = String(lerp(contactNomWidth, MID_1536_864.contactNomWidth, tMid).toFixed(1))
+    cssVars['--contact-nom-min-width-px'] = String(Math.round(lerp(contactNomMinWidthPx, MID_1536_864.contactNomMinWidthPx, tMid)))
+    cssVars['--contact-nom-rotate-deg'] = String(lerp(contactNomRotate, MID_1536_864.contactNomRotateDeg, tMid).toFixed(1))
+
+    const contactMsgTop = parsePercent(cssVars['--contact-message-top'] ?? '37')
+    const contactMsgMtVh = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8')
+    const contactMsgMlVw = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5')
+    const contactMsgWidth = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
+    cssVars['--contact-message-top'] = String(lerp(contactMsgTop, MID_1536_864.contactMessageTop, tMid).toFixed(1))
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(contactMsgMtVh, MID_1536_864.contactMessageTextareaFocusMtVh, tMid).toFixed(1))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(contactMsgMlVw, MID_1536_864.contactMessageTextareaFocusMlVw, tMid).toFixed(1))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(contactMsgWidth, MID_1536_864.contactMessageTextareaFocusWidth, tMid)))
 }
 
 /** Applique le mix wideDesktop sur les clés concernées ; valeurs numériques (CSS utilisera * 1% / * 1vh / * 1vw). */
@@ -171,9 +336,9 @@ function applyWideDesktopMix(
     if (debug) console.log('[applyWideDesktopMix] --handwriting-svg-width', { baseParsed: handwriting, preset: WIDE_1920_1080.handwritingSvgWidth, tWide, output: outHandwriting })
     cssVars['--handwriting-svg-width'] = outHandwriting
 
-    const presentationBase = PRESENTATION_MARGIN_TOP_VH_BASE
-    const outPresentation = String(Math.round(lerp(presentationBase, WIDE_1920_1080.presentationMarginTopVh, tWide)))
-    if (debug) console.log('[applyWideDesktopMix] --presentation-margin-top-vh', { baseParsed: presentationBase, preset: WIDE_1920_1080.presentationMarginTopVh, tWide, output: outPresentation })
+    const presentation = parseFloat(cssVars['--presentation-margin-top-vh'] ?? String(PRESENTATION_MARGIN_TOP_VH_BASE)) || PRESENTATION_MARGIN_TOP_VH_BASE
+    const outPresentation = String(Math.round(lerp(presentation, WIDE_1920_1080.presentationMarginTopVh, tWide)))
+    if (debug) console.log('[applyWideDesktopMix] --presentation-margin-top-vh', { baseParsed: presentation, preset: WIDE_1920_1080.presentationMarginTopVh, tWide, output: outPresentation })
     cssVars['--presentation-margin-top-vh'] = outPresentation
 
     const deltaMyname = parseVw(cssVars['--home-myname-font-size-delta-vw'] ?? '0vw')
@@ -234,13 +399,21 @@ function applyWideDesktopMix(
         cssVars['--convoyeur-h'] = String(Math.round(lerp(convoyeurHBase, WIDE_1920_1080.convoyeurH, tWide)))
     }
 
-    const convoyeurEndCorrection = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', CONVOYEUR_END_CORRECTION_GOLDEN)
-    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(convoyeurEndCorrection, WIDE_1920_1080.convoyeurEndCorrectionXPx, tWide)))
+    if (tWide > 0) {
+        const convoyeurEndCorrection = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', CONVOYEUR_END_CORRECTION_GOLDEN)
+        cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(convoyeurEndCorrection, WIDE_1920_1080.convoyeurEndCorrectionXPx, tWide)))
+    }
 
     const robotAbove = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
     const robotGround = parseFloat(cssVars['--robot-ground-y-percent'] ?? '61') || 61
     cssVars['--robot-above-y-percent'] = String(lerp(robotAbove, WIDE_1920_1080.robotAboveYPercent, tWide).toFixed(1))
     cssVars['--robot-ground-y-percent'] = String(lerp(robotGround, WIDE_1920_1080.robotGroundYPercent, tWide).toFixed(1))
+
+    const robotHandEndXDeltaBase = parseFloat(cssVars['--robot-hand-end-x-delta'] ?? '0') || 0
+    cssVars['--robot-hand-end-x-delta'] = String(lerp(robotHandEndXDeltaBase, WIDE_1920_1080.robotHandEndXDeltaVw, tWide).toFixed(1))
+
+    const rocketEndYRatio = parseFloat(cssVars['--rocket-end-y-ratio'] ?? '0.95') || 0.95
+    cssVars['--rocket-end-y-ratio'] = String(lerp(rocketEndYRatio, WIDE_1920_1080.rocketEndYRatio, tWide).toFixed(2))
 
     const contactLeft = parsePercent(cssVars['--contact-svg-left'] ?? '15')
     const contactTop = parsePercent(cssVars['--contact-svg-top'] ?? '36.5')
@@ -285,14 +458,18 @@ function applyWideDesktopMix(
     const contactMsgMtVh = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8')
     const contactMsgMlVw = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5')
     const contactMsgWidth = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
+    const contactMsgLabelTop = parsePercent(cssVars['--contact-message-label-top'] ?? '70')
     const contactMsgTxVw = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4')
     const contactMsgTyVh = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5')
-    cssVars['--contact-message-top'] = String(lerp(contactMsgTop, WIDE_1920_1080.contactMessageTop, tWide).toFixed(1))
+    if (tWide > 0) {
+        cssVars['--contact-message-top'] = String(lerp(contactMsgTop, WIDE_1920_1080.contactMessageTop, tWide).toFixed(1))
+        cssVars['--contact-message-label-ty-vh'] = String(lerp(contactMsgTyVh, WIDE_1920_1080.contactMessageLabelTyVh, tWide).toFixed(1))
+    }
+    cssVars['--contact-message-label-top'] = String(lerp(contactMsgLabelTop, WIDE_1920_1080.contactMessageLabelTop, tWide).toFixed(1))
     cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(contactMsgMtVh, WIDE_1920_1080.contactMessageTextareaFocusMtVh, tWide).toFixed(1))
     cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(contactMsgMlVw, WIDE_1920_1080.contactMessageTextareaFocusMlVw, tWide).toFixed(1))
     cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(contactMsgWidth, WIDE_1920_1080.contactMessageTextareaFocusWidth, tWide)))
     cssVars['--contact-message-label-tx-vw'] = String(lerp(contactMsgTxVw, WIDE_1920_1080.contactMessageLabelTxVw, tWide).toFixed(1))
-    cssVars['--contact-message-label-ty-vh'] = String(lerp(contactMsgTyVh, WIDE_1920_1080.contactMessageLabelTyVh, tWide).toFixed(1))
 
     const contactSubmitTop = parsePercent(cssVars['--contact-submit-top'] ?? '41')
     const contactSubmitLeft = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
@@ -621,11 +798,27 @@ function computeGroundCssVars(w: number, h: number): Record<string, string> {
     return { '--ground-line-top': '53%', '--ground-overcoat-top': '53.5%' }
 }
 
-/** Fusée : à 1348 = left 10vw, top -60vh, 300px. 1366 = top -65vh. */
+/** Ratio (0–1) hauteur pour point le plus bas de la trajectoire fusée, base desktop/nearGolden (sans mix wide). */
+function getRocketEndYRatioBase(w: number): number {
+    if (w <= GROUND_LINE_425_MAX_WIDTH) return ROCKET_END_Y_PERCENTAGE_425
+    if (w <= MOBILE_SMALL_MAX_WIDTH) return ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL
+    if (w <= MOBILE_MAX_WIDTH) return ROCKET_END_Y_PERCENTAGE_MOBILE
+    if (w <= TABLET_MAX_WIDTH) return ROCKET_END_Y_PERCENTAGE
+    return ROCKET_END_Y_PERCENTAGE
+}
+
+/** Fusée : à 1348 = left 10vw, top -60vh, 300px. 1366 = top -65vh. + --rocket-end-y-ratio pour mix mid/wide. */
 function computeRocketCssVars(w: number, h: number): Record<string, string> {
     const left = w <= BP_MD ? (w <= 480 ? '-15vw' : '-10vw') : '10vw'
     const top = isNearGoldenViewport(w, h) ? '-65vh' : '-60vh'
-    return { '--rocket-left': left, '--rocket-top': top, '--rocket-width': '300px', '--rocket-height': '300px' }
+    const endYRatio = getRocketEndYRatioBase(w)
+    return {
+        '--rocket-left': left,
+        '--rocket-top': top,
+        '--rocket-width': '300px',
+        '--rocket-height': '300px',
+        '--rocket-end-y-ratio': String(endYRatio),
+    }
 }
 
 /** About (alien + hologram + profile handwriting) : réf. 1348 ; paliers 425, 480, 768. */
@@ -740,6 +933,7 @@ function computeRobotCssVars(w: number, h: number): Record<string, string> {
         '--robot-max-height': '25vh',
         '--robot-above-y-percent': String(above),
         '--robot-ground-y-percent': String(ground),
+        '--robot-hand-end-x-delta': '0',
         '--projets-text-top': '5vh',
         '--projets-text-right': '10vw',
         '--projets-text-max-width': '40vw',
@@ -768,6 +962,11 @@ function computeHandwritingSvgCssVars(w: number): Record<string, string> {
 /** Contact form : réf. golden 1348×768 (valeurs numériques pour tokens). Pas de variation golden/nearGolden. */
 function computeContactFormCssVars(): Record<string, string> {
     return {
+        '--contact-nom-top': '3.5',
+        '--contact-nom-left': '16',
+        '--contact-nom-width': '13.5',
+        '--contact-nom-min-width-px': '100',
+        '--contact-nom-rotate-deg': '-4',
         '--contact-prenom-top': '6.8',
         '--contact-prenom-left': '36',
         '--contact-prenom-width': '13.5',
@@ -787,6 +986,7 @@ function computeContactFormCssVars(): Record<string, string> {
         '--contact-message-textarea-focus-mt-vh': '3.8',
         '--contact-message-textarea-focus-ml-vw': '2.5',
         '--contact-message-textarea-focus-width': '80',
+        '--contact-message-label-top': '70',
         '--contact-message-label-tx-vw': '-4',
         '--contact-message-label-ty-vh': '-18.5',
         '--contact-submit-top': '41',
@@ -880,6 +1080,10 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         ...contactForm,
         ...handwritingSvg,
     }
+    if (cssVars['--presentation-margin-top-vh'] === undefined) {
+        cssVars['--presentation-margin-top-vh'] = String(PRESENTATION_MARGIN_TOP_VH_BASE)
+    }
+    applyMidDesktopMix(cssVars, w, h)
     applyWideDesktopMix(cssVars, w, h)
 
     const robotAboveYPercent = parseFloat(cssVars['--robot-above-y-percent']) || 50
@@ -908,7 +1112,7 @@ const DEBUG_RESPONSIVE_TOKENS = false
  * Si DEBUG_RESPONSIVE_TOKENS, crée/met à jour un overlay optionnel (vw, vh, scale, t nearGolden, robot, alien2).
  */
 const MASK_TOKEN_PREFIXES = ['--mask-chemine-', '--mask-convoyeur-']
-const UI_TOKEN_PREFIXES = ['--mask-chemine-', '--mask-convoyeur-', '--contact-svg-', '--contact-prenom-', '--contact-societe-', '--contact-email-', '--contact-message-', '--contact-submit-', '--contact-label-']
+const UI_TOKEN_PREFIXES = ['--mask-chemine-', '--mask-convoyeur-', '--contact-svg-', '--contact-nom-', '--contact-prenom-', '--contact-societe-', '--contact-email-', '--contact-message-', '--contact-submit-', '--contact-label-']
 
 export function applyResponsiveTokens(stage: HTMLElement, tokens: ResponsiveTokens): void {
     Object.entries(tokens.cssVars).forEach(([key, value]) => {

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cursors:half": "node scripts/resize-cursors.js"
   },
   "dependencies": {
     "gsap": "^3.12.5",
@@ -22,6 +23,7 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/vivus": "^0.4.7",
+    "sharp": "^0.33.5",
     "typescript": "^5.4.0"
   }
 }

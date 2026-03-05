@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import styles from './InkScroll.module.css'
 
 const MIN_THUMB_PX = 24
@@ -8,16 +8,20 @@ const MIN_THUMB_PX = 24
 export interface InkScrollProps {
   children: React.ReactNode
   className?: string
+  variant?: 'default' | 'textarea'
 }
 
 function useInkScroll() {
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement | HTMLTextAreaElement | null>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const thumbRef = useRef<HTMLDivElement>(null)
   const rafIdRef = useRef<number | null>(null)
+  const isDraggingRef = useRef(false)
+  const dragStartYRef = useRef(0)
+  const dragStartScrollRef = useRef(0)
 
-  const update = () => {
+  const update = useCallback(() => {
     const el = contentRef.current
     const rail = railRef.current
     const thumb = thumbRef.current
@@ -27,7 +31,7 @@ function useInkScroll() {
     const clientHeight = el.clientHeight
     const maxScroll = scrollHeight - clientHeight
 
-    if (maxScroll <= 0) {
+    if (maxScroll <= 1) {
       rail.style.display = 'none'
       return
     }
@@ -41,22 +45,24 @@ function useInkScroll() {
     thumb.style.height = `${thumbHeight}px`
     thumb.style.top = `${thumbTop}px`
     rail.style.display = ''
-  }
+  }, [])
 
-  const scheduleUpdate = () => {
+  const scheduleUpdate = useCallback(() => {
     if (rafIdRef.current != null) return
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null
       update()
     })
-  }
+  }, [update])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!matchMedia('(pointer: fine)').matches) return
 
     const el = contentRef.current
-    if (!el) return
+    const rail = railRef.current
+    const thumb = thumbRef.current
+    if (!el || !rail || !thumb) return
 
     el.addEventListener('scroll', scheduleUpdate, { passive: true })
     window.addEventListener('resize', scheduleUpdate)
@@ -64,31 +70,100 @@ function useInkScroll() {
     const resizeObserver = new ResizeObserver(scheduleUpdate)
     resizeObserver.observe(el)
 
+    const handleThumbMouseDown = (e: MouseEvent) => {
+      e.preventDefault()
+      isDraggingRef.current = true
+      document.documentElement.classList.add('is-dragging-scrollbar')
+      dragStartYRef.current = e.clientY
+      dragStartScrollRef.current = el.scrollTop
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return
+      const scrollHeight = el.scrollHeight
+      const clientHeight = el.clientHeight
+      const maxScroll = scrollHeight - clientHeight
+      if (maxScroll <= 0) return
+
+      const railHeight = rail.clientHeight
+      const ratio = clientHeight / scrollHeight
+      const thumbHeight = Math.max(MIN_THUMB_PX, Math.min(railHeight * ratio, railHeight))
+      const trackHeight = railHeight - thumbHeight
+      if (trackHeight <= 0) return
+
+      const deltaY = e.clientY - dragStartYRef.current
+      const scrollDelta = (deltaY / trackHeight) * maxScroll
+      const newScroll = Math.max(0, Math.min(maxScroll, dragStartScrollRef.current + scrollDelta))
+      el.scrollTop = newScroll
+      dragStartYRef.current = e.clientY
+      dragStartScrollRef.current = newScroll
+    }
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false
+      document.documentElement.classList.remove('is-dragging-scrollbar')
+    }
+
+    thumb.addEventListener('mousedown', handleThumbMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('mouseleave', handleMouseUp)
+
     scheduleUpdate()
 
     return () => {
       el.removeEventListener('scroll', scheduleUpdate)
       window.removeEventListener('resize', scheduleUpdate)
       resizeObserver.disconnect()
+      thumb.removeEventListener('mousedown', handleThumbMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mouseleave', handleMouseUp)
       if (rafIdRef.current != null) {
         cancelAnimationFrame(rafIdRef.current)
       }
     }
-  }, [])
+  }, [scheduleUpdate])
 
   return { wrapperRef, contentRef, railRef, thumbRef }
 }
 
-export default function InkScroll({ children, className }: InkScrollProps) {
+export default function InkScroll({ children, className, variant = 'default' }: InkScrollProps) {
   const { wrapperRef, contentRef, railRef, thumbRef } = useInkScroll()
 
+  const isTextarea = variant === 'textarea'
+  const child = isTextarea ? React.Children.only(children) : null
+  const textareaChild = isTextarea && child && React.isValidElement(child) && child.type === 'textarea' ? child : null
+
+  const wrapperClassName = [
+    styles.inkScroll,
+    isTextarea ? 'ink-scroll ink-scroll--textarea' : '',
+    className ?? ''
+  ].filter(Boolean).join(' ').trim()
+
   return (
-    <div className={`${styles.inkScroll} ${className ?? ''}`.trim()} ref={wrapperRef}>
-      <div className={styles.inkScroll__content} ref={contentRef}>
-        {children}
-      </div>
-      <div className={styles.inkScroll__rail} ref={railRef} aria-hidden="true">
-        <div className={styles.inkScroll__thumb} ref={thumbRef} />
+    <div
+      className={wrapperClassName}
+      ref={wrapperRef}
+      {...(isTextarea ? { 'data-ink-scroll': 'textarea-message' } : {})}
+    >
+      {textareaChild
+        ? React.cloneElement(textareaChild as React.ReactElement<React.TextareaHTMLAttributes<HTMLTextAreaElement>>, {
+            ref: contentRef as React.Ref<HTMLTextAreaElement>,
+            className: [
+              (textareaChild as React.ReactElement<{ className?: string }>).props.className,
+              styles.inkScroll__content,
+              'ink-scroll__content'
+            ].filter(Boolean).join(' '),
+            'data-ink-scroll-content': '',
+          })
+        : (
+          <div className={styles.inkScroll__content} ref={contentRef as React.RefObject<HTMLDivElement>}>
+            {children}
+          </div>
+        )}
+      <div className={`${styles.inkScroll__rail} ink-scroll__rail`} ref={railRef} aria-hidden="true">
+        <div className={`${styles.inkScroll__thumb} ink-scroll__thumb`} ref={thumbRef} aria-hidden="true" />
       </div>
     </div>
   )
