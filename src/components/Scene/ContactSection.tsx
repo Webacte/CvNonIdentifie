@@ -3,6 +3,7 @@
 import React, { forwardRef, useRef, useState } from 'react'
 import { useSplitLetters } from '@/hooks/useSplitLetters'
 import InkScroll from '@/components/InkScroll/InkScroll'
+import type { TextareaScrollController } from '@/utils/textareaScrollController'
 import '../../styles/HomePage.css'
 import '../../styles/ContactSection.css'
 
@@ -20,6 +21,7 @@ const REQUIRED_FIELDS = [
  */
 const ContactSection = forwardRef<HTMLElement>((props, ref) => {
     const titleWrapperRef = useRef<HTMLDivElement>(null)
+    const scrollControllerRef = useRef<TextareaScrollController | null>(null)
     useSplitLetters(titleWrapperRef, { selector: '.placeholder-title' })
 
     const [formState, setFormState] = useState({
@@ -200,7 +202,10 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                     <label htmlFor="contact-message" className="contact-label">
                         Message
                     </label>
-                    <InkScroll variant="textarea">
+                    <InkScroll
+                        variant="textarea"
+                        onScrollControllerReady={(c) => { scrollControllerRef.current = c }}
+                    >
                         <textarea
                             id="contact-message"
                             name="message"

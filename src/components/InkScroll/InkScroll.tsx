@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useCallback } from 'react'
 import styles from './InkScroll.module.css'
+import { createTextareaScrollController, type TextareaScrollController } from '@/utils/textareaScrollController'
+import ContactArcScrollbar from '@/components/ContactArcScrollbar/ContactArcScrollbar'
 
 const MIN_THUMB_PX = 24
 
@@ -9,6 +11,7 @@ export interface InkScrollProps {
   children: React.ReactNode
   className?: string
   variant?: 'default' | 'textarea'
+  onScrollControllerReady?: (controller: TextareaScrollController) => void
 }
 
 function useInkScroll() {
@@ -128,7 +131,7 @@ function useInkScroll() {
   return { wrapperRef, contentRef, railRef, thumbRef }
 }
 
-export default function InkScroll({ children, className, variant = 'default' }: InkScrollProps) {
+export default function InkScroll({ children, className, variant = 'default', onScrollControllerReady }: InkScrollProps) {
   const { wrapperRef, contentRef, railRef, thumbRef } = useInkScroll()
 
   const isTextarea = variant === 'textarea'
@@ -141,6 +144,14 @@ export default function InkScroll({ children, className, variant = 'default' }: 
     className ?? ''
   ].filter(Boolean).join(' ').trim()
 
+  useEffect(() => {
+    if (variant !== 'textarea' || !onScrollControllerReady) return
+    const el = contentRef.current
+    if (!el || !(el instanceof HTMLTextAreaElement)) return
+    const controller = createTextareaScrollController(el)
+    onScrollControllerReady(controller)
+  }, [variant, onScrollControllerReady, contentRef])
+
   return (
     <div
       className={wrapperClassName}
@@ -148,23 +159,25 @@ export default function InkScroll({ children, className, variant = 'default' }: 
       {...(isTextarea ? { 'data-ink-scroll': 'textarea-message' } : {})}
     >
       {textareaChild
-        ? React.cloneElement(textareaChild as React.ReactElement<React.TextareaHTMLAttributes<HTMLTextAreaElement>>, {
+        ? React.cloneElement(textareaChild as React.ReactElement<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: React.Ref<HTMLTextAreaElement> }>, {
             ref: contentRef as React.Ref<HTMLTextAreaElement>,
             className: [
               (textareaChild as React.ReactElement<{ className?: string }>).props.className,
               styles.inkScroll__content,
               'ink-scroll__content'
-            ].filter(Boolean).join(' '),
-            'data-ink-scroll-content': '',
+            ].filter(Boolean).join(' ')
           })
         : (
           <div className={styles.inkScroll__content} ref={contentRef as React.RefObject<HTMLDivElement>}>
             {children}
           </div>
         )}
-      <div className={`${styles.inkScroll__rail} ink-scroll__rail`} ref={railRef} aria-hidden="true">
-        <div className={`${styles.inkScroll__thumb} ink-scroll__thumb`} ref={thumbRef} aria-hidden="true" />
-      </div>
+      {!isTextarea && (
+        <div className={`${styles.inkScroll__rail} ink-scroll__rail`} ref={railRef} aria-hidden="true">
+          <div className={`${styles.inkScroll__thumb} ink-scroll__thumb`} ref={thumbRef} aria-hidden="true" />
+        </div>
+      )}
+      {isTextarea && <ContactArcScrollbar />}
     </div>
   )
 }

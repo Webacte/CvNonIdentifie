@@ -166,7 +166,7 @@ export const ROCKET_END_X_MIN_RATIO = 0.3
 /** Position/rotation de départ de la fusée (createRocketScrollAnimation). */
 export const ROCKET_START_X = 0
 export const ROCKET_START_Y = 0
-export const ROCKET_START_ROTATE = 480
+export const ROCKET_START_ROTATE = 230
 export const ROCKET_END_ROTATE = 90
 
 /** Terme constant dans le facteur d’accélération de la fusée (zone X). Formule : 5 + (accelerationZone²). */

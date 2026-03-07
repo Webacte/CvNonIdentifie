@@ -1163,6 +1163,61 @@ export function applyResponsiveTokens(stage: HTMLElement, tokens: ResponsiveToke
         el.textContent = lines.join('\n')
     }
 
+    // Instrumentation temporaire : activable avec window.__RESPONSIVE_DEBUG__ = true (comparer tokens aux presets 1348/1366/1536/1920).
+    if (typeof window !== 'undefined' && (window as Window & { __RESPONSIVE_DEBUG__?: boolean }).__RESPONSIVE_DEBUG__) {
+        const tNearGolden = getNearGoldenT(tokens.w)
+        const tMid = getTMid(tokens.w, tokens.h)
+        const tWide = getTWide(tokens.w, tokens.h)
+        const v = tokens.cssVars
+        const log: Record<string, unknown> = {
+            viewport: { w: tokens.w, h: tokens.h },
+            tNearGolden,
+            tMid,
+            tWide,
+            habitation: {
+                '--exp-hab-top-px': v['--exp-hab-top-px'],
+                '--exp-hab-left-px': v['--exp-hab-left-px'],
+                '--exp-hab-w-px': v['--exp-hab-w-px'],
+                '--exp-hab-h-px': v['--exp-hab-h-px'],
+            },
+            convoyeur: {
+                '--convoyeur-left-px': v['--convoyeur-left-px'],
+                '--convoyeur-bottom-px': v['--convoyeur-bottom-px'],
+                '--convoyeur-w-px': v['--convoyeur-w-px'],
+                '--convoyeur-h': v['--convoyeur-h'],
+                '--convoyeur-end-correction-x-px': v['--convoyeur-end-correction-x-px'],
+            },
+            maskChemine: {
+                '--mask-chemine-bottom': v['--mask-chemine-bottom'],
+                '--mask-chemine-height': v['--mask-chemine-height'],
+            },
+            robot: {
+                '--robot-above-y-percent': v['--robot-above-y-percent'],
+                '--robot-ground-y-percent': v['--robot-ground-y-percent'],
+            },
+            rocket: {
+                '--rocket-phase1-end-y-px': v['--rocket-phase1-end-y-px'],
+                '--rocket-phase2-rotate-deg': v['--rocket-phase2-rotate-deg'],
+                '--rocket-end-x-px': v['--rocket-end-x-px'],
+                '--rocket-end-y-px': v['--rocket-end-y-px'],
+                '--rocket-end-rotate-deg': v['--rocket-end-rotate-deg'],
+            },
+            contact: {
+                '--contact-svg-left': v['--contact-svg-left'],
+                '--contact-svg-top': v['--contact-svg-top'],
+                '--contact-prenom-top': v['--contact-prenom-top'],
+                '--contact-societe-top': v['--contact-societe-top'],
+            },
+        }
+        const PRESETS_1348 = { hab: { top: 461, left: 779, w: 1032, h: 500 }, convoyeur: { left: -700, bottom: 188, w: 1481 } }
+        const PRESETS_1366 = { hab: { top: 423, left: 779, w: 1000, h: 500 }, convoyeur: { left: -717, bottom: 248, w: 1443 } }
+        const PRESETS_1536 = { hab: { top: MID_1536_864.expHabTopPx, w: MID_1536_864.expHabWPx } }
+        const PRESETS_1920 = { hab: { top: WIDE_1920_1080.expHabTopPx, w: WIDE_1920_1080.expHabWPx }, maskChemine: { bottom: WIDE_1920_1080.maskChemineBottom, height: WIDE_1920_1080.maskChemineHeight } }
+        const ref = (tokens.w === 1348 && tokens.h === 768) ? PRESETS_1348 : (tokens.w === 1366 && tokens.h === 768) ? PRESETS_1366 : (tokens.w === 1536 && tokens.h === 864) ? PRESETS_1536 : (tokens.w === 1920 && tokens.h === 1080) ? PRESETS_1920 : null
+        if (ref) (log as Record<string, unknown>).expectedPreset = ref
+        console.log('[RESPONSIVE_DEBUG]', log)
+    }
+
     const debugClip = typeof window !== 'undefined' && (window as Window & { __TOKENS_DEBUG_CLIP__?: boolean }).__TOKENS_DEBUG_CLIP__
     if (debugClip && typeof document !== 'undefined') {
         requestAnimationFrame(() => {

@@ -63,10 +63,9 @@
     display: block;
 }
 
+/* Désactivé : effacement géré par wipe cloth (mask SVG) dans wipeCloth.ts */
 .quest-erase-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+    display: none;
 }
 
 .quest-erase-mask {
@@ -334,21 +333,21 @@
 
 /* Masque cheminée : Responsive Tokens (golden <=1349 : bottom 18, height 59 numériques ; wide 1920 : 12.5, 68). Clip via --mask-chemine-clip-raw (pas d’auto-référence). */
 .experiences-mask-chemine {
-    left: var(--mask-chemine-left, 5%);
+    left: calc(var(--mask-chemine-left, 5) * 1%);
     width: 15.6%;
     bottom: calc(var(--mask-chemine-bottom, 18) * 1%);
     height: calc(var(--mask-chemine-height, 59) * 1%);
     --cut: 140px;
-    -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
-    clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+    -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+    clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
 }
 
 @media (max-width: 768px) {
     .experiences-mask-chemine {
         bottom: 37%;
         height: 43%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
     }
     .experiences-mask-convoyeur {
         bottom: 34%;
@@ -364,8 +363,8 @@
     .experiences-mask-chemine {
         bottom: 42%;
         height: 28%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
     }
     .experiences-mask-convoyeur {
         bottom: 36%;
@@ -380,8 +379,8 @@
     .experiences-mask-chemine {
         bottom: 53%;
         height: 27%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
     }
     .experiences-mask-convoyeur {
         bottom: 46%;
@@ -397,8 +396,8 @@
     .experiences-mask-chemine {
         bottom: 44%;
         height: 25%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 24%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
     }
 }
 

@@ -68,6 +68,11 @@
   border-radius: var(--contact-radius, inherit);
 }
 
+/* Scrollbar arc à gauche : doit rester visible (left négatif) */
+.inkScroll:global(.ink-scroll--textarea)[data-ink-scroll="textarea-message"] {
+  overflow: visible;
+}
+
 /* Le textarea reste éditable ; réserve place pour le rail */
 .inkScroll:global(.ink-scroll--textarea) .inkScroll__content {
   width: 100%;
@@ -85,8 +90,9 @@
   display: none;
 }
 
+/* Rail/thumb visibles uniquement pour textarea qui n'est PAS le contact (contact : pas de rail/thumb, scrollbar masquée) */
 @media (pointer: fine) {
-  .inkScroll:global(.ink-scroll--textarea) .inkScroll__rail {
+  .inkScroll:global(.ink-scroll--textarea):not([data-ink-scroll="textarea-message"]) .inkScroll__rail {
     position: absolute;
     top: 10px;
     bottom: 10px;
@@ -99,7 +105,7 @@
     background-size: contain;
   }
 
-  .inkScroll:global(.ink-scroll--textarea) .inkScroll__thumb {
+  .inkScroll:global(.ink-scroll--textarea):not([data-ink-scroll="textarea-message"]) .inkScroll__thumb {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -119,4 +125,15 @@
   .inkScroll:global(.ink-scroll--textarea) .inkScroll__rail {
     display: none !important;
   }
+}
+
+/* Scrollbar native du textarea contact : forcer masquage (pas de rail/thumb dans le DOM pour ce variant) */
+.inkScroll:global(.ink-scroll--textarea)[data-ink-scroll="textarea-message"] .inkScroll__content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.inkScroll:global(.ink-scroll--textarea)[data-ink-scroll="textarea-message"] .inkScroll__content::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }

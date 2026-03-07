@@ -159,6 +159,21 @@
     align-self: stretch;
 }
 
+/* Variables ContactArcScrollbar (track courbe + thumb levier à gauche du textarea message) */
+.ink-scroll.ink-scroll--textarea[data-ink-scroll="textarea-message"] {
+    --contact-arc-scroll-left: -46px;
+    --contact-arc-scroll-top: 54;
+    --contact-arc-scroll-height: 61%;
+    --contact-arc-scroll-width: 84px;
+    --contact-arc-scroll-track-stroke-width: 2;
+    --contact-arc-scroll-thumb-width: 24px;
+    --contact-arc-scroll-thumb-height: 24px;
+    --contact-arc-scroll-thumb-offset-x: 0;
+    --contact-arc-scroll-thumb-offset-y: 0;
+    --contact-arc-scroll-thumb-rotate-offset: 0;
+    --contact-arc-scroll-z-index: 5;
+}
+
 /* Champs contact : sélection et curseur texte explicites */
 .contact-form-overlay input,
 .contact-form-overlay textarea {

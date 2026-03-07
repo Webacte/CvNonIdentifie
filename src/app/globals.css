@@ -173,7 +173,8 @@ body::before {
     height: auto;
 }
 
-.handwriting-svg path {
+/* Cibler uniquement les paths de contenu (groupe direct), pas ceux dans defs (ex. stamps du wipe mask) */
+.handwriting-svg > g path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1;

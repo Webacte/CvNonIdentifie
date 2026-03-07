@@ -1,0 +1,54 @@
+/* ContactArcScrollbar : track courbe + thumb levier à gauche du textarea contact */
+
+.contactArcScrollbar {
+  position: absolute;
+  left: var(--contact-arc-scroll-left, -32px);
+  /* calc() permet valeurs unitless (ex. 10 → 10px) ; sinon top: 10 invalide → top: auto → position incorrecte */
+  top: calc(var(--contact-arc-scroll-top, 0) * 1px);
+  height: var(--contact-arc-scroll-height, 100%);
+  width: var(--contact-arc-scroll-width, 50px);
+  pointer-events: none;
+  z-index: var(--contact-arc-scroll-z-index, 5);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.contactArcScrollbar__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.contactArcScrollbar__track {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.4;
+  stroke-width: var(--contact-arc-scroll-track-stroke-width, 2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contactArcScrollbar__thumb {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  width: var(--contact-arc-scroll-thumb-width, 24px);
+  height: var(--contact-arc-scroll-thumb-height, 24px);
+  transform-origin: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contactArcScrollbar__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.contactArcScrollbar__thumb:active {
+  cursor: grabbing;
+}

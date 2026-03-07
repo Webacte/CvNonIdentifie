@@ -534,7 +534,27 @@ export function createRocketScrollAnimation(
         const landedY = lerp(baseLandedY, ROCKET_LANDED_Y_1920, tWide)
         return { landedX, landedY }
     }
-    
+
+    /** Position atterrissage figée : calculée une seule fois au franchissement du seuil pour éviter que la fusée bouge/tourne encore avec le scroll. */
+    let landedPositionCache: { landedX: number; landedY: number } | null = null
+
+    const applyLandedState = (landedX: number, landedY: number) => {
+        gsap.set(rocketElement, {
+            x: landedX,
+            y: landedY,
+            rotate: ROCKET_LANDED_ROTATE,
+            force3D: true,
+        })
+        if (teteElement) {
+            gsap.set(teteElement, {
+                x: ROCKET_TETE_LANDED_X,
+                y: ROCKET_TETE_LANDED_Y,
+                rotate: ROCKET_TETE_LANDED_ROTATE,
+                force3D: true,
+            })
+        }
+    }
+
     // Si scrollTween est disponible, utiliser containerAnimation avec gsap.to
     // Sinon, créer un nouveau ScrollTrigger
     if (scrollTween && scrollTween.scrollTrigger) {
@@ -548,22 +568,12 @@ export function createRocketScrollAnimation(
             if (progress !== lastProgress) {
                 lastProgress = progress
                 if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
-                    const { landedX, landedY } = getLandedPosition()
-                    gsap.set(rocketElement, {
-                        x: landedX,
-                        y: landedY,
-                        rotate: ROCKET_LANDED_ROTATE,
-                        force3D: true,
-                    })
-                    if (teteElement) {
-                        gsap.set(teteElement, {
-                            x: ROCKET_TETE_LANDED_X,
-                            y: ROCKET_TETE_LANDED_Y,
-                            rotate: ROCKET_TETE_LANDED_ROTATE,
-                            force3D: true,
-                        })
+                    if (landedPositionCache === null) {
+                        landedPositionCache = getLandedPosition()
                     }
+                    applyLandedState(landedPositionCache.landedX, landedPositionCache.landedY)
                 } else {
+                    landedPositionCache = null
                     const currentX = updateRocketPositionX(progressPhase1)
                     const currentY = updateRocketPositionY(progressPhase1)
                     const currentRotate = updateRocketRotate(progressPhase1)
@@ -589,6 +599,7 @@ export function createRocketScrollAnimation(
         rafId = requestAnimationFrame(updateLoop)
         return () => cancelAnimationFrame(rafId)
     } else {
+        let landedCache: { landedX: number; landedY: number } | null = null
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -599,26 +610,16 @@ export function createRocketScrollAnimation(
                 const progress = self.progress
                 const progressPhase1 = getRocketPhase1Progress(progress, scrollValues)
                 if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
-                    const { landedX, landedY } = getLandedPosition()
-                    gsap.set(rocketElement, {
-                        x: landedX,
-                        y: landedY,
-                        rotate: ROCKET_LANDED_ROTATE,
-                        force3D: true,
-                    })
-                    if (teteElement) {
-                        gsap.set(teteElement, {
-                            x: ROCKET_TETE_LANDED_X,
-                            y: ROCKET_TETE_LANDED_Y,
-                            rotate: ROCKET_TETE_LANDED_ROTATE,
-                            force3D: true,
-                        })
+                    if (landedCache === null) {
+                        landedCache = getLandedPosition()
                     }
+                    applyLandedState(landedCache.landedX, landedCache.landedY)
                     updateFumeeFromProgress(progress)
                     if (fireElements.length) {
                         gsap.set(fireElements, { opacity: ROCKET_FIRE_OPACITY_END })
                     }
                 } else {
+                    landedCache = null
                     const currentX = updateRocketPositionX(progressPhase1)
                     const currentY = updateRocketPositionY(progressPhase1)
                     const currentRotate = updateRocketRotate(progressPhase1)
