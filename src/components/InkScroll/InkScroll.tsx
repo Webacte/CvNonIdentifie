@@ -177,7 +177,7 @@ export default function InkScroll({ children, className, variant = 'default', on
           <div className={`${styles.inkScroll__thumb} ink-scroll__thumb`} ref={thumbRef} aria-hidden="true" />
         </div>
       )}
-      {isTextarea && <ContactArcScrollbar />}
+      {isTextarea && <ContactArcScrollbar textareaRef={contentRef as React.RefObject<HTMLTextAreaElement | null>} />}
     </div>
   )
 }

@@ -11,6 +11,14 @@
     font-family: 'SP-Caffeine', sans-serif;
 }
 
+/* Wide desktop (≥1500×768, même seuils que responsiveTokens getTWide) : valeurs label message */
+@media (min-width: 1500px) and (min-height: 768px) {
+    .contact-form-overlay {
+        --contact-message-label-top: 75;
+        --contact-message-label-ty-vh: -17.5;
+    }
+}
+
 .contact-form-overlay .contact-field {
     pointer-events: auto;
     position: absolute;
@@ -159,11 +167,17 @@
     align-self: stretch;
 }
 
-/* Variables ContactArcScrollbar (track courbe + thumb levier à gauche du textarea message) */
+/* Textarea message : priorité à la hauteur de .contact-field .contact-textarea (11.5em) sur les règles InkScroll */
+.contact-field-message .ink-scroll--textarea[data-ink-scroll="textarea-message"] .contact-textarea {
+    height: 11.5em;
+}
+
+/* Variables ContactArcScrollbar (track courbe + thumb levier à gauche du textarea message).
+   Placement et taille validés en 1920×1080. Ne pas modifier sans besoin explicite. */
 .ink-scroll.ink-scroll--textarea[data-ink-scroll="textarea-message"] {
-    --contact-arc-scroll-left: -46px;
-    --contact-arc-scroll-top: 54;
-    --contact-arc-scroll-height: 61%;
+    --contact-arc-scroll-left: -37px;
+    --contact-arc-scroll-top: 50;
+    --contact-arc-scroll-height: 50%;
     --contact-arc-scroll-width: 84px;
     --contact-arc-scroll-track-stroke-width: 2;
     --contact-arc-scroll-thumb-width: 24px;

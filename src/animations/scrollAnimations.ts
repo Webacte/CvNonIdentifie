@@ -216,6 +216,7 @@ import {
     PROJET_ERASE_RATIO,
 } from './constants'
 import { createHandwritingAnimation } from './handwriting'
+import { ensureClothWipeControllers } from './wipeCloth'
 
 /** Smoothstep pour transition douce (t=0→0, t=1→1, dérivée nulle aux bords). */
 function smoothstep(x: number): number {
@@ -1608,6 +1609,8 @@ export interface ExperienceQuestScrollAnimationParams {
     scrollTween: gsap.core.Tween
     experienceQuestTitreRef: RefObject<HTMLDivElement | null>
     experienceQuestDescripRefs: RefObject<HTMLDivElement | null>[]
+    /** Racine contenant tous les .quest-descrip-svg-wrapper (ex. viewport) pour le wipe cloth. */
+    root?: ParentNode
 }
 
 /**
@@ -1617,11 +1620,12 @@ export interface ExperienceQuestScrollAnimationParams {
 export function createExperienceQuestScrollAnimation(
     params: ExperienceQuestScrollAnimationParams
 ): (() => void) | void {
-    const { scrollValues, scrollTween, experienceQuestTitreRef, experienceQuestDescripRefs } = params
+    const { scrollValues, scrollTween, experienceQuestTitreRef, experienceQuestDescripRefs, root } = params
     if (!scrollTween?.scrollTrigger) return
     if (!experienceQuestDescripRefs || experienceQuestDescripRefs.length < EXP_QUEST_CYCLE_COUNT) return
 
     const handwritingControllers: (ReturnType<typeof createHandwritingAnimation> | null)[] = []
+    let clothWipeControllers: ReturnType<typeof ensureClothWipeControllers> = []
     let controllersInitialized = false
 
     const initControllers = () => {
@@ -1632,6 +1636,7 @@ export function createExperienceQuestScrollAnimation(
             const ctrl = createHandwritingAnimation(wrapper as HTMLElement | null, { duration: 600 })
             handwritingControllers[i] = ctrl
         }
+        if (root) clothWipeControllers = ensureClothWipeControllers(root)
         controllersInitialized = true
     }
 
@@ -1660,11 +1665,13 @@ export function createExperienceQuestScrollAnimation(
 
             if (progressExp < cycleStart) {
                 gsap.set(container, { opacity: 0, visibility: 'hidden', force3D: true })
+                clothWipeControllers[i]?.setProgress(0)
                 continue
             }
 
             if (progressExp >= cycleEnd) {
                 gsap.set(container, { opacity: 0, visibility: 'hidden', force3D: true })
+                clothWipeControllers[i]?.setProgress(0)
                 continue
             }
 
@@ -1678,15 +1685,18 @@ export function createExperienceQuestScrollAnimation(
             if (cycleLocal <= writeEnd) {
                 const writeProgress = cycleLocal / writeEnd
                 hw?.setProgress(writeProgress)
+                clothWipeControllers[i]?.setProgress(0)
                 const masks = container.querySelectorAll('.quest-erase-mask')
                 masks.forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
             } else if (cycleLocal <= stayEnd) {
                 hw?.setProgress(1)
+                clothWipeControllers[i]?.setProgress(0)
                 const masks = container.querySelectorAll('.quest-erase-mask')
                 masks.forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
             } else {
                 hw?.setProgress(1)
                 const eraseLocal = (cycleLocal - stayEnd) / eraseLength
+                clothWipeControllers[i]?.setProgress(eraseLocal)
                 const mask1 = container.querySelector('.quest-erase-mask-1') as HTMLElement | null
                 const mask2 = container.querySelector('.quest-erase-mask-2') as HTMLElement | null
                 const mask3 = container.querySelector('.quest-erase-mask-3') as HTMLElement | null
@@ -1727,20 +1737,26 @@ export interface ProjetsTextScrollAnimationParams {
     scaniaDescRef: RefObject<HTMLDivElement | null>
     likethatTitreRef: RefObject<HTMLDivElement | null>
     likethatDescRef: RefObject<HTMLDivElement | null>
+    /** Racine contenant tous les .quest-descrip-svg-wrapper pour le wipe cloth. */
+    root?: ParentNode
 }
 
 /**
  * Animation des textes Scania (titre + desc) et LikeThat (titre + desc) dans la section Projets.
  * Synchronisée au scroll, réversible. Écriture : titre puis desc. Effacement : desc puis titre.
  */
+/** Indices des contrôleurs wipe cloth pour Projets (après les 6 blocs Expérience) : Scania titre=6, desc=7, LikeThat titre=8, desc=9 */
+const PROJET_CLOTH_INDEX = { scaniaTitre: 6, scaniaDesc: 7, likethatTitre: 8, likethatDesc: 9 } as const
+
 export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimationParams): (() => void) | void {
-    const { scrollValues, scrollTween, scaniaTitreRef, scaniaDescRef, likethatTitreRef, likethatDescRef } = params
+    const { scrollValues, scrollTween, scaniaTitreRef, scaniaDescRef, likethatTitreRef, likethatDescRef, root } = params
     if (!scrollTween?.scrollTrigger) return
 
     const handwritingControllers: {
         titre: ReturnType<typeof createHandwritingAnimation> | null
         desc: ReturnType<typeof createHandwritingAnimation> | null
     }[] = [{ titre: null, desc: null }, { titre: null, desc: null }]
+    let clothWipeControllers: ReturnType<typeof ensureClothWipeControllers> = []
     let controllersInitialized = false
 
     const initControllers = () => {
@@ -1757,6 +1773,7 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         handwritingControllers[0].desc = createHandwritingAnimation(d1, { duration: 600 })
         handwritingControllers[1].titre = createHandwritingAnimation(t2, { duration: 600 })
         handwritingControllers[1].desc = createHandwritingAnimation(d2, { duration: 600 })
+        if (root) clothWipeControllers = ensureClothWipeControllers(root)
         controllersInitialized = true
     }
 
@@ -1765,11 +1782,14 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         containerDesc: HTMLDivElement | null,
         containerParent: HTMLElement | null,
         progressLocal: number,
-        ctrl: { titre: ReturnType<typeof createHandwritingAnimation> | null; desc: ReturnType<typeof createHandwritingAnimation> | null }
+        ctrl: { titre: ReturnType<typeof createHandwritingAnimation> | null; desc: ReturnType<typeof createHandwritingAnimation> | null },
+        clothIndices: { titre: number; desc: number }
     ) => {
         if (!containerTitre || !containerDesc || !containerParent) return
         if (progressLocal <= 0 || progressLocal >= 1) {
             gsap.set(containerParent, { opacity: 0, visibility: 'hidden', force3D: true })
+            clothWipeControllers[clothIndices.titre]?.setProgress(0)
+            clothWipeControllers[clothIndices.desc]?.setProgress(0)
             return
         }
         gsap.set(containerParent, { opacity: 1, visibility: 'visible', force3D: true })
@@ -1785,12 +1805,16 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
             const descProgress = writeProgress <= 0.5 ? 0 : Math.min(1, (writeProgress - 0.5) * 2)
             ctrl.titre?.setProgress(titreProgress)
             ctrl.desc?.setProgress(descProgress)
+            clothWipeControllers[clothIndices.titre]?.setProgress(0)
+            clothWipeControllers[clothIndices.desc]?.setProgress(0)
             ;[containerTitre, containerDesc].forEach((c) => {
                 c.querySelectorAll('.quest-erase-mask').forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
             })
         } else if (progressLocal <= stayEnd) {
             ctrl.titre?.setProgress(1)
             ctrl.desc?.setProgress(1)
+            clothWipeControllers[clothIndices.titre]?.setProgress(0)
+            clothWipeControllers[clothIndices.desc]?.setProgress(0)
             ;[containerTitre, containerDesc].forEach((c) => {
                 c.querySelectorAll('.quest-erase-mask').forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
             })
@@ -1800,6 +1824,8 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
             const eraseLocal = (progressLocal - stayEnd) / eraseLength
             const descErase = Math.min(1, eraseLocal * 2)
             const titreErase = eraseLocal <= 0.5 ? 0 : Math.min(1, (eraseLocal - 0.5) * 2)
+            clothWipeControllers[clothIndices.desc]?.setProgress(descErase)
+            clothWipeControllers[clothIndices.titre]?.setProgress(titreErase)
             const applyMasks = (container: HTMLElement, t: number) => {
                 const mask1 = container.querySelector('.quest-erase-mask-1') as HTMLElement | null
                 const mask2 = container.querySelector('.quest-erase-mask-2') as HTMLElement | null
@@ -1835,15 +1861,33 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         const likethatParent = likethatTitreRef?.current?.parentElement ?? null
 
         if (scaniaLocal >= 0) {
-            updateProjetText(scaniaTitreRef?.current ?? null, scaniaDescRef?.current ?? null, scaniaParent, scaniaLocal, handwritingControllers[0])
+            updateProjetText(
+                scaniaTitreRef?.current ?? null,
+                scaniaDescRef?.current ?? null,
+                scaniaParent,
+                scaniaLocal,
+                handwritingControllers[0],
+                { titre: PROJET_CLOTH_INDEX.scaniaTitre, desc: PROJET_CLOTH_INDEX.scaniaDesc }
+            )
         } else if (scaniaTitreRef?.current?.parentElement) {
             gsap.set(scaniaTitreRef.current.parentElement, { opacity: 0, visibility: 'hidden', force3D: true })
+            clothWipeControllers[PROJET_CLOTH_INDEX.scaniaTitre]?.setProgress(0)
+            clothWipeControllers[PROJET_CLOTH_INDEX.scaniaDesc]?.setProgress(0)
         }
 
         if (likethatLocal >= 0) {
-            updateProjetText(likethatTitreRef?.current ?? null, likethatDescRef?.current ?? null, likethatParent, likethatLocal, handwritingControllers[1])
+            updateProjetText(
+                likethatTitreRef?.current ?? null,
+                likethatDescRef?.current ?? null,
+                likethatParent,
+                likethatLocal,
+                handwritingControllers[1],
+                { titre: PROJET_CLOTH_INDEX.likethatTitre, desc: PROJET_CLOTH_INDEX.likethatDesc }
+            )
         } else if (likethatTitreRef?.current?.parentElement) {
             gsap.set(likethatTitreRef.current.parentElement, { opacity: 0, visibility: 'hidden', force3D: true })
+            clothWipeControllers[PROJET_CLOTH_INDEX.likethatTitre]?.setProgress(0)
+            clothWipeControllers[PROJET_CLOTH_INDEX.likethatDesc]?.setProgress(0)
         }
     }
 
@@ -2344,6 +2388,7 @@ export function configureAllScrollAnimations(
                 scrollTween,
                 experienceQuestTitreRef,
                 experienceQuestDescripRefs,
+                root: container,
             })
             if (questCleanup) cleanups.push(questCleanup)
         }
@@ -2367,6 +2412,7 @@ export function configureAllScrollAnimations(
             scaniaDescRef,
             likethatTitreRef,
             likethatDescRef,
+            root: container,
         })
         if (projetsTextCleanup) cleanups.push(projetsTextCleanup)
     }

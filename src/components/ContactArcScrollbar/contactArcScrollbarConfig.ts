@@ -1,5 +1,7 @@
 /**
  * Config géométrie et comportement de la scrollbar courbe (contact textarea).
+ * Géométrie du track validée visuellement en 1920×1080. Ne pas modifier sans besoin explicite.
+ *
  * Modifier ici : courbe du track, viewBox, rotation du thumb.
  * Candidats futurs pour responsiveTokens : viewBoxWidth/Height, trackStart/Curve/End.
  *
@@ -31,19 +33,16 @@ export const contactArcScrollbarConfig = {
   /** Deuxième courbe Q : point de contrôle et point d'arrivée */
   trackCurve2CpX: 15,
   trackCurve2CpY: 300,
-  trackCurve2EndX: 20,
+  trackCurve2EndX: 25,
   trackCurve2EndY: 400,
 
   /** Limites progression thumb (0..1) */
   thumbMinProgress: 0,
   thumbMaxProgress: 1,
 
-  /** Rotation du thumb : suivre la tangente du path */
-  thumbRotationFromPath: true,
-  /** Offset manuel de rotation en degrés */
-  thumbRotationManualOffset: 0,
-  /** Delta de longueur pour calculer la tangente (getPointAtLength(t) vs getPointAtLength(t+delta)) */
-  thumbTangentDelta: 2,
+  /** Rotation du thumb : interpolation selon position (progress 0..1). Top = 50°, bottom = -25°. */
+  thumbRotationTop: 50,
+  thumbRotationBottom: -25,
 
   debugPath: false,
 } as const
