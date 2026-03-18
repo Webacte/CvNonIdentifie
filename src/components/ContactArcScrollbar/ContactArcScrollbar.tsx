@@ -131,9 +131,7 @@ export default function ContactArcScrollbar({ textareaRef }: ContactArcScrollbar
       dragStartYRef.current = e.clientY
       dragStartProgressRef.current = progress
       e.currentTarget.setPointerCapture(e.pointerId)
-      if (thumbRef.current) {
-        thumbRef.current.style.cursor = 'grabbing'
-      }
+      document.documentElement.classList.add('is-dragging-scrollbar')
     },
     [progress]
   )
@@ -168,12 +166,12 @@ export default function ContactArcScrollbar({ textareaRef }: ContactArcScrollbar
     const handlePointerUp = (e: PointerEvent) => {
       if (isDraggingRef.current) {
         isDraggingRef.current = false
+        document.documentElement.classList.remove('is-dragging-scrollbar')
         try {
           thumb.releasePointerCapture(e.pointerId)
         } catch {
           /* ignore */
         }
-        thumb.style.cursor = 'grab'
       }
     }
 
@@ -208,7 +206,7 @@ export default function ContactArcScrollbar({ textareaRef }: ContactArcScrollbar
       </svg>
       <div
         ref={thumbRef}
-        className={styles.contactArcScrollbar__thumb}
+        className={`${styles.contactArcScrollbar__thumb} contact-arc-scrollbar__thumb`}
         onPointerDown={onPointerDown}
       >
         <div className={styles.contactArcScrollbar__thumbRotate}>

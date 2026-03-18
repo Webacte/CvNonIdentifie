@@ -29,35 +29,35 @@ export const ROCKET_PROGRESS_RANGE_RATIO = 1.9
  */
 export const ROCKET_PHASE1_END_SCROLL = SECOND_SECTION_BLOCK_START
 
-/** Fin du bloc « About » en px de scroll. = fin de la phase 2 (alien, hologramme). */
-export const SECOND_SECTION_BLOCK_END = 2800
+/** Fin du bloc « About » en px de scroll. = fin de la phase 2 (alien, hologramme). Réduit de moitié (2800→1815). */
+export const SECOND_SECTION_BLOCK_END = 1815
 
 /** Décalage (px de référence) avant le début de la phase 2 : alien et hologramme commencent leur animation à (phase2Start - PHASE2_EARLY_START_OFFSET). */
 export const PHASE2_EARLY_START_OFFSET = 380
 
 /** Début du bloc « Expérience » en px de scroll (scroll bloqué sur la section Expérience). */
-export const THIRD_SECTION_BLOCK_START = 3100
+export const THIRD_SECTION_BLOCK_START = 2115
 
-/** Fin du bloc « Expérience » en px de scroll (durée x3 + 1/3 : 2800 px). */
-export const THIRD_SECTION_BLOCK_END = 5900
+/** Fin bloc Expérience. Étendu (5900→7300) pour ralentir l'écriture. */
+export const THIRD_SECTION_BLOCK_END = 6315
 
 /** Début du bloc « Projets » en px de scroll (écran bloqué sur la section Projets). Ajustable. */
-export const FOURTH_SECTION_BLOCK_START = 6200
+export const FOURTH_SECTION_BLOCK_START = 6615
 
-/** Fin du bloc « Projets » en px de scroll. Ajustable pour régler la durée d'arrêt sur Projets. */
-export const FOURTH_SECTION_BLOCK_END = 8500
+/** Fin du bloc « Projets ». Étendu pour ralentir l'écriture. */
+export const FOURTH_SECTION_BLOCK_END = 8915
 
 /** Début de l’animation convoyeur/battant : bien avant la fin Expérience (plus tôt = valeur plus basse). */
-export const CONVOYEUR_PROJET_PHASE_START = 4500
+export const CONVOYEUR_PROJET_PHASE_START = 3515
 
 /** Fin de l’animation convoyeur/battant : fin du bloc Projets. */
 export const CONVOYEUR_PROJET_PHASE_END = FOURTH_SECTION_BLOCK_END
 
 /** Début du bloc « Contact » en px de scroll (écran bloqué sur la section Contact). Doit être > FOURTH_SECTION_BLOCK_END. */
-export const FIFTH_SECTION_BLOCK_START = 8600
+export const FIFTH_SECTION_BLOCK_START = 9015
 
 /** Fin du bloc « Contact » en px de scroll. Ajustable pour régler la durée d'arrêt sur Contact. Doit être > FIFTH_SECTION_BLOCK_START. */
-export const FIFTH_SECTION_BLOCK_END = 9500
+export const FIFTH_SECTION_BLOCK_END = 9915
 
 /** Pixels de scroll après le bloc Contact jusqu’à la fin.  */
 export const SCROLL_FROM_FIFTH_BLOCK = 2000
@@ -98,7 +98,7 @@ export const ROCKET_ANIMATION_START_DELAY = 0.3
 /** Hauteur (px) à soustraire pour le point d’atterrissage sur tablette. */
 export const ROCKET_HEIGHT_PX = 200
 
-/** Pourcentage de la hauteur du viewport pour le point d’atterrissage (desktop). Ex. 1.05 = 105%. */
+/** Pourcentage de la hauteur du viewport pour le point d’atterrissage (desktop). Ex. 1.05 = 105%. Utilisé aussi comme fallback pour phase1EndY si rocketPhase1EndYRatio invalide. */
 export const ROCKET_END_Y_PERCENTAGE = .95
 
 /** Progress (0–1) à laquelle le mouvement Y de la fusée se termine (desktop). */
@@ -135,17 +135,9 @@ export const ROCKET_END_Y_PERCENTAGE_MOBILE = 0.72
 export const TABLET_MAX_WIDTH = 768
 
 /**
- * Seuil viewport (px) : au-dessus, la fusée utilise ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP
- * pour limiter la descente (éviter qu'elle descende trop bas sur grands écrans).
+ * Seuil viewport (px) : utilisé pour certains ajustements large desktop (ground line, robot, etc.).
  */
 export const LARGE_DESKTOP_MIN_WIDTH = 1500
-
-/**
- * Pourcentage (0–1) hauteur viewport pour le point le plus bas de la trajectoire fusée
- * sur large desktop (interpolation 1500–1920). 1920×1080 : fusée remontée de 1/6 de la distance au top.
- * Affiner si besoin : deltaRatio = deltaPx / referenceHeight à 1920×1080, puis = ROCKET_END_Y_PERCENTAGE - deltaRatio.
- */
-export const ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP = 0.8
 
 /** Coefficient pour le mouvement horizontal de la fusée (progress X). */
 export const ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER = 3
@@ -175,7 +167,7 @@ export const ROCKET_END_ROTATE = 90
 // =============================================================================
 
 /** Seuil de progress (0–1) à partir duquel la fusée est affichée en position « atterrie » sur Contact. */
-export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.30
+export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.20
 
 /** Marge (px) entre le bord droit du viewport et la fusée en position atterrie sur Contact. */
 export const ROCKET_LANDED_X_RIGHT_OFFSET = 200
@@ -245,13 +237,13 @@ export const FIRE_HIDE_OFFSET_PX = 100
 export const ALIEN_ANIMATION_START = 0
 
 /** Fin de l’animation des membres de l’alien. */
-export const ALIEN_ANIMATION_END = 0.25
+export const ALIEN_ANIMATION_END = 0.5
 
 /** Début du retour des jambes de l’alien. */
-export const ALIEN_LEG_RETURN_START = 0.15
+export const ALIEN_LEG_RETURN_START = 0.3
 
 /** Fin du retour des jambes. */
-export const ALIEN_LEG_RETURN_END = 0.25
+export const ALIEN_LEG_RETURN_END = 0.5
 
 /** Seuil viewport (px) : en dessous, transform-origin alien = 'right bottom'. */
 export const ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX = 425
@@ -300,8 +292,8 @@ export const ALIEN_AVANT_BRAS_SLOWED_XY = 0.8
 /** Début du mouvement des bases de l’hologramme (fraction phase 2). */
 export const HOLOGRAM_BASES_ANIMATION_START = 0
 
-/** Fin du mouvement des bases. */
-export const HOLOGRAM_BASES_ANIMATION_END = 0.2
+/** Fin du mouvement des bases. Vitesse ÷2 (0.2→0.4). */
+export const HOLOGRAM_BASES_ANIMATION_END = 0.4
 
 /** Breakpoint (px) : au-dessus = desktop pour positions des bases. */
 export const HOLOGRAM_BASES_TABLET_MAX = 850
@@ -363,10 +355,10 @@ export const HOLOGRAM_BASES_ARC_HEIGHT = 200
 // =============================================================================
 
 /** Début de l’animation des réflecteurs (fraction phase 2). */
-export const HOLOGRAM_REFLECTEURS_ANIMATION_START = 0.2
+export const HOLOGRAM_REFLECTEURS_ANIMATION_START = HOLOGRAM_BASES_ANIMATION_END
 
 /** Fin de l’animation des réflecteurs. */
-export const HOLOGRAM_REFLECTEURS_ANIMATION_END = 0.4
+export const HOLOGRAM_REFLECTEURS_ANIMATION_END = 0.65
 
 /** Scale Y initial/final des réflecteurs. */
 export const HOLOGRAM_REFLECTEURS_GAUCHE_START_SCALE_Y = 0
@@ -379,13 +371,13 @@ export const HOLOGRAM_REFLECTEURS_DROIT_END_SCALE_Y = 1
 // =============================================================================
 
 /** Début de l’animation de l’écran (scaleX). */
-export const HOLOGRAM_ECRA_ANIMATION_START = 0.4
+export const HOLOGRAM_ECRA_ANIMATION_START = HOLOGRAM_REFLECTEURS_ANIMATION_END
 
 /** Fin de l’animation de l’écran. Début du handwriting par défaut. */
-export const HOLOGRAM_ECRA_ANIMATION_END = 0.55
+export const HOLOGRAM_ECRA_ANIMATION_END = 0.82
 
 /** Début de l’animation handwriting (après l’écran). */
-export const HOLOGRAM_HANDWRITING_START = 0.55
+export const HOLOGRAM_HANDWRITING_START = HOLOGRAM_ECRA_ANIMATION_END
 
 /** Fin de l’animation handwriting (fin du bloc About = 1). */
 export const HOLOGRAM_HANDWRITING_END = 1
@@ -431,15 +423,15 @@ export const EXP_WINDOW_SWAP_START = 0.65
 /** Fin swap fenêtre (fenetre visible à 1). */
 export const EXP_WINDOW_SWAP_END = 0.75
 
-/** Début élément battant (après apparition fenetre). */
-export const EXP_CONVEYOR_ROTATE_START = 0.55
+/** Début élément battant (après apparition fenetre, aligné avec EXP_CONVEYOR_SLIDE). */
+export const EXP_CONVEYOR_ROTATE_START = 0.63
 /** Fin rotation. */
-export const EXP_CONVEYOR_ROTATE_END = 0.60
+export const EXP_CONVEYOR_ROTATE_END = 0.68
 
-/** Début glissement convoyeur (après apparition fenetre). */
-export const EXP_CONVEYOR_SLIDE_START = 0.59
+/** Début glissement convoyeur (après apparition fenetre, aligné avec EXP_WINDOW_SWAP). */
+export const EXP_CONVEYOR_SLIDE_START = 0.68
 /** Fin glissement. */
-export const EXP_CONVEYOR_SLIDE_END = 0.69
+export const EXP_CONVEYOR_SLIDE_END = 0.78
 
 /** Nombre de cycles de marche alien2 pendant EXP_ALIEN_IN. */
 export const ALIEN2_WALK_CYCLES = 4
@@ -475,12 +467,12 @@ export const EXP_BATTANT_OFFSET_Y = 0
 export const EXP_QUEST_TITRE_VISIBLE_START = 0
 /** Nombre de cycles descrip-quest (1 à 6). */
 export const EXP_QUEST_CYCLE_COUNT = 6
-/** Ratio écriture dans chaque cycle (0–1). */
-export const EXP_QUEST_WRITE_RATIO = 0.4
+/** Ratio écriture dans chaque cycle (0–1). Plus grand = plus de scroll pour l'écriture = écriture plus lente. */
+export const EXP_QUEST_WRITE_RATIO = 0.6
 /** Ratio affichage (stay) dans chaque cycle (0–1). */
-export const EXP_QUEST_STAY_RATIO = 0.15
+export const EXP_QUEST_STAY_RATIO = 0.1
 /** Ratio effacement dans chaque cycle (0–1). */
-export const EXP_QUEST_ERASE_RATIO = 0.45
+export const EXP_QUEST_ERASE_RATIO = 0.3
 
 /** Pivot du battant : défini en CSS sur #battant (transform-origin: bottom left) pour rester responsive. */
 /** Scale du battant : X = longueur à l’horizontale, Y = épaisseur / longueur à la verticale l’allongement à l’horizontale. */
@@ -551,6 +543,14 @@ export const ROBOT_HAND_ROLL_DEG = 279
 export const ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE = 1
 /** Ratio 0–1 : fraction de la phase fall pour la chute diagonale (reste = roule à droite). Ex. 0.4 = 40% diagonal, 60% roll right. */
 export const ROBOT_FALL_DIAGONAL_RATIO = 0.4
+/** Ratio spécifique main : fraction du fall pour la chute Y (diagonale). Plus grand = descente Y plus lente. */
+export const ROBOT_HAND_FALL_DIAGONAL_RATIO = 0.32
+/** Progress fall (0–1) auquel la main doit déjà avoir fini sa rotation/roulade (plus petit = animation plus “rapide”). */
+export const ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS = 0.8
+/** Exposant d’easing pour la rotation/roulade main (appliqué au progress de rotation/roulage). */
+export const ROBOT_HAND_ROLL_EASE_POWER = 0.68
+/** Exposant pour la rotation seule : > 1 = lent au début, plus rapide à la fin (position finale inchangée). */
+export const ROBOT_HAND_ROLL_ROTATION_EASE_POWER = 1.6
 /** Origine de la rotation pour la roulade. Ex. "center bottom" = roule sur le bord bas. */
 export const ROBOT_ROLL_TRANSFORM_ORIGIN = 'center bottom'
 /** Début (0–1) de la transition progressive transform-origin de 'center bottom' vers 'center center'. */
@@ -563,11 +563,12 @@ export const ROBOT_SIZE_SCALE = 0.85
 export const ROBOT_ANIMATION_START = EXP_CONVEYOR_SLIDE_END
 /** Sous-phases dans progressProjets (0–1) : début/fin slide head, début/fin fall head, idem hand. */
 export const ROBOT_HEAD_SLIDE_START = ROBOT_ANIMATION_START
-export const ROBOT_HEAD_SLIDE_END = 0.80
+/** Harmonisation head/hand : durée totale commune = 0.105 (moyenne 0.06 / 0.15), split 50/50. */
+export const ROBOT_HEAD_SLIDE_END = 0.8325
 export const ROBOT_HEAD_FALL_START = ROBOT_HEAD_SLIDE_END
-export const ROBOT_HEAD_FALL_END = 0.84
+export const ROBOT_HEAD_FALL_END = 0.885
 export const ROBOT_HAND_SLIDE_START = ROBOT_HEAD_FALL_END
-export const ROBOT_HAND_SLIDE_END = ROBOT_HEAD_FALL_END + (ROBOT_HEAD_SLIDE_END - ROBOT_HEAD_SLIDE_START)
+export const ROBOT_HAND_SLIDE_END = 0.9375
 export const ROBOT_HAND_FALL_START = ROBOT_HAND_SLIDE_END
 export const ROBOT_HAND_FALL_END = .99
 
@@ -577,10 +578,10 @@ export const PROJET_SCANIA_TEXT_END = ROBOT_HEAD_FALL_END - 0.01
 /** Plage progressProjets (0–1) : LikeThat apparaît au début main, s’efface juste avant la fin main. */
 export const PROJET_LIKETHAT_TEXT_START = ROBOT_HAND_SLIDE_START
 export const PROJET_LIKETHAT_TEXT_END = ROBOT_HAND_FALL_END - 0.01
-/** Ratios écriture / stay / effacement pour chaque projet (somme = 1). */
-export const PROJET_WRITE_RATIO = 0.4
-export const PROJET_STAY_RATIO = 0.15
-export const PROJET_ERASE_RATIO = 0.45
+/** Ratios écriture / stay / effacement pour chaque projet (somme = 1). Plus grand write = écriture plus lente. */
+export const PROJET_WRITE_RATIO = 0.6
+export const PROJET_STAY_RATIO = 0.1
+export const PROJET_ERASE_RATIO = 0.3
 
 /** Nombre de pulses pour l’effet split fumée cheminée. */
 export const SMOKE_PULSE_COUNT = 12

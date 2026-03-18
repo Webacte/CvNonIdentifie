@@ -23,6 +23,9 @@ const EXTRA_BOTTOM = 80
 /** Debug visuel : rectangles contentBBox (vert), region (orange), cercle dernier stamp (rouge). */
 const DEBUG_WIPE_GEOM = false
 
+/** Debug bbox/région pour effacement clone : logs détaillés + alerte si bbox/region trop petite. */
+const DEBUG_ERASE_BBOX = true
+
 export interface ClothWipeController {
     setProgress: (p: number) => void
 }
@@ -149,16 +152,12 @@ function createStampPathShape(): SVGPathElement {
     return path
 }
 
-const _clothWipeCache: { controllers: ClothWipeController[]; root: ParentNode | null } = {
-    controllers: [],
-    root: null,
-}
-
 /**
- * Initialise le wipe cloth pour un seul SVG et retourne son contrôleur.
+ * Initialise le wipe cloth pour un SVG (clone ou live) et retourne son contrôleur.
  * Mask appliqué sur wipeRoot (groupe du contenu), région et trajectoire basées sur contentBBox.
+ * Exporté pour setup sur clones overlay (jamais sur SVG Vivus vivant).
  */
-function setupClothWipeForOne(svg: SVGSVGElement, blockIndex: number): ClothWipeController {
+export function setupClothWipeForClone(svg: SVGSVGElement, blockIndex: number): ClothWipeController {
     let defs = svg.querySelector('defs')
     if (!defs) {
         defs = document.createElementNS(SVG_NS, 'defs')
@@ -185,6 +184,32 @@ function setupClothWipeForOne(svg: SVGSVGElement, blockIndex: number): ClothWipe
     )
     const numPoints = points.length
     debugWipe(`setup block ${blockIndex}`, { contentBBox, region, numPoints, totalLength: Math.round(totalLength) })
+
+    if (DEBUG_ERASE_BBOX) {
+        const rect = svg.getBoundingClientRect()
+        const overlay = svg.closest('.quest-erase-overlay')
+        const overlayRect = overlay ? (overlay as HTMLElement).getBoundingClientRect() : null
+        const vb = svg.viewBox?.baseVal
+        const debugInfo = {
+            blockIndex,
+            contentBBox: { x: contentBBox.x, y: contentBBox.y, width: contentBBox.width, height: contentBBox.height },
+            region: { x: region.x, y: region.y, width: region.width, height: region.height },
+            cloneRect: { width: rect.width, height: rect.height },
+            overlayRect: overlayRect ? { width: overlayRect.width, height: overlayRect.height } : null,
+            viewBox: vb ? { x: vb.x, y: vb.y, width: vb.width, height: vb.height } : null,
+            numStamps: numPoints,
+            totalLength: Math.round(totalLength),
+        }
+        console.warn('[wipeCloth DEBUG_ERASE_BBOX]', debugInfo)
+        const bboxTooSmall = contentBBox.width < 5 || contentBBox.height < 5
+        const regionTooSmall = region.width < 10 || region.height < 10
+        if (bboxTooSmall || regionTooSmall) {
+            console.error(
+                '[wipeCloth] ALERT: bbox ou région trop petite pour le wipe - clone peut disparaître !',
+                { bboxTooSmall, regionTooSmall, contentBBox, region }
+            )
+        }
+    }
 
     const maskId = `wipe-mask-${blockIndex}`
     const filterId = `wipe-blur-${blockIndex}`
@@ -327,45 +352,17 @@ function setupClothWipeForOne(svg: SVGSVGElement, blockIndex: number): ClothWipe
 }
 
 /**
- * Trouve tous les blocs concernés (wrapper avec svg.handwriting-svg) et initialise
- * le wipe cloth pour chacun. Retourne les contrôleurs dans l'ordre DOM (0..5 Expérience, 6..9 Projets).
- * Délègue à ensureClothWipeControllers pour réutilisation du cache.
+ * Retourne un tableau vide : les contrôleurs sont créés à la demande lors de l'entrée en erase
+ * sur les clones dans l'overlay (via setupClothWipeForClone).
  */
-export function setupClothWipeForAllBlocks(root: ParentNode): ClothWipeController[] {
-    return ensureClothWipeControllers(root)
+export function setupClothWipeForAllBlocks(_root: ParentNode): ClothWipeController[] {
+    return []
 }
 
 /**
- * Idempotent : retourne le tableau de contrôleurs pour les 10 blocs, en initialisant
- * au premier appel ou en complétant si de nouveaux SVGs sont apparus (fetch async).
+ * Retourne un tableau vide : on ne setup plus le wipe sur les SVG Vivus vivants.
+ * Les contrôleurs sont créés à la demande lors de l'entrée en erase, sur les clones dans l'overlay.
  */
-export function ensureClothWipeControllers(root: ParentNode): ClothWipeController[] {
-    if (_clothWipeCache.root !== root) {
-        _clothWipeCache.controllers = []
-        _clothWipeCache.root = root
-        debugWipe('cache reset (new root)')
-    }
-    const wrappers = root.querySelectorAll('.quest-descrip-svg-wrapper')
-    const existing = _clothWipeCache.controllers
-    let inited = 0
-    for (let i = 0; i < wrappers.length; i++) {
-        if (existing[i]) continue
-        const svg = wrappers[i].querySelector('svg.handwriting-svg') as SVGSVGElement | null
-        if (!svg) {
-            debugWipe(`wrapper ${i}: no svg.handwriting-svg`)
-            continue
-        }
-        if (svg.getAttribute('data-wipe-initialized') === 'true') continue
-        const ctrl = setupClothWipeForOne(svg, i)
-        svg.setAttribute('data-wipe-initialized', 'true')
-        existing[i] = ctrl
-        inited++
-    }
-    if (inited > 0) {
-        const total = existing.filter(Boolean).length
-        debugWipe(`ensureClothWipeControllers: ${wrappers.length} wrappers, ${total} controllers init (${inited} new)`, {
-            hasController: [...Array(Math.max(10, wrappers.length))].map((_, i) => !!existing[i]),
-        })
-    }
-    return [...existing]
+export function ensureClothWipeControllers(_root: ParentNode): ClothWipeController[] {
+    return []
 }

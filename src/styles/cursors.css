@@ -38,9 +38,13 @@
   }
 
   /* thumb : doit être hoverable */
-  .ink-scroll__thumb {
+  .ink-scroll__thumb,
+  .contact-arc-scrollbar__thumb {
     pointer-events: auto;
     cursor: var(--cur-grab) 0 0, grab;
+  }
+
+  .ink-scroll__thumb {
     width: 100%;
   }
 
@@ -50,7 +54,8 @@
     cursor: var(--cur-grabbing) 0 0, grabbing;
   }
 
-  html.is-dragging-scrollbar .ink-scroll__thumb {
+  html.is-dragging-scrollbar .ink-scroll__thumb,
+  html.is-dragging-scrollbar .contact-arc-scrollbar__thumb {
     cursor: var(--cur-grabbing) 0 0, grabbing;
   }
 }

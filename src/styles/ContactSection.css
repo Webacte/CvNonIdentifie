@@ -11,25 +11,28 @@
     font-family: 'SP-Caffeine', sans-serif;
 }
 
-/* Wide desktop (≥1500×768, même seuils que responsiveTokens getTWide) : valeurs label message */
-@media (min-width: 1500px) and (min-height: 768px) {
-    .contact-form-overlay {
-        --contact-message-label-top: 75;
-        --contact-message-label-ty-vh: -17.5;
-    }
-}
+/* Label message : piloté par responsiveTokens (body). Pas de MQ large pour éviter de contredire les tokens. */
 
+/* Seul le parent .contact-form-overlay a pointer-events: none ; il faut 2 classes pour réactiver le clic */
 .contact-form-overlay .contact-field {
     pointer-events: auto;
+}
+
+/*
+ * Base des champs : UNE classe (.contact-field) pour que .contact-field-nom, .contact-field-prenom,
+ * etc. (même spécificité, plus bas dans la feuille) puissent surcharger padding-top et variables.
+ * (.contact-form-overlay .contact-field à 2 classes écrasait avant tout les .contact-field-*.)
+ */
+.contact-field {
     position: absolute;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     /* Variables pour adapter le label à l'espace (surcharger par champ si besoin) */
-    --contact-padding-top: 1.5em;        /* espace réservé au-dessus pour le label flottant */
-    --contact-label-nudge: 0.45em;       /* décalage vers le haut quand vide / sans focus */
-    --contact-label-float-gap: 0.85em;   /* espace au-dessus de l'input quand label flottant */
-    --contact-label-float-size: 0.75rem; /* taille du label quand flottant */
+    --contact-padding-top: 1.5em;
+    --contact-label-nudge: 0.45em;
+    --contact-label-float-gap: 0.85em;
+    --contact-label-float-size: 0.75rem;
     padding-top: var(--contact-padding-top);
 }
 
@@ -39,7 +42,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
+    width: 95%;
     font-family: 'SP-Caffeine', sans-serif;
     font-size: 1rem;
     color: inherit;
@@ -76,20 +79,21 @@
 .contact-field-message .contact-label {
     text-align: center;
     transform-origin: center bottom;
+    left: calc(var(--contact-message-label-left, 0) * 1%);
     top: calc(var(--contact-message-label-top, 70) * 1%);
 }
 
 /* Label flottant : au-dessus du champ quand focus ou rempli (une règle par champ) */
 .contact-field-nom:focus-within .contact-label,
 .contact-field-nom.is-filled .contact-label {
-    transform: translateY(-4.4em);
-    font-size: 0.65rem;
+    transform: translateY(calc(var(--contact-nom-label-ty-vh, -9.2) * 1vh));
+    font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
 }
 
 .contact-field-prenom:focus-within .contact-label,
 .contact-field-prenom.is-filled .contact-label {
-    transform: translateY(-1.5em);
-    font-size: 0.65rem;
+    transform: translateY(calc(var(--contact-prenom-label-ty-vh, -3.1) * 1vh));
+    font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
 }
 
 .contact-field-societe:focus-within .contact-label,
@@ -104,7 +108,7 @@
 .contact-field-email:focus-within .contact-label,
 .contact-field-email.is-filled .contact-label {
     transform: translate(
-        calc(var(--contact-email-label-tx-vh, 0) * 1vh),
+        calc(var(--contact-email-label-x-vh, 0) * 1vh),
         calc(var(--contact-email-label-ty-vh, -5) * 1vh)
     );
     font-size: calc(var(--contact-label-font-size-rem, 0.65) * 1rem);
@@ -167,18 +171,14 @@
     align-self: stretch;
 }
 
-/* Textarea message : priorité à la hauteur de .contact-field .contact-textarea (11.5em) sur les règles InkScroll */
+/* Textarea message : hauteur pilotée par token (défaut 11.5em, 1920×945 = 10em). */
 .contact-field-message .ink-scroll--textarea[data-ink-scroll="textarea-message"] .contact-textarea {
-    height: 11.5em;
+    height: calc(var(--contact-message-textarea-height, 11.5) * 1em);
 }
 
 /* Variables ContactArcScrollbar (track courbe + thumb levier à gauche du textarea message).
-   Placement et taille validés en 1920×1080. Ne pas modifier sans besoin explicite. */
+   left, top, height, width : pilotés par responsiveTokens (body) ; les autres en fallback local. */
 .ink-scroll.ink-scroll--textarea[data-ink-scroll="textarea-message"] {
-    --contact-arc-scroll-left: -37px;
-    --contact-arc-scroll-top: 50;
-    --contact-arc-scroll-height: 50%;
-    --contact-arc-scroll-width: 84px;
     --contact-arc-scroll-track-stroke-width: 2;
     --contact-arc-scroll-thumb-width: 24px;
     --contact-arc-scroll-thumb-height: 24px;
@@ -286,13 +286,15 @@
     min-width: calc(var(--contact-nom-min-width-px, 100) * 1px);
     rotate: calc(var(--contact-nom-rotate-deg, -4) * 1deg);
 }
-
+/* .contact-field-nom .contact-label {
+    top: 3em;
+} */
 /* Prénom : label fixé au haut du champ, seule la zone écrite se décale (margin-top sur l'input) */
 .contact-field-prenom {
     top: calc(var(--contact-prenom-top, 6.8) * 1%);
     left: calc(var(--contact-prenom-left, 36) * 1%);
     width: calc(var(--contact-prenom-width, 13.5) * 1%);
-    min-width: 120px;
+    min-width: calc(var(--contact-prenom-min-width-px, 100) * 1px);
     rotate: calc(var(--contact-prenom-rotate-deg, 11) * 1deg);
     padding-top: 0.75em;
 }
@@ -305,7 +307,7 @@
 }
 /* Ajuster uniquement la zone écrite (plus bas = valeur plus grande) — le label ne bouge pas */
 .contact-field-prenom .contact-input {
-    margin-top: -.5em;
+    margin-top: calc(var(--contact-prenom-input-mt-em, -0.5) * 1em);
 }
 
 .contact-field-societe {

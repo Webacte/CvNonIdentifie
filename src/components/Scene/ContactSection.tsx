@@ -4,6 +4,7 @@ import React, { forwardRef, useRef, useState } from 'react'
 import { useSplitLetters } from '@/hooks/useSplitLetters'
 import InkScroll from '@/components/InkScroll/InkScroll'
 import type { TextareaScrollController } from '@/utils/textareaScrollController'
+import { sanitizeContactTextareaValue } from '@/utils/sanitizeContactTextareaValue'
 import '../../styles/HomePage.css'
 import '../../styles/ContactSection.css'
 
@@ -47,6 +48,28 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                 return next
             })
         }
+    }
+
+    const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const el = e.target
+        const { value, selectionStart, selectionEnd } = el
+        const sanitized = sanitizeContactTextareaValue(value)
+        const newStart = sanitizeContactTextareaValue(value.slice(0, selectionStart)).length
+        const newEnd = newStart + sanitizeContactTextareaValue(value.slice(selectionStart, selectionEnd)).length
+
+        setFormState((prev) => ({ ...prev, message: sanitized }))
+        if (status === 'error' || fieldErrors.message) {
+            setStatus('idle')
+            setFieldErrors((prev) => {
+                const next = { ...prev }
+                delete next.message
+                return next
+            })
+        }
+
+        queueMicrotask(() => {
+            el.setSelectionRange(newStart, newEnd)
+        })
     }
 
     const validateForm = (): boolean => {
@@ -210,7 +233,7 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                             id="contact-message"
                             name="message"
                             value={formState.message}
-                            onChange={updateField('message')}
+                            onChange={handleMessageChange}
                             className="contact-input contact-textarea"
                             rows={4}
                             autoComplete="off"

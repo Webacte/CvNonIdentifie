@@ -29,7 +29,7 @@ const PresentationSection = forwardRef<HTMLElement, PresentationSectionProps>(
                 </div>
                 <img 
                     ref={portraitRef}
-                    src="/assets/img/portrait.jpeg" 
+                    src="/assets/img/portrait.png" 
                     alt="Portrait de Benjamin Pochon"
                     className="portrait-image"
                     draggable={false}

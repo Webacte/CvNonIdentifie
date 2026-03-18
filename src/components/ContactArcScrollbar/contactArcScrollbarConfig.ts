@@ -21,19 +21,19 @@ export const contactArcScrollbarConfig = {
   viewBoxHeight: 400,
 
   /** Path : point de départ M */
-  trackStartX: 70,
+  trackStartX: 67,
   trackStartY: 0,
 
   /** Première courbe Q : point de contrôle (tire la courbe → arrondi plus marqué si éloigné de la corde) et point d'arrivée */
-  trackCurve1CpX: 30,
-  trackCurve1CpY: 60,
-  trackCurve1EndX: 20,
-  trackCurve1EndY: 200,
+  trackCurve1CpX: 15,
+  trackCurve1CpY: 100,
+  trackCurve1EndX: 12,
+  trackCurve1EndY: 225,
 
   /** Deuxième courbe Q : point de contrôle et point d'arrivée */
-  trackCurve2CpX: 15,
-  trackCurve2CpY: 300,
-  trackCurve2EndX: 25,
+  trackCurve2CpX: 10,
+  trackCurve2CpY: 275,
+  trackCurve2EndX: 29,
   trackCurve2EndY: 400,
 
   /** Limites progression thumb (0..1) */

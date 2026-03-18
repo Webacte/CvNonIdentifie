@@ -63,9 +63,30 @@
     display: block;
 }
 
-/* Désactivé : effacement géré par wipe cloth (mask SVG) dans wipeCloth.ts */
+/* Overlay pour la copie figée lors de la phase erase. Caché par défaut, affiché en JS pendant erase. */
 .quest-erase-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: none;
+    visibility: hidden;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Clone : mêmes dimensions que le wrapper original pour rendu identique. */
+.quest-erase-clone-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.quest-erase-clone-wrapper svg {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 .quest-erase-mask {
@@ -306,28 +327,29 @@
     z-index: 3;
 }
 
-/* Masques strictement entre z-index 0 et 3 */
+/* Masques strictement entre z-index 0 et 3 — grille compensée par --camera-scale, fond légèrement plus clair. */
 .experiences-mask {
     position: absolute;
     z-index: 1;
-    background-color: #e6dbbd;
+    background-color: color-mix(in srgb, var(--paper-color) 88%, white);
+    --paper-step: calc(0.4vmin / var(--camera-scale, 1));
+    --paper-half: calc(0.2vmin / var(--camera-scale, 1));
     background-image:
-        linear-gradient(to bottom, rgba(255, 248, 220, 0.12) 0%, rgba(255, 248, 220, 0.06) 100%),
         repeating-linear-gradient(
             0deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 0, 0, 0.015) 2px,
-            rgba(0, 0, 0, 0.015) 4px
+            transparent 0,
+            transparent var(--paper-half),
+            rgba(0, 0, 0, 0.02) var(--paper-half),
+            rgba(0, 0, 0, 0.02) var(--paper-step)
         ),
         repeating-linear-gradient(
             90deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 0, 0, 0.015) 2px,
-            rgba(0, 0, 0, 0.015) 4px
+            transparent 0,
+            transparent var(--paper-half),
+            rgba(0, 0, 0, 0.02) var(--paper-half),
+            rgba(0, 0, 0, 0.02) var(--paper-step)
         );
-    background-size: 100% 100%, 100% 100%, 100% 100%;
+    background-size: 100% 100%, 100% 100%;
     pointer-events: none;
 }
 
@@ -338,16 +360,16 @@
     bottom: calc(var(--mask-chemine-bottom, 18) * 1%);
     height: calc(var(--mask-chemine-height, 59) * 1%);
     --cut: 140px;
-    -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
-    clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+    -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
+    clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
 }
 
 @media (max-width: 768px) {
     .experiences-mask-chemine {
         bottom: 37%;
         height: 43%;
-        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
-        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 34%;
@@ -363,8 +385,8 @@
     .experiences-mask-chemine {
         bottom: 42%;
         height: 28%;
-        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
-        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 36%;
@@ -379,8 +401,8 @@
     .experiences-mask-chemine {
         bottom: 53%;
         height: 27%;
-        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
-        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
     .experiences-mask-convoyeur {
         bottom: 46%;
@@ -396,8 +418,8 @@
     .experiences-mask-chemine {
         bottom: 44%;
         height: 25%;
-        -webkit-clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
-        clip-path: polygon(65% 18%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%);
+        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
+        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
     }
 }
 

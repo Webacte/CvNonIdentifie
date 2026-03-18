@@ -18,6 +18,22 @@
       rgba(0, 0, 0, 0.02) 2px,
       rgba(0, 0, 0, 0.02) 4px
     );
+  /* Même grille en vmin : même densité visuelle partout, carrée (masques/stage scalés). */
+  --paper-bg-image-viewport:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 0.2vmin,
+      rgba(0, 0, 0, 0.02) 0.2vmin,
+      rgba(0, 0, 0, 0.02) 0.4vmin
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 0.2vmin,
+      rgba(0, 0, 0, 0.02) 0.2vmin,
+      rgba(0, 0, 0, 0.02) 0.4vmin
+    );
 }
 
 * {
@@ -112,9 +128,7 @@ body::before {
 }
 
 /* Surcouche « mur / sol » : recopie le fond sous la ligne de sol.
-   Tout ce qui est sous la ligne est recouvert ; les objets avec z-index < 10
-   pourront être masqués partiellement derrière cette couche.
-   Mobile-first : base = petit écran, puis min-width pour tablette / desktop. */
+   Grille compensée par --camera-scale (stage scalé) pour même densité visuelle que le fond. */
 .ground-overcoat {
   position: absolute;
   top: calc(var(--ground-overcoat-top, 60) * 1%);
@@ -125,20 +139,22 @@ body::before {
   z-index: 10;
   pointer-events: none;
   background-color: var(--paper-color);
+  --paper-step: calc(0.4vmin / var(--camera-scale, 1));
+  --paper-half: calc(0.2vmin / var(--camera-scale, 1));
   background-image:
     repeating-linear-gradient(
       0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.02) 2px,
-      rgba(0, 0, 0, 0.02) 4px
+      transparent 0,
+      transparent var(--paper-half),
+      rgba(0, 0, 0, 0.02) var(--paper-half),
+      rgba(0, 0, 0, 0.02) var(--paper-step)
     ),
     repeating-linear-gradient(
       90deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.02) 2px,
-      rgba(0, 0, 0, 0.02) 4px
+      transparent 0,
+      transparent var(--paper-half),
+      rgba(0, 0, 0, 0.02) var(--paper-half),
+      rgba(0, 0, 0, 0.02) var(--paper-step)
     ),
     radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),

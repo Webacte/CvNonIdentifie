@@ -31,7 +31,7 @@
 .contactArcScrollbar__thumb {
   position: absolute;
   pointer-events: auto;
-  cursor: grab;
+  /* Curseur grab/grabbing custom géré par styles/cursors.css via classe .contact-arc-scrollbar__thumb */
   width: var(--contact-arc-scroll-thumb-width, 24px);
   height: var(--contact-arc-scroll-thumb-height, 24px);
   display: flex;
@@ -80,8 +80,4 @@
   -webkit-user-drag: none;
   user-select: none;
   pointer-events: none;
-}
-
-.contactArcScrollbar__thumb:active {
-  cursor: grabbing;
 }

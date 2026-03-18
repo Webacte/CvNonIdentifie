@@ -337,6 +337,7 @@ export default function HomePage() {
             <div 
                 className="horizontal-scroll-stage" 
                 ref={stageRef}
+                data-debug-id="responsive-stage"
             >
                 <div 
                     className="horizontal-scroll-wrapper" 

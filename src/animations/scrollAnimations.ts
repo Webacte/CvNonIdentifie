@@ -25,7 +25,6 @@ import {
     ROCKET_END_Y_PERCENTAGE_MOBILE,
     TABLET_MAX_WIDTH,
     LARGE_DESKTOP_MIN_WIDTH,
-    ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP,
     ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
     ROCKET_X_BASE_SPEED_EASE,
     ROCKET_END_X_MIN_PX,
@@ -192,6 +191,10 @@ import {
     ROBOT_FALL_DIAGONAL_X_VW,
     ROBOT_FALL_ROLL_RIGHT_X_VW,
     ROBOT_FALL_DIAGONAL_RATIO,
+    ROBOT_HAND_FALL_DIAGONAL_RATIO,
+    ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS,
+    ROBOT_HAND_ROLL_EASE_POWER,
+    ROBOT_HAND_ROLL_ROTATION_EASE_POWER,
     ROBOT_ROLL_TRANSFORM_ORIGIN,
     ROBOT_FALL_ORIGIN_BLEND_START,
     ROBOT_FALL_ORIGIN_BLEND_END,
@@ -216,7 +219,85 @@ import {
     PROJET_ERASE_RATIO,
 } from './constants'
 import { createHandwritingAnimation } from './handwriting'
-import { ensureClothWipeControllers } from './wipeCloth'
+import type { ClothWipeController } from './wipeCloth'
+import { setupClothWipeForClone } from './wipeCloth'
+
+/** DEBUG : désactive temporairement l'effacement pour tester la vitesse d'écriture. */
+const DISABLE_WIPE_CLOTH = false
+if (DISABLE_WIPE_CLOTH) {
+    console.warn('[DEBUG] wipe cloth disabled')
+}
+
+/**
+ * Handwriting Expérience/Projets : modèle À propos (direct scroll-driven).
+ * - WRITE : writeProgress = clamp(cycleLocal/writeEnd, 0, 1) → hw.setProgress(writeProgress)
+ * - STAY / ERASE : hw.setProgress(1)
+ * - Effacement : wipe cloth uniquement, n'affecte pas l'écriture
+ * Réglages : EXP_QUEST_WRITE_RATIO, EXP_QUEST_STAY_RATIO, EXP_QUEST_ERASE_RATIO, PROJET_*_RATIO
+ */
+/** Debug handwriting/effacement : section, phase, writeProgress, eraseProgress (throttle 100 ms). */
+const DEBUG_HANDWRITING = false
+const DEBUG_HANDWRITING_THROTTLE_MS = 100
+const _debugHandwritingLastLog: Record<string, number> = {}
+
+/** Debug effacement clone overlay : entrée erase, clone créé/supprimé, wipe sur clone uniquement. */
+const DEBUG_ERASE_CLONE = false
+function debugEraseClone(...args: unknown[]) {
+    if (DEBUG_ERASE_CLONE) console.log('[Erase]', ...args)
+}
+
+/** Debug scroll inverse erase : phase, transitions, clone/overlay/original. */
+const DEBUG_ERASE_REVERSE = false
+function debugEraseReverse(
+    key: string,
+    data: {
+        section: string
+        cycleOrProjet?: number | string
+        phase: string
+        previousPhase: string | null
+        direction?: 'forward' | 'backward'
+        eraseLocal?: number
+        cloneExists?: boolean
+        overlayVisible?: boolean
+        originalVisible?: boolean
+        event?: string
+    }
+) {
+    if (DEBUG_ERASE_REVERSE) console.log('[Erase Reverse]', key, data)
+}
+
+/**
+ * Debug activable pour la transition wipe en scroll inverse.
+ * Log : section, cycle/projet, phase, previousPhase, direction, eraseLocal,
+ * cloneExists, overlayVisible, originalVisible, et moments exacts
+ * (clone créé / clone supprimé / overlay masqué / SVG original réaffiché).
+ * Activer avec DEBUG_WIPE_REVERSE = true.
+ */
+const DEBUG_WIPE_REVERSE = false
+function debugWipeReverse(
+    moment: 'clone-created' | 'clone-removed' | 'overlay-hidden' | 'original-shown' | 'erase-update' | 'cleanup-exit-erase',
+    data: {
+        section: string
+        cycleOrProjet: number | string
+        phase: string
+        previousPhase: string | null
+        direction?: 'forward' | 'backward'
+        eraseLocal?: number
+        cloneExists?: boolean
+        overlayVisible?: boolean
+        originalVisible?: boolean
+    }
+) {
+    if (DEBUG_WIPE_REVERSE) console.log('[Wipe Reverse]', moment, data)
+}
+
+function debugHandwritingLog(key: string, data: Record<string, unknown>): void {
+    if (!DEBUG_HANDWRITING) return
+    const now = performance.now()
+    if (_debugHandwritingLastLog[key] != null && now - _debugHandwritingLastLog[key] < DEBUG_HANDWRITING_THROTTLE_MS) return
+    _debugHandwritingLastLog[key] = now
+    console.log('[Handwriting Debug]', key, data)
+}
 
 /** Smoothstep pour transition douce (t=0→0, t=1→1, dérivée nulle aux bords). */
 function smoothstep(x: number): number {
@@ -231,20 +312,47 @@ function lerp(a: number, b: number, t: number): number {
 /** Largeur de référence pour interpolation large desktop (tWide=1 à 1920px). */
 const ROCKET_WIDE_DESKTOP_WIDTH = 1920
 
-/** Paramètres responsive fusée : centralise seuils 425/375/600/768, interpolation 1500–1920 pour large desktop. */
+/**
+ * Paramètres responsive fusée pour la partie pilotée en JS :
+ * - endYOffsetPx : offset en pixels appliqué à la position Y finale (tablette uniquement)
+ * - yCompletionProgress : progress (0–1) auquel le mouvement Y se termine et où X commence.
+ *
+ * Le ratio de hauteur (point bas atteint avant le départ sur X) n'est plus déterminé ici :
+ * il est piloté exclusivement par les responsive tokens via `rocketPhase1EndYRatio`.
+ */
 function getRocketResponsiveParams(viewportW: number, _viewportH: number): {
-    endYRatio: number
     endYOffsetPx: number
     yCompletionProgress: number
 } {
-    if (viewportW <= GROUND_LINE_425_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_425, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR }
-    if (viewportW <= MOBILE_SMALL_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR }
-    if (viewportW <= MOBILE_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE_MOBILE, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR }
-    if (viewportW <= TABLET_MAX_WIDTH) return { endYRatio: ROCKET_END_Y_PERCENTAGE, endYOffsetPx: -ROCKET_HEIGHT_PX, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS }
-    // Desktop > 768px : interpolation douce entre 1500 et 1920 (évite seuil brutal)
-    const tWide = smoothstep((viewportW - LARGE_DESKTOP_MIN_WIDTH) / (ROCKET_WIDE_DESKTOP_WIDTH - LARGE_DESKTOP_MIN_WIDTH))
-    const endYRatio = lerp(ROCKET_END_Y_PERCENTAGE, ROCKET_END_Y_PERCENTAGE_LARGE_DESKTOP, tWide)
-    return { endYRatio, endYOffsetPx: 0, yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS }
+    if (viewportW <= GROUND_LINE_425_MAX_WIDTH) {
+        return {
+            endYOffsetPx: 0,
+            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR,
+        }
+    }
+    if (viewportW <= MOBILE_SMALL_MAX_WIDTH) {
+        return {
+            endYOffsetPx: 0,
+            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR,
+        }
+    }
+    if (viewportW <= MOBILE_MAX_WIDTH) {
+        return {
+            endYOffsetPx: 0,
+            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR,
+        }
+    }
+    if (viewportW <= TABLET_MAX_WIDTH) {
+        return {
+            endYOffsetPx: -ROCKET_HEIGHT_PX,
+            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS,
+        }
+    }
+    // Desktop > 768px : pas de décalage supplémentaire, progress Y de base.
+    return {
+        endYOffsetPx: 0,
+        yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS,
+    }
 }
 
 /** Transform-origin alien selon viewport (mobile ≤ ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX). */
@@ -396,7 +504,9 @@ export function createRocketScrollAnimation(
     container: HTMLElement,
     scrollValues: ScrollValues,
     scrollTween?: gsap.core.Tween,
-    firstSection?: HTMLElement | null
+    firstSection?: HTMLElement | null,
+    rocketPhase1EndYRatio?: number,
+    responsiveTokens?: Pick<ResponsiveTokens, 'cssVars'> | null
 ): (() => void) | void {
     if (!rocketElement) {
         return
@@ -465,15 +575,13 @@ export function createRocketScrollAnimation(
     const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
     const rocketParams = getRocketResponsiveParams(viewportW, viewportH)
 
-    const getRocketEndY = () => {
+    /** Position Y à la fin de la phase 1 (point bas atteint avant le départ sur X). Phase 2 part exactement de cette position. */
+    const getPhase1EndY = () => {
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
-        if (typeof window === 'undefined') return referenceHeight * ROCKET_END_Y_PERCENTAGE
-        const params = getRocketResponsiveParams(viewportW, viewportH)
-        const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
-        const ratioStr = stage ? getComputedStyle(stage).getPropertyValue('--rocket-end-y-ratio').trim() : ''
-        const ratioParsed = ratioStr ? parseFloat(ratioStr) : NaN
-        const endYRatio = (Number.isNaN(ratioParsed) || ratioParsed < 0 || ratioParsed > 1) ? params.endYRatio : ratioParsed
-        return referenceHeight * endYRatio + params.endYOffsetPx
+        const ratio = (typeof rocketPhase1EndYRatio === 'number' && !Number.isNaN(rocketPhase1EndYRatio) && rocketPhase1EndYRatio > 0 && rocketPhase1EndYRatio < 2)
+            ? rocketPhase1EndYRatio
+            : ROCKET_END_Y_PERCENTAGE
+        return referenceHeight * ratio + rocketParams.endYOffsetPx
     }
 
     gsap.set(rocketElement, {
@@ -511,16 +619,23 @@ export function createRocketScrollAnimation(
     const updateRocketPositionY = (progress: number) => {
         let currentY: number
         const verticalProgress = progress * ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER
-        const currentRocketEndY = getRocketEndY()
-        currentY = rocketStartY + (verticalProgress * (currentRocketEndY - rocketStartY))
-        if (currentY > currentRocketEndY) {
-            currentY = currentRocketEndY
+        const phase1EndY = getPhase1EndY()
+        currentY = rocketStartY + (verticalProgress * (phase1EndY - rocketStartY))
+        if (currentY > phase1EndY) {
+            currentY = phase1EndY
         }
         return currentY
     }
 
-    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). */
-    const getLandedPosition = () => {
+    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). Override 1366×768 via tokens --rocket-landed-x-px / --rocket-landed-y-px. */
+    const getLandedPosition = (): { landedX: number; landedY: number } => {
+        const tokenX = responsiveTokens?.cssVars?.['--rocket-landed-x-px']
+        const tokenY = responsiveTokens?.cssVars?.['--rocket-landed-y-px']
+        const overrideX = tokenX != null && tokenX !== '' ? parseFloat(tokenX) : NaN
+        const overrideY = tokenY != null && tokenY !== '' ? parseFloat(tokenY) : NaN
+        if (Number.isFinite(overrideX) && Number.isFinite(overrideY)) {
+            return { landedX: overrideX, landedY: overrideY }
+        }
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
         const baseLandedX =
             scrollValues.scrollDistanceWithMovement +
@@ -558,6 +673,9 @@ export function createRocketScrollAnimation(
 
     // Si scrollTween est disponible, utiliser containerAnimation avec gsap.to
     // Sinon, créer un nouveau ScrollTrigger
+    const rocketDebugEnabled = typeof window !== 'undefined' && (window as Window & { __ROCKET_DEBUG__?: boolean }).__ROCKET_DEBUG__
+    let rocketDebugLogged = false
+
     if (scrollTween && scrollTween.scrollTrigger) {
         const mainScrollTrigger = scrollTween.scrollTrigger
         let lastProgress = -1
@@ -568,6 +686,23 @@ export function createRocketScrollAnimation(
 
             if (progress !== lastProgress) {
                 lastProgress = progress
+                if (!rocketDebugLogged && rocketDebugEnabled) {
+                    rocketDebugLogged = true
+                    const referenceHeight = firstSection?.offsetHeight ?? viewportH
+                    const phase1EndY = getPhase1EndY()
+                    const yCompletionProgress = getYCompletionProgress()
+                    const phase2StartY = updateRocketPositionY(yCompletionProgress)
+                    const sameY = Math.abs(phase2StartY - phase1EndY) < 1
+                    // eslint-disable-next-line no-console
+                    console.log('[rocket] phase1/phase2 continuity', {
+                        rocketPhase1EndYRatio: rocketPhase1EndYRatio ?? 'fallback:ROCKET_END_Y_PERCENTAGE',
+                        referenceHeight,
+                        phase1EndY,
+                        phase2StartY,
+                        sameY,
+                    })
+                }
+
                 if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
                     if (landedPositionCache === null) {
                         landedPositionCache = getLandedPosition()
@@ -1312,7 +1447,8 @@ export function createHologramEcranScrollAnimation(
     // Créer l'animation handwriting dès le début pour pouvoir la contrôler avec le scroll
     let handwritingController: ReturnType<typeof createHandwritingAnimation> | null = null
     if (handwritingElement) {
-        handwritingController = createHandwritingAnimation(handwritingElement)
+        // Durée réduite de 800 à 600 ms (+1/3 vitesse) pour la section À propos
+        handwritingController = createHandwritingAnimation(handwritingElement, { duration: 600 })
     }
 
     const updateHologramEcran = (progressPhase2: number) => {
@@ -1625,8 +1761,76 @@ export function createExperienceQuestScrollAnimation(
     if (!experienceQuestDescripRefs || experienceQuestDescripRefs.length < EXP_QUEST_CYCLE_COUNT) return
 
     const handwritingControllers: (ReturnType<typeof createHandwritingAnimation> | null)[] = []
-    let clothWipeControllers: ReturnType<typeof ensureClothWipeControllers> = []
+    const clothWipeControllers: (ClothWipeController | undefined)[] = []
+    const overlayCloneByCycle: (SVGSVGElement | null)[] = [null, null, null, null, null, null]
     let controllersInitialized = false
+
+    let _lastProgressExp = -1
+    const exitEraseOverlay = (container: HTMLElement, i: number, event: string) => {
+        const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+        const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+        if (DEBUG_WIPE_REVERSE) {
+            debugWipeReverse('clone-removed', { section: 'experience', cycleOrProjet: i, phase: 'exit', previousPhase: 'erase' })
+            debugWipeReverse('overlay-hidden', { section: 'experience', cycleOrProjet: i, phase: 'exit', previousPhase: 'erase' })
+            debugWipeReverse('original-shown', { section: 'experience', cycleOrProjet: i, phase: 'exit', previousPhase: 'erase' })
+        }
+        overlayCloneByCycle[i] = null
+        clothWipeControllers[i] = undefined
+        if (overlay) {
+            overlay.innerHTML = ''
+            gsap.set(overlay, { display: 'none', visibility: 'hidden', force3D: true })
+        }
+        if (wrapper) gsap.set(wrapper, { visibility: 'visible', force3D: true })
+        if (DEBUG_ERASE_CLONE) debugEraseClone(`clone removed block ${i}`)
+        if (DEBUG_ERASE_REVERSE) debugEraseReverse(`exitEraseOverlay-${i}`, { section: 'experience', cycleOrProjet: i, phase: 'exit', previousPhase: 'erase', event })
+    }
+
+    const ensureEraseExited = (container: HTMLElement, i: number, event: string) => {
+        // Règle : hors erase = original seul
+        if (!DISABLE_WIPE_CLOTH && (overlayCloneByCycle[i] != null || clothWipeControllers[i] != null)) {
+            exitEraseOverlay(container, i, event)
+        } else {
+            const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+            const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+            if (overlay) gsap.set(overlay, { display: 'none', visibility: 'hidden', force3D: true })
+            if (wrapper) gsap.set(wrapper, { visibility: 'visible', force3D: true })
+        }
+    }
+
+    const ensureEraseActive = (container: HTMLElement, i: number, eraseLocal: number, direction?: 'forward' | 'backward') => {
+        // Règle : en erase = overlay (clone) seul, piloté en continu par eraseLocal
+        const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+        const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+        if (!overlay || !wrapper) return
+
+        // Toujours forcer le mode overlay/original selon la règle
+        gsap.set(wrapper, { visibility: 'hidden', force3D: true })
+        // On évite tout flash : overlay rendu (display:block) mais peut rester hidden le temps d'init
+        gsap.set(overlay, { display: 'block', visibility: 'hidden', force3D: true })
+
+        if (!DISABLE_WIPE_CLOTH && clothWipeControllers[i] == null) {
+            const liveSvg = container.querySelector('.quest-descrip-svg-wrapper svg.handwriting-svg') as SVGSVGElement | null
+            if (liveSvg) {
+                const clone = liveSvg.cloneNode(true) as SVGSVGElement
+                clone.removeAttribute('data-wipe-initialized')
+                overlayCloneByCycle[i] = clone
+                const cloneWrapper = document.createElement('div')
+                cloneWrapper.className = 'quest-erase-clone-wrapper'
+                cloneWrapper.style.cssText = 'width:100%;height:100%'
+                cloneWrapper.appendChild(clone)
+                overlay.innerHTML = ''
+                overlay.appendChild(cloneWrapper)
+                const ctrl = setupClothWipeForClone(clone, i)
+                clothWipeControllers[i] = ctrl
+                ctrl.setProgress(eraseLocal)
+                if (DEBUG_WIPE_REVERSE) debugWipeReverse('clone-created', { section: 'experience', cycleOrProjet: i, phase: 'erase', previousPhase: 'erase', direction, eraseLocal })
+            }
+        }
+
+        // Mise à jour continue (réversible)
+        clothWipeControllers[i]?.setProgress(eraseLocal)
+        gsap.set(overlay, { display: 'block', visibility: 'visible', force3D: true })
+    }
 
     const initControllers = () => {
         if (controllersInitialized) return
@@ -1636,7 +1840,6 @@ export function createExperienceQuestScrollAnimation(
             const ctrl = createHandwritingAnimation(wrapper as HTMLElement | null, { duration: 600 })
             handwritingControllers[i] = ctrl
         }
-        if (root) clothWipeControllers = ensureClothWipeControllers(root)
         controllersInitialized = true
     }
 
@@ -1665,50 +1868,100 @@ export function createExperienceQuestScrollAnimation(
 
             if (progressExp < cycleStart) {
                 gsap.set(container, { opacity: 0, visibility: 'hidden', force3D: true })
-                clothWipeControllers[i]?.setProgress(0)
+                ensureEraseExited(container, i, 'before-cycle')
+                debugHandwritingLog(`experience-cycle-${i}`, {
+                    section: 'experience',
+                    cycle: i,
+                    phase: 'reset',
+                    cycleLocal: 0,
+                    writeProgress: 0,
+                    eraseProgress: 0,
+                    reset: true,
+                })
                 continue
             }
 
             if (progressExp >= cycleEnd) {
                 gsap.set(container, { opacity: 0, visibility: 'hidden', force3D: true })
-                clothWipeControllers[i]?.setProgress(0)
+                ensureEraseExited(container, i, 'after-cycle')
+                debugHandwritingLog(`experience-cycle-${i}`, {
+                    section: 'experience',
+                    cycle: i,
+                    phase: 'reset',
+                    cycleLocal: 1,
+                    writeProgress: 0,
+                    eraseProgress: 0,
+                    reset: true,
+                })
                 continue
             }
-
-            gsap.set(container, { opacity: 1, visibility: 'visible', force3D: true })
 
             const cycleLocal = (progressExp - cycleStart) / cycleLength
 
             if (!controllersInitialized) initControllers()
             const hw = handwritingControllers[i]
 
-            if (cycleLocal <= writeEnd) {
-                const writeProgress = cycleLocal / writeEnd
-                hw?.setProgress(writeProgress)
-                clothWipeControllers[i]?.setProgress(0)
-                const masks = container.querySelectorAll('.quest-erase-mask')
-                masks.forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
-            } else if (cycleLocal <= stayEnd) {
-                hw?.setProgress(1)
-                clothWipeControllers[i]?.setProgress(0)
-                const masks = container.querySelectorAll('.quest-erase-mask')
-                masks.forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
+            const phase = cycleLocal <= writeEnd ? 'write' : cycleLocal <= stayEnd ? 'stay' : 'erase'
+            const isInErase = phase === 'erase'
+            gsap.set(container, { opacity: 1, visibility: 'visible', force3D: true })
+            const direction: 'forward' | 'backward' = _lastProgressExp >= 0 && progressExp < _lastProgressExp ? 'backward' : 'forward'
+            _lastProgressExp = progressExp
+            const eraseProgress = phase === 'erase' ? (cycleLocal - stayEnd) / eraseLength : 0
+
+            const writeProgress = phase === 'write'
+                ? Math.max(0, Math.min(1, cycleLocal / writeEnd))
+                : 1
+            hw?.setProgress(writeProgress)
+
+            debugHandwritingLog(`experience-cycle-${i}`, {
+                section: 'experience',
+                cycle: i,
+                phase,
+                cycleLocal,
+                writeProgress,
+                eraseProgress,
+            })
+
+            if (!isInErase) {
+                // write ou stay : original seul
+                ensureEraseExited(container, i, `non-erase:${phase}`)
+                if (DEBUG_ERASE_REVERSE && (phase === 'write' || phase === 'stay')) {
+                    debugEraseReverse(`exp-${phase}-${i}`, { section: 'experience', cycleOrProjet: i, phase, previousPhase: phase, direction, event: `${phase}-branch` })
+                }
             } else {
-                hw?.setProgress(1)
                 const eraseLocal = (cycleLocal - stayEnd) / eraseLength
-                clothWipeControllers[i]?.setProgress(eraseLocal)
-                const mask1 = container.querySelector('.quest-erase-mask-1') as HTMLElement | null
-                const mask2 = container.querySelector('.quest-erase-mask-2') as HTMLElement | null
-                const mask3 = container.querySelector('.quest-erase-mask-3') as HTMLElement | null
-                const mask4 = container.querySelector('.quest-erase-mask-4') as HTMLElement | null
-                const s1 = Math.min(1, Math.max(0, eraseLocal * 4))
-                const s2 = eraseLocal <= 1 / 4 ? 0 : Math.min(1, Math.max(0, (eraseLocal - 1 / 4) * 4))
-                const s3 = eraseLocal <= 2 / 4 ? 0 : Math.min(1, Math.max(0, (eraseLocal - 2 / 4) * 4))
-                const s4 = eraseLocal <= 3 / 4 ? 0 : Math.min(1, Math.max(0, (eraseLocal - 3 / 4) * 4))
-                if (mask1) gsap.set(mask1, { '--a': `${s1 * 220}deg`, force3D: true })
-                if (mask2) gsap.set(mask2, { '--a': `${s2 * 220}deg`, force3D: true })
-                if (mask3) gsap.set(mask3, { '--a': `${s3 * 220}deg`, force3D: true })
-                if (mask4) gsap.set(mask4, { '--a': `${s4 * 220}deg`, force3D: true })
+                if (DEBUG_ERASE_REVERSE) {
+                    const overlayEl = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+                    const wrapperEl = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+                    debugEraseReverse(`exp-erase-${i}`, {
+                        section: 'experience',
+                        cycleOrProjet: i,
+                        phase: 'erase',
+                        previousPhase: 'erase',
+                        direction,
+                        eraseLocal,
+                        cloneExists: !!overlayCloneByCycle[i],
+                        overlayVisible: !!(overlayEl && getComputedStyle(overlayEl).display !== 'none'),
+                        originalVisible: !!(wrapperEl && getComputedStyle(wrapperEl).visibility !== 'hidden'),
+                        event: 'update-erase',
+                    })
+                }
+                if (DEBUG_WIPE_REVERSE) {
+                    const overlayEl = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+                    const wrapperEl = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+                    debugWipeReverse('erase-update', {
+                        section: 'experience',
+                        cycleOrProjet: i,
+                        phase: 'erase',
+                        previousPhase: 'erase',
+                        direction,
+                        eraseLocal,
+                        cloneExists: !!overlayCloneByCycle[i],
+                        overlayVisible: !!(overlayEl && getComputedStyle(overlayEl).display !== 'none'),
+                        originalVisible: !!(wrapperEl && getComputedStyle(wrapperEl).visibility !== 'hidden'),
+                    })
+                }
+                ensureEraseActive(container, i, eraseLocal, direction)
             }
         }
     }
@@ -1756,8 +2009,87 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         titre: ReturnType<typeof createHandwritingAnimation> | null
         desc: ReturnType<typeof createHandwritingAnimation> | null
     }[] = [{ titre: null, desc: null }, { titre: null, desc: null }]
-    let clothWipeControllers: ReturnType<typeof ensureClothWipeControllers> = []
+    const clothWipeControllers: (ClothWipeController | undefined)[] = []
+    const overlayCloneByClothIndex: Record<number, SVGSVGElement | null> = {}
     let controllersInitialized = false
+
+    let _lastProgressProjet: Record<string, number> = { scania: -1, likethat: -1 }
+    const exitEraseOverlayProjet = (container: HTMLElement, clothIdx: number, event: string) => {
+        const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+        const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+        if (DEBUG_WIPE_REVERSE) {
+            debugWipeReverse('clone-removed', { section: 'projets', cycleOrProjet: clothIdx, phase: 'exit', previousPhase: 'erase' })
+            debugWipeReverse('overlay-hidden', { section: 'projets', cycleOrProjet: clothIdx, phase: 'exit', previousPhase: 'erase' })
+            debugWipeReverse('original-shown', { section: 'projets', cycleOrProjet: clothIdx, phase: 'exit', previousPhase: 'erase' })
+        }
+        overlayCloneByClothIndex[clothIdx] = null
+        clothWipeControllers[clothIdx] = undefined
+        if (overlay) {
+            overlay.innerHTML = ''
+            gsap.set(overlay, { display: 'none', visibility: 'hidden', force3D: true })
+        }
+        if (wrapper) gsap.set(wrapper, { visibility: 'visible', force3D: true })
+        if (DEBUG_ERASE_CLONE) debugEraseClone(`clone removed block ${clothIdx}`)
+        if (DEBUG_ERASE_REVERSE) debugEraseReverse(`exitProjet-${clothIdx}`, { section: 'projets', phase: 'exit', previousPhase: 'erase', event })
+    }
+
+    const ensureEraseExitedProjet = (container: HTMLElement, clothIdx: number, event: string) => {
+        // Règle : hors erase = original seul
+        if (!DISABLE_WIPE_CLOTH && (overlayCloneByClothIndex[clothIdx] != null || clothWipeControllers[clothIdx] != null)) {
+            exitEraseOverlayProjet(container, clothIdx, event)
+        } else {
+            const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+            const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+            if (overlay) gsap.set(overlay, { display: 'none', visibility: 'hidden', force3D: true })
+            if (wrapper) gsap.set(wrapper, { visibility: 'visible', force3D: true })
+        }
+    }
+
+    const ensureEraseActiveProjet = (
+        container: HTMLElement,
+        clothIdx: number,
+        eraseProgress: number,
+        meta: { projetKey: string; direction?: 'forward' | 'backward' }
+    ) => {
+        // Règle : en erase = overlay (clone) seul, piloté en continu
+        const overlay = container.querySelector('.quest-erase-overlay') as HTMLElement | null
+        const wrapper = container.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+        if (!overlay || !wrapper) return
+
+        gsap.set(wrapper, { visibility: 'hidden', force3D: true })
+        gsap.set(overlay, { display: 'block', visibility: 'hidden', force3D: true })
+
+        if (!DISABLE_WIPE_CLOTH && clothWipeControllers[clothIdx] == null) {
+            const liveSvg = container.querySelector('.quest-descrip-svg-wrapper svg.handwriting-svg') as SVGSVGElement | null
+            if (liveSvg) {
+                const clone = liveSvg.cloneNode(true) as SVGSVGElement
+                clone.removeAttribute('data-wipe-initialized')
+                overlayCloneByClothIndex[clothIdx] = clone
+                const cloneWrapper = document.createElement('div')
+                cloneWrapper.className = 'quest-erase-clone-wrapper'
+                cloneWrapper.style.cssText = 'width:100%;height:100%'
+                cloneWrapper.appendChild(clone)
+                overlay.innerHTML = ''
+                overlay.appendChild(cloneWrapper)
+                const ctrl = setupClothWipeForClone(clone, clothIdx)
+                clothWipeControllers[clothIdx] = ctrl
+                ctrl.setProgress(eraseProgress)
+                if (DEBUG_WIPE_REVERSE) {
+                    debugWipeReverse('clone-created', {
+                        section: 'projets',
+                        cycleOrProjet: meta.projetKey,
+                        phase: 'erase',
+                        previousPhase: 'erase',
+                        direction: meta.direction,
+                        eraseLocal: eraseProgress,
+                    })
+                }
+            }
+        }
+
+        clothWipeControllers[clothIdx]?.setProgress(eraseProgress)
+        gsap.set(overlay, { display: 'block', visibility: 'visible', force3D: true })
+    }
 
     const initControllers = () => {
         if (controllersInitialized) return
@@ -1773,7 +2105,6 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         handwritingControllers[0].desc = createHandwritingAnimation(d1, { duration: 600 })
         handwritingControllers[1].titre = createHandwritingAnimation(t2, { duration: 600 })
         handwritingControllers[1].desc = createHandwritingAnimation(d2, { duration: 600 })
-        if (root) clothWipeControllers = ensureClothWipeControllers(root)
         controllersInitialized = true
     }
 
@@ -1786,62 +2117,84 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
         clothIndices: { titre: number; desc: number }
     ) => {
         if (!containerTitre || !containerDesc || !containerParent) return
+        const projetIdx = clothIndices.titre === PROJET_CLOTH_INDEX.scaniaTitre ? 0 : 1
+        const prevKey = projetIdx === 0 ? 'scania' : 'likethat'
         if (progressLocal <= 0 || progressLocal >= 1) {
             gsap.set(containerParent, { opacity: 0, visibility: 'hidden', force3D: true })
-            clothWipeControllers[clothIndices.titre]?.setProgress(0)
-            clothWipeControllers[clothIndices.desc]?.setProgress(0)
+            if (!DISABLE_WIPE_CLOTH) {
+                ensureEraseExitedProjet(containerTitre, clothIndices.titre, 'progress-outside')
+                ensureEraseExitedProjet(containerDesc, clothIndices.desc, 'progress-outside')
+            }
+            _lastProgressProjet[prevKey] = -1
+            debugHandwritingLog(`projets-${projetIdx === 0 ? 'scania' : 'likethat'}`, {
+                section: 'projets',
+                projet: projetIdx === 0 ? 'scania' : 'likethat',
+                phase: 'reset',
+                progressLocal,
+                writeProgress: { titre: 0, desc: 0 },
+                eraseProgress: { titre: 0, desc: 0 },
+                reset: true,
+            })
             return
         }
-        gsap.set(containerParent, { opacity: 1, visibility: 'visible', force3D: true })
-        if (!controllersInitialized) initControllers()
-
         const writeEnd = PROJET_WRITE_RATIO
         const stayEnd = PROJET_WRITE_RATIO + PROJET_STAY_RATIO
         const eraseLength = PROJET_ERASE_RATIO
 
-        if (progressLocal <= writeEnd) {
-            const writeProgress = progressLocal / writeEnd
-            const titreProgress = Math.min(1, writeProgress * 2)
-            const descProgress = writeProgress <= 0.5 ? 0 : Math.min(1, (writeProgress - 0.5) * 2)
-            ctrl.titre?.setProgress(titreProgress)
-            ctrl.desc?.setProgress(descProgress)
-            clothWipeControllers[clothIndices.titre]?.setProgress(0)
-            clothWipeControllers[clothIndices.desc]?.setProgress(0)
-            ;[containerTitre, containerDesc].forEach((c) => {
-                c.querySelectorAll('.quest-erase-mask').forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
-            })
-        } else if (progressLocal <= stayEnd) {
-            ctrl.titre?.setProgress(1)
-            ctrl.desc?.setProgress(1)
-            clothWipeControllers[clothIndices.titre]?.setProgress(0)
-            clothWipeControllers[clothIndices.desc]?.setProgress(0)
-            ;[containerTitre, containerDesc].forEach((c) => {
-                c.querySelectorAll('.quest-erase-mask').forEach((m) => gsap.set(m as HTMLElement, { '--a': '0deg', force3D: true }))
-            })
+        const phase = progressLocal <= writeEnd ? 'write' : progressLocal <= stayEnd ? 'stay' : 'erase'
+        const isInErase = phase === 'erase'
+        gsap.set(containerParent, { opacity: 1, visibility: 'visible', force3D: true })
+        if (!controllersInitialized) initControllers()
+        const directionProjet: 'forward' | 'backward' =
+            _lastProgressProjet[prevKey] >= 0 && progressLocal < _lastProgressProjet[prevKey] ? 'backward' : 'forward'
+        _lastProgressProjet[prevKey] = progressLocal
+        const eraseLocal = phase === 'erase' ? (progressLocal - stayEnd) / eraseLength : 0
+        const eraseProgressTitre = phase === 'erase' ? (eraseLocal <= 0.5 ? 0 : Math.min(1, (eraseLocal - 0.5) * 2)) : 0
+        const eraseProgressDesc = phase === 'erase' ? Math.min(1, eraseLocal * 2) : 0
+
+        const writeProgressLocal = progressLocal / writeEnd
+        const writeTitre = progressLocal <= writeEnd ? Math.min(1, writeProgressLocal * 2) : 1
+        const writeDesc = progressLocal <= writeEnd
+            ? (writeProgressLocal <= 0.5 ? 0 : Math.min(1, (writeProgressLocal - 0.5) * 2))
+            : 1
+        ctrl.titre?.setProgress(writeTitre)
+        ctrl.desc?.setProgress(writeDesc)
+
+        debugHandwritingLog(`projets-${projetIdx === 0 ? 'scania' : 'likethat'}`, {
+            section: 'projets',
+            projet: projetIdx === 0 ? 'scania' : 'likethat',
+            phase,
+            progressLocal,
+            writeProgress: { titre: writeTitre, desc: writeDesc },
+            eraseProgress: { titre: eraseProgressTitre, desc: eraseProgressDesc },
+        })
+
+        if (!isInErase) {
+            // write ou stay : original seul
+            ensureEraseExitedProjet(containerTitre, clothIndices.titre, `non-erase:${phase}`)
+            ensureEraseExitedProjet(containerDesc, clothIndices.desc, `non-erase:${phase}`)
         } else {
-            ctrl.titre?.setProgress(1)
-            ctrl.desc?.setProgress(1)
-            const eraseLocal = (progressLocal - stayEnd) / eraseLength
-            const descErase = Math.min(1, eraseLocal * 2)
-            const titreErase = eraseLocal <= 0.5 ? 0 : Math.min(1, (eraseLocal - 0.5) * 2)
-            clothWipeControllers[clothIndices.desc]?.setProgress(descErase)
-            clothWipeControllers[clothIndices.titre]?.setProgress(titreErase)
-            const applyMasks = (container: HTMLElement, t: number) => {
-                const mask1 = container.querySelector('.quest-erase-mask-1') as HTMLElement | null
-                const mask2 = container.querySelector('.quest-erase-mask-2') as HTMLElement | null
-                const mask3 = container.querySelector('.quest-erase-mask-3') as HTMLElement | null
-                const mask4 = container.querySelector('.quest-erase-mask-4') as HTMLElement | null
-                const s1 = Math.min(1, Math.max(0, t * 4))
-                const s2 = t <= 1 / 4 ? 0 : Math.min(1, Math.max(0, (t - 1 / 4) * 4))
-                const s3 = t <= 2 / 4 ? 0 : Math.min(1, Math.max(0, (t - 2 / 4) * 4))
-                const s4 = t <= 3 / 4 ? 0 : Math.min(1, Math.max(0, (t - 3 / 4) * 4))
-                if (mask1) gsap.set(mask1, { '--a': `${s1 * 220}deg`, force3D: true })
-                if (mask2) gsap.set(mask2, { '--a': `${s2 * 220}deg`, force3D: true })
-                if (mask3) gsap.set(mask3, { '--a': `${s3 * 220}deg`, force3D: true })
-                if (mask4) gsap.set(mask4, { '--a': `${s4 * 220}deg`, force3D: true })
+            // erase : overlay seul, progression continue et réversible
+            if (DEBUG_ERASE_REVERSE) {
+                const ot = containerTitre.querySelector('.quest-erase-overlay') as HTMLElement | null
+                const od = containerDesc.querySelector('.quest-erase-overlay') as HTMLElement | null
+                const wt = containerTitre.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+                const wd = containerDesc.querySelector('.quest-descrip-svg-wrapper') as HTMLElement | null
+                debugEraseReverse(`projet-erase-${prevKey}`, {
+                    section: 'projets',
+                    cycleOrProjet: prevKey,
+                    phase: 'erase',
+                    previousPhase: 'erase',
+                    direction: directionProjet,
+                    eraseLocal,
+                    cloneExists: !!overlayCloneByClothIndex[clothIndices.titre] || !!overlayCloneByClothIndex[clothIndices.desc],
+                    overlayVisible: !!(ot && getComputedStyle(ot).display !== 'none') || !!(od && getComputedStyle(od).display !== 'none'),
+                    originalVisible: !!(wt && getComputedStyle(wt).visibility !== 'hidden') || !!(wd && getComputedStyle(wd).visibility !== 'hidden'),
+                    event: 'update-erase',
+                })
             }
-            applyMasks(containerDesc, descErase)
-            applyMasks(containerTitre, titreErase)
+            ensureEraseActiveProjet(containerTitre, clothIndices.titre, eraseProgressTitre, { projetKey: prevKey, direction: directionProjet })
+            ensureEraseActiveProjet(containerDesc, clothIndices.desc, eraseProgressDesc, { projetKey: prevKey, direction: directionProjet })
         }
     }
 
@@ -1869,10 +2222,12 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
                 handwritingControllers[0],
                 { titre: PROJET_CLOTH_INDEX.scaniaTitre, desc: PROJET_CLOTH_INDEX.scaniaDesc }
             )
-        } else if (scaniaTitreRef?.current?.parentElement) {
+        } else if (scaniaTitreRef?.current?.parentElement && scaniaDescRef?.current) {
             gsap.set(scaniaTitreRef.current.parentElement, { opacity: 0, visibility: 'hidden', force3D: true })
-            clothWipeControllers[PROJET_CLOTH_INDEX.scaniaTitre]?.setProgress(0)
-            clothWipeControllers[PROJET_CLOTH_INDEX.scaniaDesc]?.setProgress(0)
+            if (!DISABLE_WIPE_CLOTH) {
+                exitEraseOverlayProjet(scaniaTitreRef.current, PROJET_CLOTH_INDEX.scaniaTitre, 'scania-outside')
+                exitEraseOverlayProjet(scaniaDescRef.current, PROJET_CLOTH_INDEX.scaniaDesc, 'scania-outside')
+            }
         }
 
         if (likethatLocal >= 0) {
@@ -1884,10 +2239,12 @@ export function createProjetsTextScrollAnimation(params: ProjetsTextScrollAnimat
                 handwritingControllers[1],
                 { titre: PROJET_CLOTH_INDEX.likethatTitre, desc: PROJET_CLOTH_INDEX.likethatDesc }
             )
-        } else if (likethatTitreRef?.current?.parentElement) {
+        } else if (likethatTitreRef?.current?.parentElement && likethatTitreRef?.current && likethatDescRef?.current) {
             gsap.set(likethatTitreRef.current.parentElement, { opacity: 0, visibility: 'hidden', force3D: true })
-            clothWipeControllers[PROJET_CLOTH_INDEX.likethatTitre]?.setProgress(0)
-            clothWipeControllers[PROJET_CLOTH_INDEX.likethatDesc]?.setProgress(0)
+            if (!DISABLE_WIPE_CLOTH) {
+                exitEraseOverlayProjet(likethatTitreRef.current, PROJET_CLOTH_INDEX.likethatTitre, 'likethat-outside')
+                exitEraseOverlayProjet(likethatDescRef.current, PROJET_CLOTH_INDEX.likethatDesc, 'likethat-outside')
+            }
         }
     }
 
@@ -1958,6 +2315,9 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     let loggedProgressOne = false
     let loggedHandEndX = false
     let frameCount = 0
+    /** Debug robot (window.__ROBOT_DEBUG__ = true) : throttle et valeurs précédentes pour deltas */
+    let _robotDebugLastLog = 0
+    const _robotDebugPrev: { headX?: number; headY?: number; headR?: number; handX?: number; handY?: number; handR?: number } = {}
 
     if (DEBUG_PROJETS_CONVOYEUR) console.log('[Projets convoyeur] boucle rAF démarrée')
 
@@ -2087,17 +2447,25 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const ROBOT_GROUND_GOLDEN = 61
             let robotAboveYPercent: number
             let robotGroundYPercent: number
+            let robotSource: 'tokens' | 'stage' | 'fallback'
             if (params.responsiveTokens != null) {
                 robotAboveYPercent = params.responsiveTokens.robotAboveYPercent
                 robotGroundYPercent = params.responsiveTokens.robotGroundYPercent
+                robotSource = 'tokens'
             } else if (stage) {
                 const tokenAbove = getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim()
                 const tokenGround = getComputedStyle(stage).getPropertyValue('--robot-ground-y-percent').trim()
                 robotAboveYPercent = tokenAbove ? parseTokenPercent(tokenAbove, ROBOT_ABOVE_GOLDEN) : fallbackFromViewport.above
                 robotGroundYPercent = tokenGround ? parseTokenPercent(tokenGround, ROBOT_GROUND_GOLDEN) : fallbackFromViewport.ground
+                robotSource = 'stage'
             } else {
                 robotAboveYPercent = fallbackFromViewport.above
                 robotGroundYPercent = fallbackFromViewport.ground
+                robotSource = 'fallback'
+            }
+            const robotDebug = typeof window !== 'undefined' && ((window as Window & { __RESPONSIVE_DEBUG__?: boolean }).__RESPONSIVE_DEBUG__ || (window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__)
+            if (robotDebug && !robotsInited) {
+                console.log('[robot] scrollAnimations applied', { source: robotSource, appliedAbove: robotAboveYPercent, appliedGround: robotGroundYPercent })
             }
             if (!robotsInited) {
                 robotsInited = true
@@ -2132,110 +2500,144 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const headFallProgress = mapProgressToAnimation(progressProjets, ROBOT_HEAD_FALL_START, ROBOT_HEAD_FALL_END)
             const handSlideProgress = mapProgressToAnimation(progressProjets, ROBOT_HAND_SLIDE_START, ROBOT_HAND_SLIDE_END)
             const handFallProgress = mapProgressToAnimation(progressProjets, ROBOT_HAND_FALL_START, ROBOT_HAND_FALL_END)
-            if (robotHeadElement) {
-                const headOpacity = progressProjets >= ROBOT_HEAD_SLIDE_START ? 1 : 0
-                let headX: number
-                let headYPercent: number
-                let headRotation: number
-                let transformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
-                if (headSlideProgress < 1) {
-                    headX = -50 + 50.5 * headSlideProgress
-                    headYPercent = robotAboveYPercent
-                    headRotation = 0
-                } else if (headFallProgress <= 0) {
-                    headX = .5
-                    headYPercent = robotAboveYPercent
-                    headRotation = 0
+
+            // Head : calcul des positions (toujours pour debug, puis gsap si élément présent)
+            const headOpacity = progressProjets >= ROBOT_HEAD_SLIDE_START ? 1 : 0
+            let headX: number
+            let headYPercent: number
+            let headRotation: number
+            let headTransformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
+            if (headSlideProgress < 1) {
+                headX = -50 + 50.5 * headSlideProgress
+                headYPercent = robotAboveYPercent
+                headRotation = 0
+            } else if (headFallProgress <= 0) {
+                headX = .5
+                headYPercent = robotAboveYPercent
+                headRotation = 0
+            } else {
+                const diagonalProgress = Math.min(1, headFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
+                if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
+                    headTransformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
+                } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
+                    headTransformOrigin = 'center center'
                 } else {
-                    const diagonalProgress = Math.min(1, headFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
-                    // Transition progressive 50% 100% → 50% 50% (évite le saut visuel)
-                    if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
-                        transformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
-                    } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
-                        transformOrigin = 'center center'
-                    } else {
-                        const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
-                        const originY = 100 - 50 * t
-                        transformOrigin = `50% ${originY}%`
-                    }
-                    const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
-                        ? Math.max(0, (headFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
-                        : 0
-                    headYPercent = robotAboveYPercent +
-                        (robotGroundYPercent - robotAboveYPercent) * diagonalProgress
-                    headX = diagonalProgress < 1
-                        ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
-                        : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * rollRightProgress
-                    headRotation = ROBOT_HEAD_ROLL_DEG * headFallProgress
+                    const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
+                    const originY = 100 - 50 * t
+                    headTransformOrigin = `50% ${originY}%`
                 }
+                const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
+                    ? Math.max(0, (headFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
+                    : 0
+                headYPercent = robotAboveYPercent +
+                    (robotGroundYPercent - robotAboveYPercent) * diagonalProgress
+                headX = diagonalProgress < 1
+                    ? 0.5 + (ROBOT_FALL_DIAGONAL_X_VW - 0.5) * diagonalProgress
+                    : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * rollRightProgress
+                headRotation = ROBOT_HEAD_ROLL_DEG * headFallProgress
+            }
+            if (robotHeadElement) {
                 gsap.set(robotHeadElement, {
                     opacity: headOpacity,
                     x: `${headX}vw`,
                     top: `${headYPercent}%`,
                     rotation: headRotation,
-                    transformOrigin: transformOrigin,
+                    transformOrigin: headTransformOrigin,
                     scale: ROBOT_SIZE_SCALE,
                     force3D: true,
                 })
             }
-            if (robotHandElement) {
-                const handOpacity = progressProjets >= ROBOT_HAND_SLIDE_START ? 1 : 0
-                let handX: number
-                let handYPercent: number
-                let handRotation: number
-                let transformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
-                if (handSlideProgress < 1) {
-                    handX = -50 + 50 * handSlideProgress
-                    handYPercent = robotAboveYPercent
-                    handRotation = 0
-                } else if (handFallProgress <= 0) {
-                    handX = 0
-                    handYPercent = robotAboveYPercent
-                    handRotation = 0
+
+            // Hand : calcul des positions (toujours pour debug, puis gsap si élément présent)
+            const handOpacity = progressProjets >= ROBOT_HAND_SLIDE_START ? 1 : 0
+            let handX: number
+            let handYPercent: number
+            let handRotation: number
+            let handTransformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
+            if (handSlideProgress < 1) {
+                handX = -50 + 50 * handSlideProgress
+                handYPercent = robotAboveYPercent
+                handRotation = 0
+            } else if (handFallProgress <= 0) {
+                handX = 0
+                handYPercent = robotAboveYPercent
+                handRotation = 0
+            } else {
+                const handDiagonalRatio = ROBOT_HAND_FALL_DIAGONAL_RATIO
+                const diagonalProgress = Math.min(1, handFallProgress / handDiagonalRatio)
+                if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
+                    handTransformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
+                } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
+                    handTransformOrigin = 'center center'
                 } else {
-                    const diagonalProgress = Math.min(1, handFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
-                    // Transition progressive 50% 100% → 50% 50% (évite le saut visuel)
-                    if (diagonalProgress < ROBOT_FALL_ORIGIN_BLEND_START) {
-                        transformOrigin = ROBOT_ROLL_TRANSFORM_ORIGIN
-                    } else if (diagonalProgress >= ROBOT_FALL_ORIGIN_BLEND_END) {
-                        transformOrigin = 'center center'
-                    } else {
-                        const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
-                        const originY = 100 - 50 * t
-                        transformOrigin = `50% ${originY}%`
-                    }
-                    const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
-                        ? Math.max(0, (handFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
-                        : 0
-                    handYPercent = robotAboveYPercent +
-                        ((robotGroundYPercent + .5) - robotAboveYPercent) * diagonalProgress
-                    handX = diagonalProgress < 1
-                        ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
-                        : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * rollRightProgress
-                    if (diagonalProgress >= 1) {
-                        if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX) {
-                            handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE * rollRightProgress
-                        }
-                        if (stage) {
-                            const handEndXDelta = parseFloat(getComputedStyle(stage).getPropertyValue('--robot-hand-end-x-delta')) || 0
-                            if (DEBUG_ROBOT_HAND_END_X && !loggedHandEndX && rollRightProgress >= 1) {
-                                loggedHandEndX = true
-                                console.log('[robot-hand end X]', { handXBase: handX, handEndXDelta, endXFinal: handX + handEndXDelta })
-                            }
-                            handX += handEndXDelta * rollRightProgress
-                        }
-                    }
-                    handRotation = ROBOT_HAND_ROLL_DEG * handFallProgress
+                    const t = (diagonalProgress - ROBOT_FALL_ORIGIN_BLEND_START) / (ROBOT_FALL_ORIGIN_BLEND_END - ROBOT_FALL_ORIGIN_BLEND_START)
+                    const originY = 100 - 50 * t
+                    handTransformOrigin = `50% ${originY}%`
                 }
+                // Accélérer la phase rotation/roulage de manière perceptible en compressant le progress (scrub scroll)
+                const handRollBase = Math.min(
+                    1,
+                    ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS > 0
+                        ? handFallProgress / ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS
+                        : handFallProgress
+                )
+                const rollRightProgress = handDiagonalRatio < 1
+                    ? Math.max(0, (handRollBase - handDiagonalRatio) / (1 - handDiagonalRatio))
+                    : 0
+                const rollRightEased = Math.pow(Math.min(1, rollRightProgress), ROBOT_HAND_ROLL_EASE_POWER)
+                handYPercent = robotAboveYPercent +
+                    ((robotGroundYPercent + .5) - robotAboveYPercent) * diagonalProgress
+                // X en linéaire (rollRightProgress) pour éviter l'effet "arrêt puis saut" dû à l'ease-in sur rollRightEased
+                handX = diagonalProgress < 1
+                    ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
+                    : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * rollRightProgress
+                if (diagonalProgress >= 1) {
+                    if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX) {
+                        handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE * rollRightProgress
+                    }
+                    if (stage) {
+                        const handEndXDelta = parseFloat(getComputedStyle(stage).getPropertyValue('--robot-hand-end-x-delta')) || 0
+                        if (DEBUG_ROBOT_HAND_END_X && !loggedHandEndX && rollRightProgress >= 1) {
+                            loggedHandEndX = true
+                            console.log('[robot-hand end X]', { handXBase: handX, handEndXDelta, endXFinal: handX + handEndXDelta })
+                        }
+                        handX += handEndXDelta * rollRightProgress
+                    }
+                }
+                handRotation = ROBOT_HAND_ROLL_DEG * Math.pow(handRollBase, ROBOT_HAND_ROLL_ROTATION_EASE_POWER)
+            }
+            if (robotHandElement) {
                 gsap.set(robotHandElement, {
                     opacity: handOpacity,
                     x: `${handX}vw`,
                     top: `${handYPercent}%`,
                     rotation: handRotation,
-                    transformOrigin: transformOrigin,
+                    transformOrigin: handTransformOrigin,
                     scale: ROBOT_SIZE_SCALE,
                     force3D: true,
                 })
+            }
+
+            // Debug robot : window.__ROBOT_DEBUG__ = true (throttle ~120 ms, deltas optionnels)
+            const ROBOT_DEBUG = typeof window !== 'undefined' && !!(window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__
+            if (ROBOT_DEBUG) {
+                const now = Date.now()
+                if (now - _robotDebugLastLog >= 120) {
+                    _robotDebugLastLog = now
+                    const headDelta = _robotDebugPrev.headX != null ? { x: headX - _robotDebugPrev.headX, y: headYPercent - (_robotDebugPrev.headY ?? 0), r: headRotation - (_robotDebugPrev.headR ?? 0) } : null
+                    const handDelta = _robotDebugPrev.handX != null ? { x: handX - _robotDebugPrev.handX, y: handYPercent - (_robotDebugPrev.handY ?? 0), r: handRotation - (_robotDebugPrev.handR ?? 0) } : null
+                    console.log('[Robot Debug]', {
+                        progressProjets,
+                        head: { slideP: headSlideProgress, fallP: headFallProgress, x: headX, y: headYPercent, rotate: headRotation, delta: headDelta },
+                        hand: { slideP: handSlideProgress, fallP: handFallProgress, x: handX, y: handYPercent, rotate: handRotation, delta: handDelta },
+                    })
+                    _robotDebugPrev.headX = headX
+                    _robotDebugPrev.headY = headYPercent
+                    _robotDebugPrev.headR = headRotation
+                    _robotDebugPrev.handX = handX
+                    _robotDebugPrev.handY = handYPercent
+                    _robotDebugPrev.handR = handRotation
+                }
             }
         }
 
@@ -2276,7 +2678,7 @@ export function configureAllScrollAnimations(
     scaniaDescRef?: RefObject<HTMLDivElement | null>,
     likethatTitreRef?: RefObject<HTMLDivElement | null>,
     likethatDescRef?: RefObject<HTMLDivElement | null>,
-    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent'>
+    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent' | 'cssVars'>
 ): (() => void) | void {
     // Si scrollValues n'est pas fourni, calculer les valeurs (fallback)
     if (!scrollValues) {
@@ -2353,8 +2755,20 @@ export function configureAllScrollAnimations(
     const rocketFireCleanup = createRocketFireScrollAnimation(rocketElement, container, scrollValues, scrollTween)
     if (typeof rocketFireCleanup === 'function') cleanups.push(rocketFireCleanup)
 
-    // 3. Animation de la fusée (utilise les valeurs uniformisées)
-    const rocketCleanup = createRocketScrollAnimation(rocketElement, container, scrollValues, scrollTween, sections[0] ?? null)
+    // 3. Animation de la fusée (phase 1 = chute jusqu'au point bas piloté par rocketPhase1EndYRatio)
+    const rocketPhase1EndYRatioFromTokens =
+        responsiveTokens && responsiveTokens.cssVars
+            ? parseFloat(responsiveTokens.cssVars['--rocket-phase1-end-y-ratio'] ?? '')
+            : NaN
+    const rocketCleanup = createRocketScrollAnimation(
+        rocketElement,
+        container,
+        scrollValues,
+        scrollTween,
+        sections[0] ?? null,
+        rocketPhase1EndYRatioFromTokens,
+        responsiveTokens ?? null
+    )
     if (typeof rocketCleanup === 'function') cleanups.push(rocketCleanup)
 
     // 4. Animation du descriptionContainer (opacité 0 à 1 à 500px de scroll)
