@@ -578,6 +578,25 @@ export function createRocketScrollAnimation(
     /** Position Y à la fin de la phase 1 (point bas atteint avant le départ sur X). Phase 2 part exactement de cette position. */
     const getPhase1EndY = () => {
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
+        // Correction ciblée 2560×1440 : si le token px existe, on l'utilise pour obtenir le point bas exact.
+        // Cela ne touche qu'à la phase 1 (début de trajectoire), sans impacter l’atterrissage final.
+        const tW2560 =
+            viewportW <= 2380 || viewportW >= 2725
+                ? 0
+                : smoothstep((viewportW - 2380) / (2560 - 2380)) *
+                  (1 - smoothstep((viewportW - 2560) / (2725 - 2560)))
+        const tH2560 =
+            viewportH <= 1320 || viewportH >= 1525
+                ? 0
+                : smoothstep((viewportH - 1320) / (1440 - 1320)) *
+                  (1 - smoothstep((viewportH - 1440) / (1525 - 1440)))
+        const t2560 = tW2560 * tH2560
+        if (t2560 > 0 && rocketParams.endYOffsetPx === 0) {
+            const tokenPhase1EndYPx = responsiveTokens?.cssVars?.['--rocket-phase1-end-y-px']
+            const tokenPx = tokenPhase1EndYPx != null && tokenPhase1EndYPx !== '' ? parseFloat(tokenPhase1EndYPx) : NaN
+            if (Number.isFinite(tokenPx)) return tokenPx
+        }
+
         const ratio = (typeof rocketPhase1EndYRatio === 'number' && !Number.isNaN(rocketPhase1EndYRatio) && rocketPhase1EndYRatio > 0 && rocketPhase1EndYRatio < 2)
             ? rocketPhase1EndYRatio
             : ROCKET_END_Y_PERCENTAGE
@@ -627,15 +646,44 @@ export function createRocketScrollAnimation(
         return currentY
     }
 
-    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). Override 1366×768 via tokens --rocket-landed-x-px / --rocket-landed-y-px. */
-    const getLandedPosition = (): { landedX: number; landedY: number } => {
+    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). Override via tokens --rocket-landed-x-px / --rocket-landed-y-px / --rocket-landed-rotate-deg (ex. 1024×768). */
+    const getLandedPosition = (): { landedX: number; landedY: number; landedRotateDeg: number } => {
         const tokenX = responsiveTokens?.cssVars?.['--rocket-landed-x-px']
         const tokenY = responsiveTokens?.cssVars?.['--rocket-landed-y-px']
+        const tokenRotate = responsiveTokens?.cssVars?.['--rocket-landed-rotate-deg']
         const overrideX = tokenX != null && tokenX !== '' ? parseFloat(tokenX) : NaN
         const overrideY = tokenY != null && tokenY !== '' ? parseFloat(tokenY) : NaN
-        if (Number.isFinite(overrideX) && Number.isFinite(overrideY)) {
-            return { landedX: overrideX, landedY: overrideY }
-        }
+        const overrideRotate = tokenRotate != null && tokenRotate !== '' ? parseFloat(tokenRotate) : NaN
+
+        const inBand1680 = (() => {
+            // Calibration doit rester cohérente avec responsiveTokens.ts (bande w/h).
+            const CALIBRATION_1680_1050_WIDTH_MIN = 1640
+            const CALIBRATION_1680_1050_WIDTH_PEAK = 1680
+            const CALIBRATION_1680_1050_WIDTH_MAX = 1725
+            const CALIBRATION_1680_1050_HEIGHT_MIN = 1010
+            const CALIBRATION_1680_1050_HEIGHT_PEAK = 1050
+            const CALIBRATION_1680_1050_HEIGHT_MAX = 1068
+
+            const tW =
+                viewportW <= CALIBRATION_1680_1050_WIDTH_MIN ||
+                viewportW >= CALIBRATION_1680_1050_WIDTH_MAX
+                    ? 0
+                    : smoothstep((viewportW - CALIBRATION_1680_1050_WIDTH_MIN) / (CALIBRATION_1680_1050_WIDTH_PEAK - CALIBRATION_1680_1050_WIDTH_MIN)) *
+                      (1 - smoothstep((viewportW - CALIBRATION_1680_1050_WIDTH_PEAK) / (CALIBRATION_1680_1050_WIDTH_MAX - CALIBRATION_1680_1050_WIDTH_PEAK)))
+            if (tW === 0) return 0
+
+            const tH =
+                viewportH <= CALIBRATION_1680_1050_HEIGHT_MIN ||
+                viewportH >= CALIBRATION_1680_1050_HEIGHT_MAX
+                    ? 0
+                    : smoothstep((viewportH - CALIBRATION_1680_1050_HEIGHT_MIN) / (CALIBRATION_1680_1050_HEIGHT_PEAK - CALIBRATION_1680_1050_HEIGHT_MIN)) *
+                      (1 - smoothstep((viewportH - CALIBRATION_1680_1050_HEIGHT_PEAK) / (CALIBRATION_1680_1050_HEIGHT_MAX - CALIBRATION_1680_1050_HEIGHT_PEAK)))
+            if (tH === 0) return 0
+
+            return tW * tH
+        })()
+
+        const hasOverride = Number.isFinite(overrideX) && Number.isFinite(overrideY)
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
         const baseLandedX =
             scrollValues.scrollDistanceWithMovement +
@@ -648,17 +696,39 @@ export function createRocketScrollAnimation(
         const tWide = smoothstep((viewportW - LARGE_DESKTOP_MIN_WIDTH) / (ROCKET_WIDE_DESKTOP_WIDTH - LARGE_DESKTOP_MIN_WIDTH))
         const landedX = lerp(baseLandedX, ROCKET_LANDED_X_1920, tWide)
         const landedY = lerp(baseLandedY, ROCKET_LANDED_Y_1920, tWide)
-        return { landedX, landedY }
+
+        // Comportement historique inchangé en dehors de la bande 1680×1050 :
+        // si tokens override existent, on les applique directement.
+        if (inBand1680 === 0) {
+            if (hasOverride) {
+                return {
+                    landedX: overrideX,
+                    landedY: overrideY,
+                    landedRotateDeg: Number.isFinite(overrideRotate) ? overrideRotate : ROCKET_LANDED_ROTATE,
+                }
+            }
+            return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
+        }
+
+        // Dans la bande 1680×1050 uniquement : blend progressif fallback -> override.
+        const landedRotateDeg = hasOverride
+            ? lerp(ROCKET_LANDED_ROTATE, Number.isFinite(overrideRotate) ? overrideRotate : ROCKET_LANDED_ROTATE, inBand1680)
+            : ROCKET_LANDED_ROTATE
+        return {
+            landedX: hasOverride ? lerp(landedX, overrideX, inBand1680) : landedX,
+            landedY: hasOverride ? lerp(landedY, overrideY, inBand1680) : landedY,
+            landedRotateDeg,
+        }
     }
 
     /** Position atterrissage figée : calculée une seule fois au franchissement du seuil pour éviter que la fusée bouge/tourne encore avec le scroll. */
-    let landedPositionCache: { landedX: number; landedY: number } | null = null
+    let landedPositionCache: { landedX: number; landedY: number; landedRotateDeg: number } | null = null
 
-    const applyLandedState = (landedX: number, landedY: number) => {
+    const applyLandedState = (landedX: number, landedY: number, landedRotateDeg: number) => {
         gsap.set(rocketElement, {
             x: landedX,
             y: landedY,
-            rotate: ROCKET_LANDED_ROTATE,
+            rotate: landedRotateDeg,
             force3D: true,
         })
         if (teteElement) {
@@ -707,7 +777,11 @@ export function createRocketScrollAnimation(
                     if (landedPositionCache === null) {
                         landedPositionCache = getLandedPosition()
                     }
-                    applyLandedState(landedPositionCache.landedX, landedPositionCache.landedY)
+                    applyLandedState(
+                        landedPositionCache.landedX,
+                        landedPositionCache.landedY,
+                        landedPositionCache.landedRotateDeg
+                    )
                 } else {
                     landedPositionCache = null
                     const currentX = updateRocketPositionX(progressPhase1)
@@ -735,7 +809,7 @@ export function createRocketScrollAnimation(
         rafId = requestAnimationFrame(updateLoop)
         return () => cancelAnimationFrame(rafId)
     } else {
-        let landedCache: { landedX: number; landedY: number } | null = null
+        let landedCache: { landedX: number; landedY: number; landedRotateDeg: number } | null = null
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -749,7 +823,7 @@ export function createRocketScrollAnimation(
                     if (landedCache === null) {
                         landedCache = getLandedPosition()
                     }
-                    applyLandedState(landedCache.landedX, landedCache.landedY)
+                    applyLandedState(landedCache.landedX, landedCache.landedY, landedCache.landedRotateDeg)
                     updateFumeeFromProgress(progress)
                     if (fireElements.length) {
                         gsap.set(fireElements, { opacity: ROCKET_FIRE_OPACITY_END })
@@ -1522,8 +1596,16 @@ export interface ExperienceSectionScrollAnimationParams {
     alien2Element: HTMLElement | null
 }
 
-/** Calcule la progression 0–1 dans le bloc Expérience. Début/fin alignés sur le scroll horizontal : l’animation ne démarre que lorsque la section Expérience est à l’écran (après FIRST_SECTION_PAN_SCROLL). */
+/** Calcule la progression 0–1 dans le bloc Expérience. Début/fin alignés sur le scroll horizontal (timeline) : utilise progressAtStartOfThirdBlock / progressAtEndOfThirdBlock quand disponibles (camera scale), sinon fallback en px (scaleRatio). */
 function getExperiencePhaseProgress(progress: number, scrollValues: ScrollValues): number {
+    const start = (scrollValues as ScrollValues & { progressAtStartOfThirdBlock?: number }).progressAtStartOfThirdBlock
+    const end = (scrollValues as ScrollValues & { progressAtEndOfThirdBlock?: number }).progressAtEndOfThirdBlock
+    if (typeof start === 'number' && typeof end === 'number') {
+        const range = end - start
+        if (range <= 0) return 0
+        return Math.max(0, Math.min(1, (progress - start) / range))
+    }
+    /* Fallback si scrollValues sans progressions (ex. build manuel) : formule en px avec scaleRatio. */
     const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
     const scaleRatio = scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH
     const thirdBlockStart = (THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * scaleRatio
@@ -2439,6 +2521,8 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
             const fallbackFromViewport = getRobotYPercentByViewport(viewportW, viewportH)
             const stage = (container?.closest?.('.horizontal-scroll-stage') ?? robotHeadElement?.closest?.('.horizontal-scroll-stage') ?? robotHandElement?.closest?.('.horizontal-scroll-stage')) as HTMLElement | null
+            const robotFinalXMultToken = stage ? parseFloat(getComputedStyle(stage).getPropertyValue('--robot-final-x-mult').trim()) : NaN
+            const robotFinalXMult = Number.isFinite(robotFinalXMultToken) ? robotFinalXMultToken : 1
             const parseTokenPercent = (val: string, goldenFallback: number): number => {
                 const n = parseFloat(val)
                 return Number.isNaN(n) ? goldenFallback : n
@@ -2533,7 +2617,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     (robotGroundYPercent - robotAboveYPercent) * diagonalProgress
                 headX = diagonalProgress < 1
                     ? 0.5 + (ROBOT_FALL_DIAGONAL_X_VW - 0.5) * diagonalProgress
-                    : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * rollRightProgress
+                    : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * robotFinalXMult * rollRightProgress
                 headRotation = ROBOT_HEAD_ROLL_DEG * headFallProgress
             }
             if (robotHeadElement) {
@@ -2590,10 +2674,10 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 // X en linéaire (rollRightProgress) pour éviter l'effet "arrêt puis saut" dû à l'ease-in sur rollRightEased
                 handX = diagonalProgress < 1
                     ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
-                    : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * rollRightProgress
+                    : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * robotFinalXMult * rollRightProgress
                 if (diagonalProgress >= 1) {
                     if (viewportW > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX) {
-                        handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE * rollRightProgress
+                        handX += ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE * robotFinalXMult * rollRightProgress
                     }
                     if (stage) {
                         const handEndXDelta = parseFloat(getComputedStyle(stage).getPropertyValue('--robot-hand-end-x-delta')) || 0
@@ -2601,7 +2685,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                             loggedHandEndX = true
                             console.log('[robot-hand end X]', { handXBase: handX, handEndXDelta, endXFinal: handX + handEndXDelta })
                         }
-                        handX += handEndXDelta * rollRightProgress
+                        handX += handEndXDelta * robotFinalXMult * rollRightProgress
                     }
                 }
                 handRotation = ROBOT_HAND_ROLL_DEG * Math.pow(handRollBase, ROBOT_HAND_ROLL_ROTATION_EASE_POWER)
@@ -2718,12 +2802,12 @@ export function configureAllScrollAnimations(
             fourthBlockDurationWorld +
             scrollBeforeFifthBlockWorld +
             fifthBlockDurationWorld
-        const cumulativeAtEndOfThird =
+        const cumulativeAtStartOfThird =
             SECOND_SECTION_BLOCK_START +
             scrollBeforeSecondBlockWorld +
             secondBlockDurationWorld +
-            scrollBeforeThirdBlockWorld +
-            thirdBlockDurationWorld
+            scrollBeforeThirdBlockWorld
+        const cumulativeAtEndOfThird = cumulativeAtStartOfThird + thirdBlockDurationWorld
         const cumulativeAtEndOfFourth = cumulativeAtEndOfThird + scrollBeforeFourthBlockWorld + fourthBlockDurationWorld
         const cumulativeAtConvoyeurPhaseStart = cumulativeAtEndOfThird - thirdBlockDurationWorld * 1.5
         scrollValues = {
@@ -2738,6 +2822,7 @@ export function configureAllScrollAnimations(
             phase2EarlyStartScroll: phase2EarlyStartScroll,
             phase2EndScroll,
             rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * scaleRatio,
+            progressAtStartOfThirdBlock: cumulativeAtStartOfThird / totalWorld,
             progressAtEndOfThirdBlock: cumulativeAtEndOfThird / totalWorld,
             progressAtEndOfFourthBlock: cumulativeAtEndOfFourth / totalWorld,
             progressAtConvoyeurPhaseStart: Math.max(0, cumulativeAtConvoyeurPhaseStart / totalWorld),

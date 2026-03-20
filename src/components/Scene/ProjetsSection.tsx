@@ -59,10 +59,13 @@ const ProjetsSection = forwardRef<HTMLElement, ProjetsSectionProps>((props, ref)
             .then((res) => res.text())
             .then((svg) => {
                 const withClass = svg.replace(/<svg\b/, '<svg class="projets-convoyeur-svg"')
-                const enlarged = withClass
-                    .replace(/height="([^"]*)"/, (_, h) => `height="${parseFloat(h) * 2}"`)
-                    .replace(/<path id="battant"([^>]*)stroke-width="[^"]*"/, '<path id="battant"$1stroke-width="1" vector-effect="non-scaling-stroke"')
-                setConvoyeurProjetSvgContent(enlarged)
+                // On évite de coupler la géométrie au markup (ex: doublement de height) :
+                // le sizing est piloté par le CSS + tokens.
+                const prepared = withClass.replace(
+                    /<path id="battant"([^>]*)stroke-width="[^"]*"/,
+                    '<path id="battant"$1stroke-width="1" vector-effect="non-scaling-stroke"'
+                )
+                setConvoyeurProjetSvgContent(prepared)
             })
             .catch(() => {})
     }, [])

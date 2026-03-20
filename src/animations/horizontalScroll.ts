@@ -41,6 +41,8 @@ export interface ScrollValues {
     phase2EndScroll: number
     /** Fin de la phase 1 pour la fusée uniquement (px). La fusée s'anime indépendamment du déplacement de l'écran. */
     rocketPhase1EndScroll: number
+    /** Progression 0–1 du ScrollTrigger au début du bloc Expérience (pour timing handwriting / habitation). */
+    progressAtStartOfThirdBlock: number
     /** Progression 0–1 du ScrollTrigger à la fin du bloc Expérience (pour animation convoyeur). */
     progressAtEndOfThirdBlock: number
     /** Progression 0–1 du ScrollTrigger à la fin du bloc Projets (pour animation convoyeur). */
@@ -113,12 +115,13 @@ export function setupHorizontalScroll(
     const secondBlockEndPx = secondBlockEndWorld * cameraScale
 
     const phase2EarlyStartPx = Math.max(0, secondBlockStartPx - PHASE2_EARLY_START_OFFSET * cameraScale)
-    const cumulativeWorldAtEndOfThird =
+    const cumulativeWorldAtStartOfThird =
         initialScrollBlockWorld +
         scrollBeforeSecondBlockWorld +
         secondBlockDurationWorld +
-        scrollBeforeThirdBlockWorld +
-        thirdBlockDurationWorld
+        scrollBeforeThirdBlockWorld
+    const cumulativeWorldAtEndOfThird =
+        cumulativeWorldAtStartOfThird + thirdBlockDurationWorld
     const cumulativeWorldAtEndOfFourth =
         cumulativeWorldAtEndOfThird + scrollBeforeFourthBlockWorld + fourthBlockDurationWorld
     /* Début phase convoyeur : au premier quart du bloc Expérience, pour que l’animation démarre bien avant d’arriver sur Projets. */
@@ -136,6 +139,7 @@ export function setupHorizontalScroll(
         phase2EarlyStartScroll: phase2EarlyStartPx,
         phase2EndScroll: secondBlockEndPx,
         rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * cameraScale,
+        progressAtStartOfThirdBlock: cumulativeWorldAtStartOfThird / scrollDistanceWithoutMovementWorld,
         progressAtEndOfThirdBlock: cumulativeWorldAtEndOfThird / scrollDistanceWithoutMovementWorld,
         progressAtEndOfFourthBlock: cumulativeWorldAtEndOfFourth / scrollDistanceWithoutMovementWorld,
         progressAtConvoyeurPhaseStart: Math.max(0, cumulativeWorldAtConvoyeurPhaseStart / scrollDistanceWithoutMovementWorld),

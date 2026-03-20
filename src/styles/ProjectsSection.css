@@ -42,12 +42,12 @@
 }
 
 .quest-descrip-container.quest-descrip-left {
-    left: 2vw;
+    left: var(--quest-descrip-left, 2vw);
     right: auto;
 }
 
 .quest-descrip-container.quest-descrip-right {
-    right: 2vw;
+    right: var(--quest-descrip-right, 2vw);
     left: auto;
 }
 
@@ -332,8 +332,8 @@
     position: absolute;
     z-index: 1;
     background-color: color-mix(in srgb, var(--paper-color) 88%, white);
-    --paper-step: calc(0.4vmin / var(--camera-scale, 1));
-    --paper-half: calc(0.2vmin / var(--camera-scale, 1));
+    --paper-step: calc((0.4vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
+    --paper-half: calc((0.2vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
     background-image:
         repeating-linear-gradient(
             0deg,
@@ -482,7 +482,11 @@
     bottom: calc(var(--convoyeur-bottom-px, 188) / var(--camera-scale, 1) * 1px);
     width: calc(var(--convoyeur-w-px, 1481) / var(--camera-scale, 1) * 1px);
     height: auto;
-    height: calc(var(--convoyeur-h) * 1%);
+    /* Quand `--convoyeur-h` vaut `auto`, la règle `calc()` est invalide et est ignorée :
+       la hauteur retombe sur `auto`. On force alors le ratio historique du convoyeur
+       (anciennement obtenu via doublement de l'attribut `height` côté markup). */
+    aspect-ratio: 543 / 186;
+    height: calc(var(--convoyeur-h, 20.3) * 1%);
     z-index: 4;
     pointer-events: none;
 }

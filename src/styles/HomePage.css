@@ -98,8 +98,8 @@
 
 .contact-section-placeholder .contact-section-title-wrapper {
     position: absolute;
-    top: 10vh;
-    right: 6vw;
+    top: var(--contact-section-title-wrapper-top, 10vh);
+    right: var(--contact-section-title-wrapper-right, 6vw);
     left: auto;
     z-index: 2;
     display: flex;

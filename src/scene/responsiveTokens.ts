@@ -108,6 +108,415 @@ export function getT1440x900(w: number, h: number): number {
     return fw * fh
 }
 
+/** Calibration progressive 1024×768 : bump centré sur w=1024 et h=768. */
+const CALIBRATION_1024_WIDTH_MIN = 930
+const CALIBRATION_1024_WIDTH_PEAK = 1024
+const CALIBRATION_1024_WIDTH_MAX = 1110
+const CALIBRATION_1024_HEIGHT_MIN = 740
+const CALIBRATION_1024_HEIGHT_PEAK = 768
+const CALIBRATION_1024_HEIGHT_MAX = 800
+
+function getT1024x768W(w: number): number {
+    if (w <= CALIBRATION_1024_WIDTH_MIN || w >= CALIBRATION_1024_WIDTH_MAX) return 0
+    const left = smoothstep((w - CALIBRATION_1024_WIDTH_MIN) / (CALIBRATION_1024_WIDTH_PEAK - CALIBRATION_1024_WIDTH_MIN))
+    const right = 1 - smoothstep((w - CALIBRATION_1024_WIDTH_PEAK) / (CALIBRATION_1024_WIDTH_MAX - CALIBRATION_1024_WIDTH_PEAK))
+    return left * right
+}
+
+function getT1024x768H(h: number): number {
+    if (h <= CALIBRATION_1024_HEIGHT_MIN || h >= CALIBRATION_1024_HEIGHT_MAX) return 0
+    const left = smoothstep((h - CALIBRATION_1024_HEIGHT_MIN) / (CALIBRATION_1024_HEIGHT_PEAK - CALIBRATION_1024_HEIGHT_MIN))
+    const right = 1 - smoothstep((h - CALIBRATION_1024_HEIGHT_PEAK) / (CALIBRATION_1024_HEIGHT_MAX - CALIBRATION_1024_HEIGHT_PEAK))
+    return left * right
+}
+
+function getT1024x768(w: number, h: number): number {
+    const tW = getT1024x768W(w)
+    if (tW === 0) return 0
+    const tH = getT1024x768H(h)
+    if (tH === 0) return 0
+    return tW * tH
+}
+
+/** Clip cheminée calibré 1024×768 (28% vs 24% golden). */
+const CALIBRATION_1024_MASK_CHEMINE_CLIP =
+    'polygon(65% 28%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+
+/** Robot / convoyeur / fusée : pic 1024×768 (interpolation dans apply1024x768Mix). */
+const CALIBRATION_1024_ROBOT_HAND_END_X_DELTA = -2
+const CALIBRATION_1024_ROBOT_ABOVE_Y_PERCENT = 51
+const CALIBRATION_1024_CONVOYEUR = {
+    leftPx: -771,
+    bottomPx: 293,
+    wPx: 1370,
+    hPercent: 22,
+    endCorrectionXPx: 55,
+} as const
+/** X fusée : point de départ de l’interpolation (ancienne valeur snap) → cible plus précise au pic. */
+const CALIBRATION_1024_ROCKET_LANDED_X_LERP_FROM = 4644.46
+const CALIBRATION_1024_ROCKET_LANDED = {
+    xPx: 4605.46,
+    yPx: 773.304,
+    rotateDeg: 140,
+} as const
+/** Hauteur convoyeur % quand le token vaut `auto` (aligné sur le fallback CSS ~20.3). */
+const CONVOYEUR_H_AUTO_LERP_BASE_PERCENT = 20.3
+
+/**
+ * Calibration progressive 1280×800.
+ * Largeur max < 1366 pour ne pas empiéter sur 1366×768 validé.
+ * Hauteur min > 720 pour exclure 1280×720 validé.
+ */
+const CALIBRATION_1280_WIDTH_MIN = 1180
+const CALIBRATION_1280_WIDTH_PEAK = 1280
+const CALIBRATION_1280_WIDTH_MAX = 1350
+const CALIBRATION_1280_HEIGHT_MIN = 752
+const CALIBRATION_1280_HEIGHT_PEAK = 800
+const CALIBRATION_1280_HEIGHT_MAX = 848
+
+function getT1280x800W(w: number): number {
+    if (w <= CALIBRATION_1280_WIDTH_MIN || w >= CALIBRATION_1280_WIDTH_MAX) return 0
+    const left = smoothstep((w - CALIBRATION_1280_WIDTH_MIN) / (CALIBRATION_1280_WIDTH_PEAK - CALIBRATION_1280_WIDTH_MIN))
+    const right = 1 - smoothstep((w - CALIBRATION_1280_WIDTH_PEAK) / (CALIBRATION_1280_WIDTH_MAX - CALIBRATION_1280_WIDTH_PEAK))
+    return left * right
+}
+
+function getT1280x800H(h: number): number {
+    if (h <= CALIBRATION_1280_HEIGHT_MIN || h >= CALIBRATION_1280_HEIGHT_MAX) return 0
+    const left = smoothstep((h - CALIBRATION_1280_HEIGHT_MIN) / (CALIBRATION_1280_HEIGHT_PEAK - CALIBRATION_1280_HEIGHT_MIN))
+    const right = 1 - smoothstep((h - CALIBRATION_1280_HEIGHT_PEAK) / (CALIBRATION_1280_HEIGHT_MAX - CALIBRATION_1280_HEIGHT_PEAK))
+    return left * right
+}
+
+/**
+ * Calibration progressive 1280×720.
+ * Bande disjointe avec 1280×800 : hauteur max < 752.
+ */
+const CALIBRATION_1280_HEIGHT_MIN_720 = 680
+const CALIBRATION_1280_HEIGHT_PEAK_720 = 720
+const CALIBRATION_1280_HEIGHT_MAX_720 = 748
+
+function getT1280x720W(w: number): number {
+    // Même bande de largeur que 1280×800 pour éviter d’empiéter sur 1366×768.
+    return getT1280x800W(w)
+}
+
+function getT1280x720H(h: number): number {
+    if (h <= CALIBRATION_1280_HEIGHT_MIN_720 || h >= CALIBRATION_1280_HEIGHT_MAX_720) return 0
+    const left = smoothstep((h - CALIBRATION_1280_HEIGHT_MIN_720) / (CALIBRATION_1280_HEIGHT_PEAK_720 - CALIBRATION_1280_HEIGHT_MIN_720))
+    const right =
+        1 - smoothstep((h - CALIBRATION_1280_HEIGHT_PEAK_720) / (CALIBRATION_1280_HEIGHT_MAX_720 - CALIBRATION_1280_HEIGHT_PEAK_720))
+    return left * right
+}
+
+function getT1280x720(w: number, h: number): number {
+    const tW = getT1280x720W(w)
+    if (tW === 0) return 0
+    const tH = getT1280x720H(h)
+    if (tH === 0) return 0
+    return tW * tH
+}
+
+/** Clip cheminée calibré 1280×720 (spécifique à la restauration). */
+const CALIBRATION_1280_MASK_CHEMINE_CLIP_720 =
+    'polygon(65% 23%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+
+const CALIBRATION_1280_720 = {
+    // Experience / habitation
+    expHabTopPx: 389,
+    expHabLeftPx: 712,
+    expHabWPx: 1014,
+    expHabHPx: 468,
+
+    // Masks
+    maskConvoyeurBottom: 6.5,
+    maskConvoyeurHeight: 38,
+    maskChemineBottom: 18.2,
+    maskChemineHeight: 59.0,
+
+    // Paper
+    paperStepMult: 1.5,
+
+    // Convoyeur
+    convoyeurLeftPx: -688,
+    convoyeurBottomPx: 160,
+    convoyeurWPx: 1434,
+    convoyeurEndCorrectionXPx: -36,
+
+    // Robot
+    robotAboveYPercent: 48.0,
+    robotGroundYPercent: 60.0,
+    robotHandEndXDelta: -0.3,
+
+    // Rocket landing override
+    rocketLanded: { xPx: 4672, yPx: 708.16, rotateDeg: 140 },
+
+    // Ground
+    groundOvercoatTop: 67.5,
+
+    // Contact message
+    contactMessageTop: 37,
+    contactMessageTextareaFocusMtVh: 0,
+    contactMessageTextareaFocusMlVw: -0.1,
+    contactMessageTextareaFocusWidth: 95,
+    contactMessageTextareaHeightEm: 12,
+    contactMessageLabelTxVw: -5,
+    contactMessageLabelTyVh: -17.5,
+
+    // Contact arc scroll
+    contactArcScrollLeftPx: -42.5,
+    contactArcScrollTopPx: -6,
+    contactArcScrollHeightPercent: 73,
+    contactArcScrollWidthPx: 85,
+
+    // Contact prenom
+    contactPrenomTop: 6.8,
+    contactPrenomLeft: 34.5,
+    contactPrenomWidth: 13,
+    contactPrenomLabelTyVh: -2.5,
+
+    // Contact nom
+    contactNomTop: 3.5,
+    contactNomLeft: 16,
+    contactNomWidth: 13,
+    contactNomMinWidthPx: 100,
+    contactNomRotateDeg: -5,
+    contactNomLabelTyVh: -6.2,
+
+    // Contact societe
+    contactSocieteTop: 21.5,
+    contactSocieteLeft: 24,
+    contactSocieteWidth: 15.5,
+    contactSocieteLabelTxVw: -9.5,
+    contactSocieteLabelTyVh: -1.5,
+
+    // Contact email
+    contactEmailTop: 13,
+    contactEmailLeft: 40.5,
+    contactEmailWidth: 18,
+    contactEmailLabelXVh: 6,
+    contactEmailLabelTyVh: -5.0,
+
+    // Contact submit
+    contactSubmitTop: 41,
+    contactSubmitLeft: 48.5,
+    contactSubmitWidth: 12.5,
+} as const
+
+const CALIBRATION_1280_MASK_CHEMINE_CLIP =
+    'polygon(65% 25%, 179% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+
+const CALIBRATION_1280_800 = {
+    aboutHologramWidthPct: 80,
+    profileTextLeft: 59.7,
+    profileTextTop: 44,
+    aboutHologramTop: 45,
+    robotHandEndXDelta: -0.4,
+    expHabTopPx: 463,
+    expHabLeftPx: 712,
+    expHabWPx: 1000,
+    expAlien2TopPercent: 60,
+    paperStepMult: 1.2,
+    maskConvoyeurBottom: 11.5,
+    maskConvoyeurHeight: 35,
+    convoyeurLeftPx: -695,
+    convoyeurBottomPx: 200,
+    convoyeurWPx: 1404,
+    convoyeurEndCorrectionXPx: -21,
+    groundOvercoatTop: 67.5,
+    rocketLanded: { xPx: 4661.23, yPx: 809.4, rotateDeg: 140 },
+    contactNomTop: 4,
+    contactNomLeft: 16,
+    contactNomWidth: 14.5,
+    contactNomMinWidthPx: 100,
+    contactNomRotateDeg: -5,
+    contactNomLabelTyVh: -6.2,
+    contactPrenomTop: 7.3,
+    contactPrenomLeft: 36.8,
+    contactPrenomWidth: 14.5,
+    contactPrenomMinWidthPx: 100,
+    contactPrenomRotateDeg: 10,
+    contactPrenomLabelTyVh: -3.1,
+    contactPrenomInputMtEm: 0.2,
+    contactSocieteTop: 22.0,
+    contactSocieteLeft: 25,
+    contactSocieteWidth: 17,
+    contactSocieteLabelTxVw: -10,
+    contactSocieteLabelTyVh: -1.5,
+    contactEmailTop: 13.5,
+    contactEmailLeft: 43.2,
+    contactEmailWidth: 20,
+    contactEmailLabelXVh: 6,
+    contactEmailLabelTyVh: -5.0,
+    contactMessageTop: 31.5,
+    contactMessageFocusMtVh: 5.8,
+    contactMessageFocusMlVw: 0,
+    contactMessageFocusWidth: 105,
+    contactMessageLabelTop: 70.0,
+    contactMessageLabelLeft: 4,
+    contactMessageLabelTxVw: -4.0,
+    contactMessageLabelTyVh: -19.5,
+    contactMessageTextareaHeight: 13.2,
+    contactArcScrollLeftPx: -42.5,
+    contactArcScrollTopPx: 42,
+    contactArcScrollHeightPct: 61,
+    contactArcScrollWidthPx: 95,
+    contactSubmitTop: 41,
+    contactSubmitLeft: 52.3,
+    contactSubmitWidth: 14,
+} as const
+
+/**
+ * Calibration progressive 1600×900.
+ * w_min > 1536 : 1536×864 reste hors bande.
+ * h_min > 848 : disjoint de la bande haute du mix 1280×800 (≤ 848).
+ * h_max < 945 : 1920×945 et 1920×1080 hors bande hauteur.
+ */
+const CALIBRATION_1600_WIDTH_MIN = 1545
+const CALIBRATION_1600_WIDTH_PEAK = 1600
+const CALIBRATION_1600_WIDTH_MAX = 1685
+const CALIBRATION_1600_HEIGHT_MIN = 858
+const CALIBRATION_1600_HEIGHT_PEAK = 900
+const CALIBRATION_1600_HEIGHT_MAX = 942
+
+function getT1600x900W(w: number): number {
+    if (w <= CALIBRATION_1600_WIDTH_MIN || w >= CALIBRATION_1600_WIDTH_MAX) return 0
+    const left = smoothstep((w - CALIBRATION_1600_WIDTH_MIN) / (CALIBRATION_1600_WIDTH_PEAK - CALIBRATION_1600_WIDTH_MIN))
+    const right = 1 - smoothstep((w - CALIBRATION_1600_WIDTH_PEAK) / (CALIBRATION_1600_WIDTH_MAX - CALIBRATION_1600_WIDTH_PEAK))
+    return left * right
+}
+
+function getT1600x900H(h: number): number {
+    if (h <= CALIBRATION_1600_HEIGHT_MIN || h >= CALIBRATION_1600_HEIGHT_MAX) return 0
+    const left = smoothstep((h - CALIBRATION_1600_HEIGHT_MIN) / (CALIBRATION_1600_HEIGHT_PEAK - CALIBRATION_1600_HEIGHT_MIN))
+    const right = 1 - smoothstep((h - CALIBRATION_1600_HEIGHT_PEAK) / (CALIBRATION_1600_HEIGHT_MAX - CALIBRATION_1600_HEIGHT_PEAK))
+    return left * right
+}
+
+/**
+ * Bande calibration 1680×1050 (t lissé) :
+ * - centré sur w=1680 / h=1050
+ * - borné en hauteur (max < 1080) pour ne jamais toucher aux résolutions validées (ex. 1920×1080).
+ */
+const CALIBRATION_1680_1050_WIDTH_MIN = 1640
+const CALIBRATION_1680_1050_WIDTH_PEAK = 1680
+const CALIBRATION_1680_1050_WIDTH_MAX = 1725
+const CALIBRATION_1680_1050_HEIGHT_MIN = 1010
+const CALIBRATION_1680_1050_HEIGHT_PEAK = 1050
+const CALIBRATION_1680_1050_HEIGHT_MAX = 1068
+
+function getT1680x1050W(w: number): number {
+    if (w <= CALIBRATION_1680_1050_WIDTH_MIN || w >= CALIBRATION_1680_1050_WIDTH_MAX) return 0
+    const left = smoothstep((w - CALIBRATION_1680_1050_WIDTH_MIN) / (CALIBRATION_1680_1050_WIDTH_PEAK - CALIBRATION_1680_1050_WIDTH_MIN))
+    const right =
+        1 - smoothstep((w - CALIBRATION_1680_1050_WIDTH_PEAK) / (CALIBRATION_1680_1050_WIDTH_MAX - CALIBRATION_1680_1050_WIDTH_PEAK))
+    return left * right
+}
+
+function getT1680x1050H(h: number): number {
+    if (h <= CALIBRATION_1680_1050_HEIGHT_MIN || h >= CALIBRATION_1680_1050_HEIGHT_MAX) return 0
+    const left = smoothstep((h - CALIBRATION_1680_1050_HEIGHT_MIN) / (CALIBRATION_1680_1050_HEIGHT_PEAK - CALIBRATION_1680_1050_HEIGHT_MIN))
+    const right =
+        1 - smoothstep((h - CALIBRATION_1680_1050_HEIGHT_PEAK) / (CALIBRATION_1680_1050_HEIGHT_MAX - CALIBRATION_1680_1050_HEIGHT_PEAK))
+    return left * right
+}
+
+function getT1680x1050(w: number, h: number): number {
+    const tW = getT1680x1050W(w)
+    if (tW === 0) return 0
+    const tH = getT1680x1050H(h)
+    if (tH === 0) return 0
+    return tW * tH
+}
+
+/**
+ * Bande calibration 2560×1440 (t lissé).
+ * - fenêtre bornée pour ne pas intersecter les résolutions validées (w <= 1920, h <= 1080).
+ * - inclut progressivement autour : ~2500×1400 et ~2600×1460.
+ */
+const CALIBRATION_2560_1440_WIDTH_MIN = 2380
+const CALIBRATION_2560_1440_WIDTH_PEAK = 2560
+const CALIBRATION_2560_1440_WIDTH_MAX = 2725
+const CALIBRATION_2560_1440_HEIGHT_MIN = 1320
+const CALIBRATION_2560_1440_HEIGHT_PEAK = 1440
+const CALIBRATION_2560_1440_HEIGHT_MAX = 1525
+
+function getT2560x1440W(w: number): number {
+    if (w <= CALIBRATION_2560_1440_WIDTH_MIN || w >= CALIBRATION_2560_1440_WIDTH_MAX) return 0
+    const left = smoothstep((w - CALIBRATION_2560_1440_WIDTH_MIN) / (CALIBRATION_2560_1440_WIDTH_PEAK - CALIBRATION_2560_1440_WIDTH_MIN))
+    const right =
+        1 - smoothstep((w - CALIBRATION_2560_1440_WIDTH_PEAK) / (CALIBRATION_2560_1440_WIDTH_MAX - CALIBRATION_2560_1440_WIDTH_PEAK))
+    return left * right
+}
+
+function getT2560x1440H(h: number): number {
+    if (h <= CALIBRATION_2560_1440_HEIGHT_MIN || h >= CALIBRATION_2560_1440_HEIGHT_MAX) return 0
+    const left = smoothstep((h - CALIBRATION_2560_1440_HEIGHT_MIN) / (CALIBRATION_2560_1440_HEIGHT_PEAK - CALIBRATION_2560_1440_HEIGHT_MIN))
+    const right =
+        1 - smoothstep((h - CALIBRATION_2560_1440_HEIGHT_PEAK) / (CALIBRATION_2560_1440_HEIGHT_MAX - CALIBRATION_2560_1440_HEIGHT_PEAK))
+    return left * right
+}
+
+function getT2560x1440(w: number, h: number): number {
+    const tW = getT2560x1440W(w)
+    if (tW === 0) return 0
+    const tH = getT2560x1440H(h)
+    if (tH === 0) return 0
+    return tW * tH
+}
+
+const CALIBRATION_1600_MASK_CHEMINE_CLIP =
+    'polygon(100% 2%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+
+const CALIBRATION_1600_900 = {
+    expHabTopPx: 500,
+    expHabLeftPx: 875,
+    expHabWPx: 1164,
+    expHabHPx: 585,
+    maskChemineBottom: 30.5,
+    maskChemineHeight: 43.5,
+    expAlien2TopPercent: 47.2,
+    maskConvoyeurBottom: 10,
+    maskConvoyeurHeight: 35,
+    groundOvercoatTop: 53.7,
+    convoyeurLeftPx: -1024,
+    convoyeurBottomPx: 639,
+    convoyeurWPx: 1957,
+    convoyeurHPercent: 20,
+    convoyeurEndCorrectionXPx: -28,
+    contactNomWidth: 13,
+    contactPrenomTop: 5.2,
+    contactPrenomLeft: 35.5,
+    contactPrenomWidth: 13,
+    contactPrenomMinWidthPx: 100,
+    contactPrenomRotateDeg: 10.0,
+    contactPrenomLabelTyVh: -2.1,
+    contactPrenomInputMtEm: 0.2,
+    contactSocieteTop: 16.5,
+    contactSocieteLeft: 24.7,
+    contactSocieteWidth: 15.5,
+    contactSocieteLabelTxVw: -7.3,
+    contactSocieteLabelTyVh: -1,
+    contactEmailTop: 10,
+    contactEmailLeft: 41.2,
+    contactEmailWidth: 18.0,
+    contactEmailLabelXVh: 5.2,
+    contactEmailLabelTyVh: -4.5,
+    contactMessageTop: 28.8,
+    contactMessageFocusMtVh: 0.4,
+    contactMessageFocusMlVw: 0.2,
+    contactMessageFocusWidth: 95,
+    contactMessageLabelTop: 55.1,
+    contactMessageLabelLeft: 1,
+    contactMessageLabelTxVw: -4.0,
+    contactMessageLabelTyVh: -14.1,
+    contactMessageTextareaHeight: 11.75,
+    contactSubmitTop: 32,
+    contactSubmitLeft: 49,
+    contactSubmitWidth: 13,
+    rocketLanded: { xPx: 4606.43, yPx: 812.211, rotateDeg: 140 },
+} as const
+
 /** Calibration 1440×900 : point intermédiaire (largeur entre 1366 et 1536, hauteur 900). */
 const CALIBRATION_1440_900 = {
     homeMynameFontSizeBaseVw: 6,
@@ -137,8 +546,9 @@ const CALIBRATION_1440_900 = {
     convoyeurWPx: 1762,
     convoyeurH: 20.3,
     /** Robot */
-    robotAboveYPercent: 27.6,
-    robotGroundYPercent: 46.8,
+    robotAboveYPercent: 38.6,
+    robotGroundYPercent: 47.8,
+    robotHandEndXDeltaVw: 0.4,
     /** Contact / SVG */
     contactSvgTop: 29,
     contactSvgHeightVh: 50,
@@ -168,6 +578,11 @@ const CALIBRATION_1440_900 = {
     contactMessageLabelTxVw: -5,
     contactMessageLabelTyVh: -14.1,
     contactMessageTextareaHeightEm: 11.8,
+    /** Contact submit (button) */
+    contactSubmitTop: 32,
+    contactSubmitLeft: 48.3,
+    /** Rocket landing (override GSAP ended state) */
+    rocketLanded: { xPx: 4631.38, yPx: 812.7, rotateDeg: 140 },
 } as const
 
 /** Preset 1920×1080 (valeurs numériques : % stockés en nombre, vh/vw idem). Typo delta -2 pour rendu correct à 1920. */
@@ -369,6 +784,31 @@ function parsePx(s: string, fallback: number): number {
     return Number.isNaN(n) ? fallback : n
 }
 
+function formatClipPolygonNumber(n: number): string {
+    // 1 décimale max dans les tokens DevTools (ex: 45.5) ; on évite aussi les ".0".
+    const r = Math.round(n * 10) / 10
+    const s = r.toFixed(1)
+    return s.endsWith('.0') ? s.slice(0, -2) : s
+}
+
+function lerpPolygonClipRaw(a: string, b: string, t: number): string {
+    // Interpolation numérique simple des tokens polygon("x% y%, ...") sans refactoriser le design.
+    const numsA = a.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? null
+    const numsB = b.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? null
+    if (!numsA || !numsB || numsA.length !== numsB.length || numsA.length < 4 || numsA.length % 2 !== 0) {
+        return t < 0.5 ? a : b
+    }
+
+    const outNums = numsA.map((v, i) => lerp(v, numsB[i], t))
+    const pairs: string[] = []
+    for (let i = 0; i < outNums.length; i += 2) {
+        const x = formatClipPolygonNumber(outNums[i])
+        const y = formatClipPolygonNumber(outNums[i + 1])
+        pairs.push(`${x}% ${y}%`)
+    }
+    return `polygon(${pairs.join(', ')})`
+}
+
 /** Applique le mix midDesktop (1536×864). w/h = viewport officiel (getResponsiveViewport). */
 function applyMidDesktopMix(
     cssVars: Record<string, string>,
@@ -480,6 +920,7 @@ function applyMidDesktopMix(
     const contactMsgMlVw = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5')
     const contactMsgWidth = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
     cssVars['--contact-message-top'] = String(lerp(contactMsgTop, MID_1536_864.contactMessageTop, tMid).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
     cssVars['--contact-message-label-top'] = String(lerp(contactMsgLabelTop, MID_1536_864.contactMessageLabelTop, tMid).toFixed(1))
     cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(contactMsgMtVh, MID_1536_864.contactMessageTextareaFocusMtVh, tMid).toFixed(1))
     cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(contactMsgMlVw, MID_1536_864.contactMessageTextareaFocusMlVw, tMid).toFixed(1))
@@ -487,6 +928,1667 @@ function applyMidDesktopMix(
 
     const contactMsgTyVh = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
     cssVars['--contact-message-label-ty-vh'] = String(lerp(contactMsgTyVh, MID_1536_864.contactMessageLabelTyVh, tMid).toFixed(1))
+}
+
+/** Applique le mix calibration progressive 1024×768. */
+function apply1024x768Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT1024x768W(w)
+    const tH = getT1024x768H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    if (t > 0.999) {
+        // Bloc 1 — About / hologram, profil, titre quête, alien/habitation, masques
+        cssVars['--about-hologram-width'] = '80vw'
+        cssVars['--about-hologram-top'] = '45'
+        cssVars['--profile-text-left'] = '56'
+        cssVars['--profile-text-top'] = '45'
+        cssVars['--quest-titre-top'] = '2vh'
+        cssVars['--quest-titre-left'] = '12vw'
+        cssVars['--quest-titre-max-width'] = '77vw'
+        cssVars['--exp-alien2-left-px'] = '38.04'
+        cssVars['--exp-alien2-top-percent'] = '60'
+        cssVars['--exp-alien2-width-px'] = '90'
+        cssVars['--exp-hab-top-px'] = '445'
+        cssVars['--exp-hab-left-px'] = '665'
+        cssVars['--exp-hab-w-px'] = '833'
+        cssVars['--exp-hab-h-px'] = '499'
+        cssVars['--mask-chemine-bottom'] = '18'
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1024_MASK_CHEMINE_CLIP
+        cssVars['--mask-convoyeur-bottom'] = '16'
+        cssVars['--mask-convoyeur-height'] = '30'
+
+        // Robot / convoyeur / fusée (1024×768)
+        cssVars['--robot-hand-end-x-delta'] = String(CALIBRATION_1024_ROBOT_HAND_END_X_DELTA)
+        cssVars['--robot-above-y-percent'] = String(CALIBRATION_1024_ROBOT_ABOVE_Y_PERCENT)
+        cssVars['--convoyeur-left-px'] = String(CALIBRATION_1024_CONVOYEUR.leftPx)
+        cssVars['--convoyeur-bottom-px'] = String(CALIBRATION_1024_CONVOYEUR.bottomPx)
+        cssVars['--convoyeur-w-px'] = String(CALIBRATION_1024_CONVOYEUR.wPx)
+        cssVars['--convoyeur-h'] = String(CALIBRATION_1024_CONVOYEUR.hPercent)
+        cssVars['--convoyeur-end-correction-x-px'] = String(CALIBRATION_1024_CONVOYEUR.endCorrectionXPx)
+        cssVars['--rocket-landed-x-px'] = String(CALIBRATION_1024_ROCKET_LANDED.xPx)
+        cssVars['--rocket-landed-y-px'] = String(CALIBRATION_1024_ROCKET_LANDED.yPx)
+        cssVars['--rocket-landed-rotate-deg'] = String(CALIBRATION_1024_ROCKET_LANDED.rotateDeg)
+
+        // Global / paper
+        cssVars['--paper-step-mult'] = '1.5'
+
+        // Quest / descriptions
+        cssVars['--quest-descrip-left'] = '12vw'
+        cssVars['--quest-descrip-right'] = '12vw'
+
+        // Projets
+        cssVars['--projets-text-right'] = '17vw'
+
+        // Contact / titre (right)
+        cssVars['--contact-section-title-wrapper-right'] = '16vw'
+        cssVars['--contact-section-title-wrapper-top'] = '10vh'
+
+        // Contact / labels & champs
+        cssVars['--contact-societe-label-tx-vw'] = '-11.5'
+        cssVars['--contact-nom-label-ty-vh'] = '-6.2'
+        cssVars['--contact-prenom-top'] = '7.2'
+        cssVars['--contact-prenom-input-mt-em'] = '0'
+        cssVars['--contact-prenom-label-ty-vh'] = '-3.1'
+        cssVars['--contact-email-label-x-vh'] = '6'
+
+        cssVars['--contact-message-textarea-focus-mt-vh'] = '0'
+        cssVars['--contact-message-textarea-focus-ml-vw'] = '0'
+        cssVars['--contact-message-textarea-focus-width'] = '100'
+
+        cssVars['--contact-message-label-top'] = '52'
+        cssVars['--contact-message-label-left'] = '1'
+        cssVars['--contact-message-label-tx-vw'] = '-5'
+        cssVars['--contact-message-label-ty-vh'] = '-16.5'
+        cssVars['--contact-message-textarea-height'] = '12.8'
+
+        // Contact / arc scroll
+        cssVars['--contact-arc-scroll-left'] = '-43.5px'
+        cssVars['--contact-arc-scroll-top'] = '0'
+        cssVars['--contact-arc-scroll-height'] = '70%'
+        cssVars['--contact-arc-scroll-width'] = '90px'
+
+        return
+    }
+
+    // Bloc 1 — progression vers les mêmes cibles (évite un palier 1024 « isolé » : t = tW * tH)
+    const holoTopBase = parsePercent(cssVars['--about-hologram-top'] ?? '42')
+    cssVars['--about-hologram-top'] = String(lerp(holoTopBase, 45, t).toFixed(1))
+    const holoWidthRaw = (cssVars['--about-hologram-width'] ?? '').trim()
+    let holoWidthVwBase = parseVw(holoWidthRaw)
+    if (holoWidthRaw.toLowerCase() === 'auto' || holoWidthVwBase === 0) {
+        holoWidthVwBase = (513 / Math.max(1, w)) * 100
+    }
+    cssVars['--about-hologram-width'] = `${lerp(holoWidthVwBase, 80, t).toFixed(2)}vw`
+
+    const profileLeftBase = parsePercent(cssVars['--profile-text-left'] ?? '64')
+    const profileTopBase = parsePercent(cssVars['--profile-text-top'] ?? '41')
+    cssVars['--profile-text-left'] = String(lerp(profileLeftBase, 56, t).toFixed(1))
+    cssVars['--profile-text-top'] = String(lerp(profileTopBase, 45, t).toFixed(1))
+
+    const questTitreTopVh = parseVh(cssVars['--quest-titre-top'] ?? '5vh')
+    const questTitreLeftVw = parseVw(cssVars['--quest-titre-left'] ?? '2vw')
+    const questTitreMaxWVw = parseVw(cssVars['--quest-titre-max-width'] ?? '50vw')
+    cssVars['--quest-titre-top'] = `${lerp(questTitreTopVh, 2, t).toFixed(2)}vh`
+    cssVars['--quest-titre-left'] = `${lerp(questTitreLeftVw, 12, tW).toFixed(2)}vw`
+    cssVars['--quest-titre-max-width'] = `${lerp(questTitreMaxWVw, 77, tW).toFixed(2)}vw`
+
+    const alien2LeftBase = parseFloat(cssVars['--exp-alien2-left-px'] ?? '0') || 0
+    const alien2WidthBase = parseFloat(cssVars['--exp-alien2-width-px'] ?? '90') || 90
+    cssVars['--exp-alien2-left-px'] = String(lerp(alien2LeftBase, 38.04, tW).toFixed(2))
+    cssVars['--exp-alien2-width-px'] = String(lerp(alien2WidthBase, 90, tW).toFixed(2))
+
+    const expHabTopBase = parsePx(cssVars['--exp-hab-top-px'] ?? '', 445)
+    const expHabLeftBase = parsePx(cssVars['--exp-hab-left-px'] ?? '', 665)
+    const expHabWBase = parsePx(cssVars['--exp-hab-w-px'] ?? '', 833)
+    const expHabHBase = parsePx(cssVars['--exp-hab-h-px'] ?? '', 499)
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(expHabTopBase, 445, t)))
+    cssVars['--exp-hab-left-px'] = String(Math.round(lerp(expHabLeftBase, 665, t)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(expHabWBase, 833, t)))
+    cssVars['--exp-hab-h-px'] = String(Math.round(lerp(expHabHBase, 499, t)))
+
+    const maskChemBottomBase = parsePercent(cssVars['--mask-chemine-bottom'] ?? '18')
+    const maskConvBottomBase = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5')
+    const maskConvHeightBase = parsePercent(cssVars['--mask-convoyeur-height'] ?? '37')
+    cssVars['--mask-chemine-bottom'] = String(lerp(maskChemBottomBase, 18, tH).toFixed(1))
+    cssVars['--mask-convoyeur-bottom'] = String(lerp(maskConvBottomBase, 16, tH).toFixed(1))
+    cssVars['--mask-convoyeur-height'] = String(lerp(maskConvHeightBase, 30, tH).toFixed(1))
+    if (t > 0.985) {
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1024_MASK_CHEMINE_CLIP
+    }
+
+    // Robot (1024×768) : delta main → largeur ; above Y → hauteur
+    const robotHandDeltaBase = parseFloat(cssVars['--robot-hand-end-x-delta'] ?? '0') || 0
+    cssVars['--robot-hand-end-x-delta'] = String(
+        lerp(robotHandDeltaBase, CALIBRATION_1024_ROBOT_HAND_END_X_DELTA, tW).toFixed(1)
+    )
+    const robotAboveBase = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
+    cssVars['--robot-above-y-percent'] = String(
+        lerp(robotAboveBase, CALIBRATION_1024_ROBOT_ABOVE_Y_PERCENT, tH).toFixed(1)
+    )
+
+    // Convoyeur : left / largeur / correction X → tW ; bottom / hauteur % → tH
+    const cvLeftB = parsePx(cssVars['--convoyeur-left-px'] ?? '', CONVOYEUR_GOLDEN.leftPx)
+    const cvBottomB = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', CONVOYEUR_GOLDEN.bottomPx)
+    const cvWB = parsePx(cssVars['--convoyeur-w-px'] ?? '', CONVOYEUR_GOLDEN.wPx)
+    const cvEndB = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', getConvoyeurEndCorrectionPx(w, h))
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(cvLeftB, CALIBRATION_1024_CONVOYEUR.leftPx, tW)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(cvBottomB, CALIBRATION_1024_CONVOYEUR.bottomPx, tH)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(cvWB, CALIBRATION_1024_CONVOYEUR.wPx, tW)))
+    cssVars['--convoyeur-end-correction-x-px'] = String(
+        Math.round(lerp(cvEndB, CALIBRATION_1024_CONVOYEUR.endCorrectionXPx, tW))
+    )
+    const cvHRaw = (cssVars['--convoyeur-h'] ?? 'auto').trim()
+    const cvHBase =
+        cvHRaw === 'auto' || cvHRaw === '' ? CONVOYEUR_H_AUTO_LERP_BASE_PERCENT : parsePercent(cvHRaw)
+    cssVars['--convoyeur-h'] = String(lerp(cvHBase, CALIBRATION_1024_CONVOYEUR.hPercent, tH).toFixed(1))
+
+    // Fusée atterrissage : X interpolé sur tW (continuité depuis l’ancienne calibration snap)
+    cssVars['--rocket-landed-x-px'] = String(
+        lerp(CALIBRATION_1024_ROCKET_LANDED_X_LERP_FROM, CALIBRATION_1024_ROCKET_LANDED.xPx, tW).toFixed(2)
+    )
+    cssVars['--rocket-landed-y-px'] = String(CALIBRATION_1024_ROCKET_LANDED.yPx)
+    cssVars['--rocket-landed-rotate-deg'] = String(CALIBRATION_1024_ROCKET_LANDED.rotateDeg)
+
+    // Progression (dépendance dominante : W pour X/vw, H pour Y/%/vh)
+    // Global / paper
+    const paperStepMultBase = parseFloat(cssVars['--paper-step-mult'] ?? '1') || 1
+    cssVars['--paper-step-mult'] = String(lerp(paperStepMultBase, 1.5, t).toFixed(3))
+
+    // Quest / descriptions
+    const questDescripLeftBase = parseVw(cssVars['--quest-descrip-left'] ?? '2vw')
+    const questDescripRightBase = parseVw(cssVars['--quest-descrip-right'] ?? '2vw')
+    cssVars['--quest-descrip-left'] = `${lerp(questDescripLeftBase, 12, tW).toFixed(2)}vw`
+    cssVars['--quest-descrip-right'] = `${lerp(questDescripRightBase, 12, tW).toFixed(2)}vw`
+
+    // Experience / alien
+    const alien2TopBase = parsePercent(cssVars['--exp-alien2-top-percent'] ?? '59.5')
+    cssVars['--exp-alien2-top-percent'] = String(lerp(alien2TopBase, 60, tH).toFixed(1))
+
+    // Projets
+    const projetsTextRightBase = parseVw(cssVars['--projets-text-right'] ?? '10vw')
+    cssVars['--projets-text-right'] = `${lerp(projetsTextRightBase, 17, tW).toFixed(2)}vw`
+
+    // Contact / titre (right)
+    const contactTitleRightBase = parseVw(cssVars['--contact-section-title-wrapper-right'] ?? '6vw')
+    cssVars['--contact-section-title-wrapper-right'] = `${lerp(contactTitleRightBase, 16, tW).toFixed(2)}vw`
+    cssVars['--contact-section-title-wrapper-top'] = '10vh'
+
+    // Contact / labels & champs
+    const societeLabelTxVwBase = parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5')
+    const nomLabelTyVhBase = parseVh(cssVars['--contact-nom-label-ty-vh'] ?? '-9.2')
+    const prenomTopBase = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const prenomLabelTyVhBase = parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1')
+    const emailLabelXBase = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0')
+
+    cssVars['--contact-societe-label-tx-vw'] = String(lerp(societeLabelTxVwBase, -11.5, tW).toFixed(1))
+    cssVars['--contact-nom-label-ty-vh'] = String(lerp(nomLabelTyVhBase, -6.2, tH).toFixed(1))
+    cssVars['--contact-prenom-top'] = String(lerp(prenomTopBase, 7.2, tH).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = String(lerp(prenomLabelTyVhBase, -3.1, tH).toFixed(1))
+    const prenomInputMtEmBase = parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5') || -0.5
+    cssVars['--contact-prenom-input-mt-em'] = String(lerp(prenomInputMtEmBase, 0, tH).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = String(lerp(emailLabelXBase, 6, tH).toFixed(1))
+
+    const focusMtVhBase = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8')
+    const focusMlVwBase = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5')
+    const focusWidthBase = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
+
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(focusMtVhBase, 0, tH).toFixed(2))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(focusMlVwBase, 0, tW).toFixed(2))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(focusWidthBase, 100, tW)))
+
+    const messageLabelTopBase = parsePercent(cssVars['--contact-message-label-top'] ?? '70')
+    const messageLabelLeftBase = parsePercent(cssVars['--contact-message-label-left'] ?? '0')
+    const messageLabelTxVwBase = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4')
+    const messageLabelTyVhBase = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5')
+    const textareaHeightBase = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+
+    cssVars['--contact-message-label-top'] = String(lerp(messageLabelTopBase, 52, tH).toFixed(1))
+    cssVars['--contact-message-label-left'] = (() => {
+        const out = lerp(messageLabelLeftBase, 1, tW)
+        return Math.abs(out) < 0.0001 ? '0' : String(out.toFixed(2))
+    })()
+    cssVars['--contact-message-label-tx-vw'] = String(lerp(messageLabelTxVwBase, -5, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = String(lerp(messageLabelTyVhBase, -16.5, tH).toFixed(1))
+    cssVars['--contact-message-textarea-height'] = String(lerp(textareaHeightBase, 12.8, tH).toFixed(2))
+
+    // Contact / arc scroll (X dépend largeur, Y dépend hauteur)
+    const arcScrollLeftBase = parsePx(cssVars['--contact-arc-scroll-left'] ?? '', -36.5)
+    const arcScrollTopBase = parseFloat(cssVars['--contact-arc-scroll-top'] ?? '0') || 0
+    const arcScrollHeightBase = parsePercent(cssVars['--contact-arc-scroll-height'] ?? '70')
+    const arcScrollWidthBase = parsePx(cssVars['--contact-arc-scroll-width'] ?? '', 84)
+
+    cssVars['--contact-arc-scroll-left'] = `${lerp(arcScrollLeftBase, -43.5, tW).toFixed(1)}px`
+    cssVars['--contact-arc-scroll-top'] = String(Math.round(lerp(arcScrollTopBase, 0, tH)))
+    cssVars['--contact-arc-scroll-height'] = `${Math.round(lerp(arcScrollHeightBase, 70, tH))}%`
+    cssVars['--contact-arc-scroll-width'] = `${Math.round(lerp(arcScrollWidthBase, 90, tW))}px`
+}
+
+/**
+ * Applique le mix calibration progressive 1280×720.
+ * Bande (largeur identique à 1280×800) × (hauteur 680–748, pic 720).
+ */
+function apply1280x720Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT1280x720W(w)
+    const tH = getT1280x720H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const C = CALIBRATION_1280_720
+
+    // Convoyeur : ratio stable -> token 'auto' dans toute la bande.
+    cssVars['--convoyeur-h'] = 'auto'
+
+    if (t > 0.999) {
+        // Experience
+        cssVars['--exp-hab-top-px'] = String(C.expHabTopPx)
+        cssVars['--exp-hab-left-px'] = String(C.expHabLeftPx)
+        cssVars['--exp-hab-w-px'] = String(C.expHabWPx)
+        cssVars['--exp-hab-h-px'] = String(C.expHabHPx)
+
+        // Masks
+        cssVars['--mask-convoyeur-bottom'] = String(C.maskConvoyeurBottom)
+        cssVars['--mask-convoyeur-height'] = String(C.maskConvoyeurHeight)
+        cssVars['--mask-chemine-bottom'] = String(C.maskChemineBottom)
+        cssVars['--mask-chemine-height'] = C.maskChemineHeight.toFixed(1)
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1280_MASK_CHEMINE_CLIP_720
+
+        // Global / papier
+        cssVars['--paper-step-mult'] = String(C.paperStepMult)
+
+        // Convoyeur
+        cssVars['--convoyeur-left-px'] = String(C.convoyeurLeftPx)
+        cssVars['--convoyeur-bottom-px'] = String(C.convoyeurBottomPx)
+        cssVars['--convoyeur-w-px'] = String(C.convoyeurWPx)
+        cssVars['--convoyeur-end-correction-x-px'] = String(C.convoyeurEndCorrectionXPx)
+
+        // Robot
+        cssVars['--robot-above-y-percent'] = C.robotAboveYPercent.toFixed(1)
+        cssVars['--robot-ground-y-percent'] = C.robotGroundYPercent.toFixed(1)
+        cssVars['--robot-hand-end-x-delta'] = String(C.robotHandEndXDelta)
+
+        // Rocket landing
+        cssVars['--rocket-landed-x-px'] = String(C.rocketLanded.xPx)
+        cssVars['--rocket-landed-y-px'] = String(C.rocketLanded.yPx)
+        cssVars['--rocket-landed-rotate-deg'] = String(C.rocketLanded.rotateDeg)
+
+        // Ground
+        cssVars['--ground-overcoat-top'] = String(C.groundOvercoatTop)
+
+        // Contact message + focus
+        cssVars['--contact-message-top'] = String(C.contactMessageTop)
+        cssVars['--contact-message-left'] = '19'
+        cssVars['--contact-message-textarea-focus-mt-vh'] = String(C.contactMessageTextareaFocusMtVh)
+        cssVars['--contact-message-textarea-focus-ml-vw'] = String(C.contactMessageTextareaFocusMlVw)
+        cssVars['--contact-message-textarea-focus-width'] = String(C.contactMessageTextareaFocusWidth)
+        cssVars['--contact-message-textarea-height'] = String(C.contactMessageTextareaHeightEm)
+
+        // Arc scroll
+        cssVars['--contact-arc-scroll-left'] = `${C.contactArcScrollLeftPx}px`
+        cssVars['--contact-arc-scroll-top'] = String(C.contactArcScrollTopPx)
+        cssVars['--contact-arc-scroll-height'] = `${C.contactArcScrollHeightPercent}%`
+        cssVars['--contact-arc-scroll-width'] = `${C.contactArcScrollWidthPx}px`
+
+        // Contact prenom
+        cssVars['--contact-prenom-top'] = String(C.contactPrenomTop)
+        cssVars['--contact-prenom-left'] = String(C.contactPrenomLeft)
+        cssVars['--contact-prenom-width'] = String(C.contactPrenomWidth)
+        cssVars['--contact-prenom-label-ty-vh'] = String(C.contactPrenomLabelTyVh)
+
+        // Contact nom
+        cssVars['--contact-nom-top'] = String(C.contactNomTop)
+        cssVars['--contact-nom-left'] = String(C.contactNomLeft)
+        cssVars['--contact-nom-width'] = String(C.contactNomWidth)
+        cssVars['--contact-nom-min-width-px'] = String(C.contactNomMinWidthPx)
+        cssVars['--contact-nom-rotate-deg'] = String(C.contactNomRotateDeg)
+        cssVars['--contact-nom-label-ty-vh'] = String(C.contactNomLabelTyVh)
+
+        // Contact societe
+        cssVars['--contact-societe-top'] = String(C.contactSocieteTop)
+        cssVars['--contact-societe-left'] = String(C.contactSocieteLeft)
+        cssVars['--contact-societe-width'] = String(C.contactSocieteWidth)
+        cssVars['--contact-societe-label-tx-vw'] = String(C.contactSocieteLabelTxVw)
+        cssVars['--contact-societe-label-ty-vh'] = String(C.contactSocieteLabelTyVh)
+
+        // Contact email
+        cssVars['--contact-email-top'] = String(C.contactEmailTop)
+        cssVars['--contact-email-left'] = String(C.contactEmailLeft)
+        cssVars['--contact-email-width'] = String(C.contactEmailWidth)
+        cssVars['--contact-email-label-x-vh'] = String(C.contactEmailLabelXVh)
+        cssVars['--contact-email-label-ty-vh'] = C.contactEmailLabelTyVh.toFixed(1)
+
+        // Message label (tx/ty)
+        cssVars['--contact-message-label-tx-vw'] = String(C.contactMessageLabelTxVw)
+        cssVars['--contact-message-label-ty-vh'] = String(C.contactMessageLabelTyVh)
+
+        // Submit
+        cssVars['--contact-submit-top'] = String(C.contactSubmitTop)
+        cssVars['--contact-submit-left'] = String(C.contactSubmitLeft)
+        cssVars['--contact-submit-width'] = String(C.contactSubmitWidth)
+        return
+    }
+
+    // Experience / habitation
+    const expTopB = parsePx(cssVars['--exp-hab-top-px'] ?? '', EXP_HAB_GOLDEN.topPx)
+    const expLeftB = parsePx(cssVars['--exp-hab-left-px'] ?? '', EXP_HAB_GOLDEN.leftPx)
+    const expWB = parsePx(cssVars['--exp-hab-w-px'] ?? '', EXP_HAB_GOLDEN.wPx)
+    const expHB = parsePx(cssVars['--exp-hab-h-px'] ?? '', EXP_HAB_GOLDEN.hPx)
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(expTopB, C.expHabTopPx, tH)))
+    cssVars['--exp-hab-left-px'] = String(Math.round(lerp(expLeftB, C.expHabLeftPx, tW)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(expWB, C.expHabWPx, tW)))
+    cssVars['--exp-hab-h-px'] = String(Math.round(lerp(expHB, C.expHabHPx, tH)))
+
+    // Masks (%, vertical)
+    const maskConvBottomB = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5%') || 8.5
+    const maskConvHeightB = parsePercent(cssVars['--mask-convoyeur-height'] ?? '37%') || 37
+    const maskChemBottomB = parsePercent(cssVars['--mask-chemine-bottom'] ?? '18') || 18
+    const maskChemHeightB = parsePercent(cssVars['--mask-chemine-height'] ?? '59') || 59
+    cssVars['--mask-convoyeur-bottom'] = String(lerp(maskConvBottomB, C.maskConvoyeurBottom, tH).toFixed(1))
+    cssVars['--mask-convoyeur-height'] = String(lerp(maskConvHeightB, C.maskConvoyeurHeight, tH).toFixed(1))
+    cssVars['--mask-chemine-bottom'] = String(lerp(maskChemBottomB, C.maskChemineBottom, tH).toFixed(1))
+    cssVars['--mask-chemine-height'] = String(lerp(maskChemHeightB, C.maskChemineHeight, tH).toFixed(1))
+    if (t > 0.985) cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1280_MASK_CHEMINE_CLIP_720
+
+    // Papier
+    const paperStepMultBase = parseFloat(cssVars['--paper-step-mult'] ?? '1') || 1
+    cssVars['--paper-step-mult'] = String(lerp(paperStepMultBase, C.paperStepMult, t).toFixed(3))
+
+    // Convoyeur
+    const cvLeftB = parsePx(cssVars['--convoyeur-left-px'] ?? '', CONVOYEUR_GOLDEN.leftPx)
+    const cvBottomB = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', CONVOYEUR_GOLDEN.bottomPx)
+    const cvWB = parsePx(cssVars['--convoyeur-w-px'] ?? '', CONVOYEUR_GOLDEN.wPx)
+    const cvEndB = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', getConvoyeurEndCorrectionPx(w, h))
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(cvLeftB, C.convoyeurLeftPx, tW)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(cvBottomB, C.convoyeurBottomPx, tH)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(cvWB, C.convoyeurWPx, tW)))
+    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(cvEndB, C.convoyeurEndCorrectionXPx, tW)))
+
+    // Robot
+    const robotAboveBase = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
+    const robotGroundBase = parseFloat(cssVars['--robot-ground-y-percent'] ?? '61') || 61
+    cssVars['--robot-above-y-percent'] = String(lerp(robotAboveBase, C.robotAboveYPercent, tH).toFixed(1))
+    cssVars['--robot-ground-y-percent'] = String(lerp(robotGroundBase, C.robotGroundYPercent, tH).toFixed(1))
+    const robotHandDeltaBase = parseFloat(cssVars['--robot-hand-end-x-delta'] ?? '0') || 0
+    cssVars['--robot-hand-end-x-delta'] = String(lerp(robotHandDeltaBase, C.robotHandEndXDelta, tW).toFixed(1))
+
+    // Rocket landing
+    const rxRaw = cssVars['--rocket-landed-x-px']
+    const ryRaw = cssVars['--rocket-landed-y-px']
+    const rx0 =
+        rxRaw != null && rxRaw !== '' && Number.isFinite(parseFloat(rxRaw))
+            ? parseFloat(rxRaw)
+            : CALIBRATION_1280_800.rocketLanded.xPx
+    const ry0 =
+        ryRaw != null && ryRaw !== '' && Number.isFinite(parseFloat(ryRaw))
+            ? parseFloat(ryRaw)
+            : CALIBRATION_1280_800.rocketLanded.yPx
+    cssVars['--rocket-landed-x-px'] = String(lerp(rx0, C.rocketLanded.xPx, tW).toFixed(2))
+    cssVars['--rocket-landed-y-px'] = String(lerp(ry0, C.rocketLanded.yPx, tH).toFixed(2))
+    const rrRaw = cssVars['--rocket-landed-rotate-deg']
+    const rr0 =
+        rrRaw != null && rrRaw !== '' && Number.isFinite(parseFloat(rrRaw))
+            ? parseFloat(rrRaw)
+            : C.rocketLanded.rotateDeg
+    cssVars['--rocket-landed-rotate-deg'] = String(lerp(rr0, C.rocketLanded.rotateDeg, t).toFixed(1))
+
+    // Ground
+    const groundOvercoatTopBase = parsePercent(cssVars['--ground-overcoat-top'] ?? '45.5') || 45.5
+    cssVars['--ground-overcoat-top'] = String(lerp(groundOvercoatTopBase, C.groundOvercoatTop, tH).toFixed(1))
+
+    // Contact message
+    const msgTopB = parsePercent(cssVars['--contact-message-top'] ?? '37') || 37
+    const msgFocusMtB = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8') || 3.8
+    const msgFocusMlB = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5') || 2.5
+    const msgFocusWidthB = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80') || 80
+    const msgTextareaHeightB = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+    cssVars['--contact-message-top'] = String(lerp(msgTopB, C.contactMessageTop, tH).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(msgFocusMtB, C.contactMessageTextareaFocusMtVh, tH).toFixed(2))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(msgFocusMlB, C.contactMessageTextareaFocusMlVw, tW).toFixed(2))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(msgFocusWidthB, C.contactMessageTextareaFocusWidth, tW)))
+    cssVars['--contact-message-textarea-height'] = String(lerp(msgTextareaHeightB, C.contactMessageTextareaHeightEm, tH).toFixed(2))
+
+    // Arc scroll
+    const arcLB = parsePx(cssVars['--contact-arc-scroll-left'] ?? '', -36.5)
+    const arcTB = parseFloat(cssVars['--contact-arc-scroll-top'] ?? '0') || 0
+    const arcHB = parsePercent(cssVars['--contact-arc-scroll-height'] ?? '70') || 70
+    const arcWB = parsePx(cssVars['--contact-arc-scroll-width'] ?? '', 84)
+    const arcLeftVal = lerp(arcLB, C.contactArcScrollLeftPx, tW)
+    cssVars['--contact-arc-scroll-left'] =
+        arcLeftVal % 1 !== 0 ? `${parseFloat(arcLeftVal.toFixed(1))}px` : `${Math.round(arcLeftVal)}px`
+    cssVars['--contact-arc-scroll-top'] = String(Math.round(lerp(arcTB, C.contactArcScrollTopPx, tH)))
+    cssVars['--contact-arc-scroll-height'] = `${Math.round(lerp(arcHB, C.contactArcScrollHeightPercent, tH))}%`
+    cssVars['--contact-arc-scroll-width'] = `${Math.round(lerp(arcWB, C.contactArcScrollWidthPx, tW))}px`
+
+    // Contact prenom
+    const prenomTopB = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8') || 6.8
+    const prenomLeftB = parsePercent(cssVars['--contact-prenom-left'] ?? '36') || 36
+    const prenomWidthB = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5') || 13.5
+    const prenomTyB = parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1') || -3.1
+    cssVars['--contact-prenom-top'] = String(lerp(prenomTopB, C.contactPrenomTop, tH).toFixed(1))
+    cssVars['--contact-prenom-left'] = String(lerp(prenomLeftB, C.contactPrenomLeft, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = String(lerp(prenomWidthB, C.contactPrenomWidth, tW).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = String(lerp(prenomTyB, C.contactPrenomLabelTyVh, tH).toFixed(1))
+
+    // Contact nom
+    const nomTopB = parsePercent(cssVars['--contact-nom-top'] ?? '3.5') || 3.5
+    const nomLeftB = parsePercent(cssVars['--contact-nom-left'] ?? '16') || 16
+    const nomWidthB = parsePercent(cssVars['--contact-nom-width'] ?? '13.5') || 13.5
+    const nomMinB = parsePx(cssVars['--contact-nom-min-width-px'] ?? '', C.contactNomMinWidthPx)
+    const nomRotB = parseFloat(cssVars['--contact-nom-rotate-deg'] ?? '-4') || -4
+    const nomTyB = parseVh(cssVars['--contact-nom-label-ty-vh'] ?? '-9.2') || -9.2
+    cssVars['--contact-nom-top'] = String(lerp(nomTopB, C.contactNomTop, tH).toFixed(1))
+    cssVars['--contact-nom-left'] = String(lerp(nomLeftB, C.contactNomLeft, tW).toFixed(1))
+    cssVars['--contact-nom-width'] = String(lerp(nomWidthB, C.contactNomWidth, tW).toFixed(1))
+    cssVars['--contact-nom-min-width-px'] = String(Math.round(lerp(nomMinB, C.contactNomMinWidthPx, tW)))
+    cssVars['--contact-nom-rotate-deg'] = String(lerp(nomRotB, C.contactNomRotateDeg, tW).toFixed(1))
+    cssVars['--contact-nom-label-ty-vh'] = String(lerp(nomTyB, C.contactNomLabelTyVh, tH).toFixed(1))
+
+    // Contact societe
+    const socTopB = parsePercent(cssVars['--contact-societe-top'] ?? '22') || 22
+    const socLeftB = parsePercent(cssVars['--contact-societe-left'] ?? '24.5') || 24.5
+    const socWidthB = parsePercent(cssVars['--contact-societe-width'] ?? '16.5') || 16.5
+    const socTxVwB = parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5') || -9.5
+    const socTyVhB = parseVh(cssVars['--contact-societe-label-ty-vh'] ?? '-1.5') || -1.5
+    cssVars['--contact-societe-top'] = String(lerp(socTopB, C.contactSocieteTop, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = String(lerp(socLeftB, C.contactSocieteLeft, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = String(lerp(socWidthB, C.contactSocieteWidth, tW).toFixed(1))
+    cssVars['--contact-societe-label-tx-vw'] = String(lerp(socTxVwB, C.contactSocieteLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-societe-label-ty-vh'] = String(lerp(socTyVhB, C.contactSocieteLabelTyVh, tH).toFixed(1))
+
+    // Contact email
+    const emTopB = parsePercent(cssVars['--contact-email-top'] ?? '13.5') || 13.5
+    const emLeftB = parsePercent(cssVars['--contact-email-left'] ?? '42') || 42
+    const emWidthB = parsePercent(cssVars['--contact-email-width'] ?? '19') || 19
+    const emXVhB = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0') || 0
+    const emTyVhB = parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5') || -5
+    cssVars['--contact-email-top'] = String(lerp(emTopB, C.contactEmailTop, tH).toFixed(1))
+    cssVars['--contact-email-left'] = String(lerp(emLeftB, C.contactEmailLeft, tW).toFixed(1))
+    cssVars['--contact-email-width'] = String(lerp(emWidthB, C.contactEmailWidth, tW).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = String(lerp(emXVhB, C.contactEmailLabelXVh, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = String(lerp(emTyVhB, C.contactEmailLabelTyVh, tH).toFixed(1))
+
+    // Message label (tx/ty)
+    const msgLblTxVB = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4') || -4
+    const msgLblTyVH = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
+    cssVars['--contact-message-label-tx-vw'] = String(lerp(msgLblTxVB, C.contactMessageLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = String(lerp(msgLblTyVH, C.contactMessageLabelTyVh, tH).toFixed(1))
+
+    // Submit
+    const subTopB = parsePercent(cssVars['--contact-submit-top'] ?? '41') || 41
+    const subLeftB = parsePercent(cssVars['--contact-submit-left'] ?? '50.5') || 50.5
+    const subWidthB = parsePercent(cssVars['--contact-submit-width'] ?? '13.5') || 13.5
+    cssVars['--contact-submit-top'] = String(lerp(subTopB, C.contactSubmitTop, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = String(lerp(subLeftB, C.contactSubmitLeft, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = String(lerp(subWidthB, C.contactSubmitWidth, tW).toFixed(1))
+}
+
+/** Applique le mix calibration progressive 1280×800. */
+function apply1280x800Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT1280x800W(w)
+    const tH = getT1280x800H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const C = CALIBRATION_1280_800
+
+    if (t > 0.999) {
+        cssVars['--profile-text-left'] = String(C.profileTextLeft)
+        cssVars['--profile-text-top'] = String(C.profileTextTop)
+        cssVars['--about-hologram-top'] = String(C.aboutHologramTop)
+        cssVars['--about-hologram-width'] = `${C.aboutHologramWidthPct}%`
+        cssVars['--robot-hand-end-x-delta'] = String(C.robotHandEndXDelta)
+        cssVars['--exp-hab-top-px'] = String(C.expHabTopPx)
+        cssVars['--exp-hab-left-px'] = String(C.expHabLeftPx)
+        cssVars['--exp-hab-w-px'] = String(C.expHabWPx)
+        cssVars['--exp-alien2-top-percent'] = String(C.expAlien2TopPercent)
+        cssVars['--paper-step-mult'] = String(C.paperStepMult)
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1280_MASK_CHEMINE_CLIP
+        cssVars['--mask-convoyeur-bottom'] = String(C.maskConvoyeurBottom)
+        cssVars['--mask-convoyeur-height'] = String(C.maskConvoyeurHeight)
+        cssVars['--convoyeur-left-px'] = String(C.convoyeurLeftPx)
+        cssVars['--convoyeur-bottom-px'] = String(C.convoyeurBottomPx)
+        cssVars['--convoyeur-w-px'] = String(C.convoyeurWPx)
+        cssVars['--convoyeur-h'] = 'auto'
+        cssVars['--convoyeur-end-correction-x-px'] = String(C.convoyeurEndCorrectionXPx)
+        cssVars['--ground-overcoat-top'] = String(C.groundOvercoatTop)
+        cssVars['--rocket-landed-x-px'] = String(C.rocketLanded.xPx)
+        cssVars['--rocket-landed-y-px'] = String(C.rocketLanded.yPx)
+        cssVars['--rocket-landed-rotate-deg'] = String(C.rocketLanded.rotateDeg)
+        cssVars['--contact-nom-top'] = String(C.contactNomTop)
+        cssVars['--contact-nom-left'] = String(C.contactNomLeft)
+        cssVars['--contact-nom-width'] = String(C.contactNomWidth)
+        cssVars['--contact-nom-min-width-px'] = String(C.contactNomMinWidthPx)
+        cssVars['--contact-nom-rotate-deg'] = String(C.contactNomRotateDeg)
+        cssVars['--contact-nom-label-ty-vh'] = String(C.contactNomLabelTyVh)
+        cssVars['--contact-prenom-top'] = String(C.contactPrenomTop)
+        cssVars['--contact-prenom-left'] = String(C.contactPrenomLeft)
+        cssVars['--contact-prenom-width'] = String(C.contactPrenomWidth)
+        cssVars['--contact-prenom-min-width-px'] = String(C.contactPrenomMinWidthPx)
+        cssVars['--contact-prenom-rotate-deg'] = String(C.contactPrenomRotateDeg)
+        cssVars['--contact-prenom-label-ty-vh'] = String(C.contactPrenomLabelTyVh)
+        cssVars['--contact-prenom-input-mt-em'] = String(C.contactPrenomInputMtEm)
+        cssVars['--contact-societe-top'] = String(C.contactSocieteTop)
+        cssVars['--contact-societe-left'] = String(C.contactSocieteLeft)
+        cssVars['--contact-societe-width'] = String(C.contactSocieteWidth)
+        cssVars['--contact-societe-label-tx-vw'] = String(C.contactSocieteLabelTxVw)
+        cssVars['--contact-societe-label-ty-vh'] = String(C.contactSocieteLabelTyVh)
+        cssVars['--contact-email-top'] = String(C.contactEmailTop)
+        cssVars['--contact-email-left'] = String(C.contactEmailLeft)
+        cssVars['--contact-email-width'] = String(C.contactEmailWidth)
+        cssVars['--contact-email-label-x-vh'] = String(C.contactEmailLabelXVh)
+        cssVars['--contact-email-label-ty-vh'] = String(C.contactEmailLabelTyVh)
+        cssVars['--contact-message-top'] = String(C.contactMessageTop)
+        cssVars['--contact-message-left'] = '19'
+        cssVars['--contact-message-textarea-focus-mt-vh'] = String(C.contactMessageFocusMtVh)
+        cssVars['--contact-message-textarea-focus-ml-vw'] = String(C.contactMessageFocusMlVw)
+        cssVars['--contact-message-textarea-focus-width'] = String(C.contactMessageFocusWidth)
+        cssVars['--contact-message-label-top'] = String(C.contactMessageLabelTop)
+        cssVars['--contact-message-label-left'] = String(C.contactMessageLabelLeft)
+        cssVars['--contact-message-label-tx-vw'] = String(C.contactMessageLabelTxVw)
+        cssVars['--contact-message-label-ty-vh'] = String(C.contactMessageLabelTyVh)
+        cssVars['--contact-message-textarea-height'] = String(C.contactMessageTextareaHeight)
+        cssVars['--contact-arc-scroll-left'] = `${C.contactArcScrollLeftPx}px`
+        cssVars['--contact-arc-scroll-top'] = String(C.contactArcScrollTopPx)
+        cssVars['--contact-arc-scroll-height'] = `${C.contactArcScrollHeightPct}%`
+        cssVars['--contact-arc-scroll-width'] = `${C.contactArcScrollWidthPx}px`
+        cssVars['--contact-submit-top'] = String(C.contactSubmitTop)
+        cssVars['--contact-submit-left'] = String(C.contactSubmitLeft)
+        cssVars['--contact-submit-width'] = String(C.contactSubmitWidth)
+        return
+    }
+
+    // Profil : left → tW, top → tH
+    const profLeftB = parsePercent(cssVars['--profile-text-left'] ?? '64')
+    const profTopB = parsePercent(cssVars['--profile-text-top'] ?? '41')
+    cssVars['--profile-text-left'] = String(lerp(profLeftB, C.profileTextLeft, tW).toFixed(1))
+    cssVars['--profile-text-top'] = String(lerp(profTopB, C.profileTextTop, tH).toFixed(1))
+
+    // About hologramme : top → tH
+    const holoTopB = parsePercent(cssVars['--about-hologram-top'] ?? '42')
+    cssVars['--about-hologram-top'] = String(lerp(holoTopB, C.aboutHologramTop, tH).toFixed(1))
+
+    // Robot : delta main (horizontal) → tW
+    const handDeltaB = parseFloat(cssVars['--robot-hand-end-x-delta'] ?? '0') || 0
+    cssVars['--robot-hand-end-x-delta'] = String(lerp(handDeltaB, C.robotHandEndXDelta, tW).toFixed(1))
+
+    // About : largeur hologramme en % (évolution mixte t)
+    const holoRaw = (cssVars['--about-hologram-width'] ?? '').trim()
+    const holoLower = holoRaw.toLowerCase()
+    let holoPctBase = 55
+    if (holoLower.includes('%')) holoPctBase = parsePercent(holoRaw)
+    else if (holoLower.includes('vw')) holoPctBase = Math.min(98, parseVw(holoRaw) * 0.85)
+    cssVars['--about-hologram-width'] = `${lerp(holoPctBase, C.aboutHologramWidthPct, t).toFixed(2)}%`
+
+    const habTopB = parsePx(cssVars['--exp-hab-top-px'] ?? '', EXP_HAB_GOLDEN.topPx)
+    const habLeftB = parsePx(cssVars['--exp-hab-left-px'] ?? '', EXP_HAB_GOLDEN.leftPx)
+    const habWB = parsePx(cssVars['--exp-hab-w-px'] ?? '', EXP_HAB_GOLDEN.wPx)
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(habTopB, C.expHabTopPx, tH)))
+    cssVars['--exp-hab-left-px'] = String(Math.round(lerp(habLeftB, C.expHabLeftPx, tW)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(habWB, C.expHabWPx, tW)))
+
+    const alienTopB = parsePercent(cssVars['--exp-alien2-top-percent'] ?? '59.5')
+    cssVars['--exp-alien2-top-percent'] = String(lerp(alienTopB, C.expAlien2TopPercent, tH).toFixed(1))
+
+    const paperB = parseFloat(cssVars['--paper-step-mult'] ?? '1') || 1
+    cssVars['--paper-step-mult'] = String(lerp(paperB, C.paperStepMult, t).toFixed(3))
+
+    const mcb = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5')
+    const mch = parsePercent(cssVars['--mask-convoyeur-height'] ?? '37')
+    cssVars['--mask-convoyeur-bottom'] = String(lerp(mcb, C.maskConvoyeurBottom, tH).toFixed(1))
+    cssVars['--mask-convoyeur-height'] = String(Math.round(lerp(mch, C.maskConvoyeurHeight, tH)))
+    if (t > 0.985) {
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1280_MASK_CHEMINE_CLIP
+    }
+
+    const cvLB = parsePx(cssVars['--convoyeur-left-px'] ?? '', CONVOYEUR_GOLDEN.leftPx)
+    const cvBB = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', CONVOYEUR_GOLDEN.bottomPx)
+    const cvWB2 = parsePx(cssVars['--convoyeur-w-px'] ?? '', CONVOYEUR_GOLDEN.wPx)
+    const cvEndB = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', getConvoyeurEndCorrectionPx(w, h))
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(cvLB, C.convoyeurLeftPx, tW)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(cvBB, C.convoyeurBottomPx, tH)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(cvWB2, C.convoyeurWPx, tW)))
+    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(cvEndB, C.convoyeurEndCorrectionXPx, tW)))
+
+    const goB = parsePercent(cssVars['--ground-overcoat-top'] ?? '53.5')
+    cssVars['--ground-overcoat-top'] = String(lerp(goB, C.groundOvercoatTop, tH).toFixed(1))
+
+    const rxRaw = cssVars['--rocket-landed-x-px']
+    const ryRaw = cssVars['--rocket-landed-y-px']
+    const rx0 =
+        rxRaw != null && rxRaw !== '' && Number.isFinite(parseFloat(rxRaw))
+            ? parseFloat(rxRaw)
+            : CALIBRATION_1024_ROCKET_LANDED.xPx
+    const ry0 =
+        ryRaw != null && ryRaw !== '' && Number.isFinite(parseFloat(ryRaw))
+            ? parseFloat(ryRaw)
+            : CALIBRATION_1024_ROCKET_LANDED.yPx
+    cssVars['--rocket-landed-x-px'] = String(lerp(rx0, C.rocketLanded.xPx, tW).toFixed(2))
+    cssVars['--rocket-landed-y-px'] = String(lerp(ry0, C.rocketLanded.yPx, tH).toFixed(2))
+    const rrRaw = cssVars['--rocket-landed-rotate-deg']
+    const rr0 =
+        rrRaw != null && rrRaw !== '' && Number.isFinite(parseFloat(rrRaw))
+            ? parseFloat(rrRaw)
+            : C.rocketLanded.rotateDeg
+    cssVars['--rocket-landed-rotate-deg'] = String(lerp(rr0, C.rocketLanded.rotateDeg, t).toFixed(1))
+
+    const nomTopB = parsePercent(cssVars['--contact-nom-top'] ?? '3.5')
+    const nomLeftB = parsePercent(cssVars['--contact-nom-left'] ?? '16')
+    const nomWidthB = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
+    const nomMinB = parsePx(cssVars['--contact-nom-min-width-px'] ?? '', 100)
+    const nomRotB = parseFloat(cssVars['--contact-nom-rotate-deg'] ?? '-4') || -4
+    const nomTyB = parseVh(cssVars['--contact-nom-label-ty-vh'] ?? '-9.2') || -9.2
+    cssVars['--contact-nom-top'] = String(lerp(nomTopB, C.contactNomTop, tH).toFixed(1))
+    cssVars['--contact-nom-left'] = String(lerp(nomLeftB, C.contactNomLeft, tW).toFixed(1))
+    cssVars['--contact-nom-width'] = String(lerp(nomWidthB, C.contactNomWidth, tW).toFixed(1))
+    cssVars['--contact-nom-min-width-px'] = String(Math.round(lerp(nomMinB, C.contactNomMinWidthPx, tW)))
+    cssVars['--contact-nom-rotate-deg'] = String(lerp(nomRotB, C.contactNomRotateDeg, tW).toFixed(1))
+    cssVars['--contact-nom-label-ty-vh'] = String(lerp(nomTyB, C.contactNomLabelTyVh, tH).toFixed(1))
+
+    const prenomTopB = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const prenomLeftB = parsePercent(cssVars['--contact-prenom-left'] ?? '36')
+    const prenomWidthB = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5')
+    const prenomMinB = parsePx(cssVars['--contact-prenom-min-width-px'] ?? '', 100)
+    const prenomRotB = parseFloat(cssVars['--contact-prenom-rotate-deg'] ?? '11') || 11
+    const prenomTyB = parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1') || -3.1
+    const prenomMtB = parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5') || -0.5
+    cssVars['--contact-prenom-top'] = String(lerp(prenomTopB, C.contactPrenomTop, tH).toFixed(1))
+    cssVars['--contact-prenom-left'] = String(lerp(prenomLeftB, C.contactPrenomLeft, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = String(lerp(prenomWidthB, C.contactPrenomWidth, tW).toFixed(1))
+    cssVars['--contact-prenom-min-width-px'] = String(Math.round(lerp(prenomMinB, C.contactPrenomMinWidthPx, tW)))
+    cssVars['--contact-prenom-rotate-deg'] = String(lerp(prenomRotB, C.contactPrenomRotateDeg, tW).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = String(lerp(prenomTyB, C.contactPrenomLabelTyVh, tH).toFixed(1))
+    cssVars['--contact-prenom-input-mt-em'] = String(lerp(prenomMtB, C.contactPrenomInputMtEm, tH).toFixed(1))
+
+    const socTopB = parsePercent(cssVars['--contact-societe-top'] ?? '22')
+    const socLeftB = parsePercent(cssVars['--contact-societe-left'] ?? '24.5')
+    const socWidthB = parsePercent(cssVars['--contact-societe-width'] ?? '16.5')
+    const socTxB = parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5')
+    const socTyB = parseVh(cssVars['--contact-societe-label-ty-vh'] ?? '-1.5') || -1.5
+    cssVars['--contact-societe-top'] = String(lerp(socTopB, C.contactSocieteTop, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = String(lerp(socLeftB, C.contactSocieteLeft, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = String(lerp(socWidthB, C.contactSocieteWidth, tW).toFixed(1))
+    cssVars['--contact-societe-label-tx-vw'] = String(lerp(socTxB, C.contactSocieteLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-societe-label-ty-vh'] = String(lerp(socTyB, C.contactSocieteLabelTyVh, tH).toFixed(1))
+
+    const emTopB = parsePercent(cssVars['--contact-email-top'] ?? '13.5')
+    const emLeftB = parsePercent(cssVars['--contact-email-left'] ?? '42')
+    const emWidthB = parsePercent(cssVars['--contact-email-width'] ?? '19')
+    const emXVhB = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0') || 0
+    const emTyB = parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5') || -5
+    cssVars['--contact-email-top'] = String(lerp(emTopB, C.contactEmailTop, tH).toFixed(1))
+    cssVars['--contact-email-left'] = String(lerp(emLeftB, C.contactEmailLeft, tW).toFixed(1))
+    cssVars['--contact-email-width'] = String(lerp(emWidthB, C.contactEmailWidth, tW).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = String(lerp(emXVhB, C.contactEmailLabelXVh, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = String(lerp(emTyB, C.contactEmailLabelTyVh, tH).toFixed(1))
+
+    const msgTopB = parsePercent(cssVars['--contact-message-top'] ?? '37')
+    const msgMtB = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8') || 3.8
+    const msgMlB = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5') || 2.5
+    const msgFwB = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
+    const msgLblTopB = parsePercent(cssVars['--contact-message-label-top'] ?? '70')
+    const msgLblLeftB = parsePercent(cssVars['--contact-message-label-left'] ?? '0') || 0
+    const msgTxB = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4')
+    const msgTyB = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
+    const msgTaH = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+    cssVars['--contact-message-top'] = String(lerp(msgTopB, C.contactMessageTop, tH).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(msgMtB, C.contactMessageFocusMtVh, tH).toFixed(1))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(msgMlB, C.contactMessageFocusMlVw, tW).toFixed(2))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(msgFwB, C.contactMessageFocusWidth, tW)))
+    cssVars['--contact-message-label-top'] = String(lerp(msgLblTopB, C.contactMessageLabelTop, tH).toFixed(1))
+    cssVars['--contact-message-label-left'] = (() => {
+        const out = lerp(msgLblLeftB, C.contactMessageLabelLeft, tW)
+        return Math.abs(out) < 0.0001 ? '0' : String(out.toFixed(2))
+    })()
+    cssVars['--contact-message-label-tx-vw'] = String(lerp(msgTxB, C.contactMessageLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = String(lerp(msgTyB, C.contactMessageLabelTyVh, tH).toFixed(1))
+    cssVars['--contact-message-textarea-height'] = String(lerp(msgTaH, C.contactMessageTextareaHeight, tH).toFixed(2))
+
+    const arcLB = parsePx(cssVars['--contact-arc-scroll-left'] ?? '', -36.5)
+    const arcTB = parseFloat(cssVars['--contact-arc-scroll-top'] ?? '0') || 0
+    const arcHB = parsePercent(cssVars['--contact-arc-scroll-height'] ?? '70') || 70
+    const arcWB = parsePx(cssVars['--contact-arc-scroll-width'] ?? '', 84)
+    const arcLeftVal = lerp(arcLB, C.contactArcScrollLeftPx, tW)
+    cssVars['--contact-arc-scroll-left'] =
+        arcLeftVal % 1 !== 0 ? `${parseFloat(arcLeftVal.toFixed(1))}px` : `${Math.round(arcLeftVal)}px`
+    cssVars['--contact-arc-scroll-top'] = String(Math.round(lerp(arcTB, C.contactArcScrollTopPx, tH)))
+    cssVars['--contact-arc-scroll-height'] = `${Math.round(lerp(arcHB, C.contactArcScrollHeightPct, tH))}%`
+    cssVars['--contact-arc-scroll-width'] = `${Math.round(lerp(arcWB, C.contactArcScrollWidthPx, tW))}px`
+
+    const subTopB = parsePercent(cssVars['--contact-submit-top'] ?? '41')
+    const subLeftB = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
+    const subWidthB = parsePercent(cssVars['--contact-submit-width'] ?? '13.5')
+    cssVars['--contact-submit-top'] = String(lerp(subTopB, C.contactSubmitTop, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = String(lerp(subLeftB, C.contactSubmitLeft, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = String(lerp(subWidthB, C.contactSubmitWidth, tW).toFixed(1))
+}
+
+/** Applique le mix calibration progressive 1600×900. */
+function apply1600x900Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT1600x900W(w)
+    const tH = getT1600x900H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const C = CALIBRATION_1600_900
+
+    if (t > 0.999) {
+        cssVars['--exp-hab-top-px'] = String(C.expHabTopPx)
+        cssVars['--exp-hab-left-px'] = String(C.expHabLeftPx)
+        cssVars['--exp-hab-w-px'] = String(C.expHabWPx)
+        cssVars['--exp-hab-h-px'] = String(C.expHabHPx)
+        cssVars['--mask-chemine-bottom'] = String(C.maskChemineBottom)
+        cssVars['--mask-chemine-height'] = String(C.maskChemineHeight)
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1600_MASK_CHEMINE_CLIP
+        cssVars['--exp-alien2-top-percent'] = String(C.expAlien2TopPercent)
+        cssVars['--mask-convoyeur-bottom'] = String(C.maskConvoyeurBottom)
+        cssVars['--mask-convoyeur-height'] = String(C.maskConvoyeurHeight)
+        cssVars['--ground-overcoat-top'] = String(C.groundOvercoatTop)
+        cssVars['--convoyeur-left-px'] = String(C.convoyeurLeftPx)
+        cssVars['--convoyeur-bottom-px'] = String(C.convoyeurBottomPx)
+        cssVars['--convoyeur-w-px'] = String(C.convoyeurWPx)
+        cssVars['--convoyeur-h'] = String(C.convoyeurHPercent)
+        cssVars['--convoyeur-end-correction-x-px'] = String(C.convoyeurEndCorrectionXPx)
+        cssVars['--contact-nom-width'] = String(C.contactNomWidth)
+        cssVars['--contact-prenom-top'] = String(C.contactPrenomTop)
+        cssVars['--contact-prenom-left'] = String(C.contactPrenomLeft)
+        cssVars['--contact-prenom-width'] = String(C.contactPrenomWidth)
+        cssVars['--contact-prenom-min-width-px'] = String(C.contactPrenomMinWidthPx)
+        cssVars['--contact-prenom-rotate-deg'] = String(C.contactPrenomRotateDeg)
+        cssVars['--contact-prenom-label-ty-vh'] = String(C.contactPrenomLabelTyVh)
+        cssVars['--contact-prenom-input-mt-em'] = String(C.contactPrenomInputMtEm)
+        cssVars['--contact-societe-top'] = String(C.contactSocieteTop)
+        cssVars['--contact-societe-left'] = String(C.contactSocieteLeft)
+        cssVars['--contact-societe-width'] = String(C.contactSocieteWidth)
+        cssVars['--contact-societe-label-tx-vw'] = String(C.contactSocieteLabelTxVw)
+        cssVars['--contact-societe-label-ty-vh'] = String(C.contactSocieteLabelTyVh)
+        cssVars['--contact-email-top'] = String(C.contactEmailTop)
+        cssVars['--contact-email-left'] = String(C.contactEmailLeft)
+        cssVars['--contact-email-width'] = String(C.contactEmailWidth)
+        cssVars['--contact-email-label-x-vh'] = String(C.contactEmailLabelXVh)
+        cssVars['--contact-email-label-ty-vh'] = String(C.contactEmailLabelTyVh)
+        cssVars['--contact-message-top'] = String(C.contactMessageTop)
+        cssVars['--contact-message-left'] = '19'
+        cssVars['--contact-message-textarea-focus-mt-vh'] = String(C.contactMessageFocusMtVh)
+        cssVars['--contact-message-textarea-focus-ml-vw'] = String(C.contactMessageFocusMlVw)
+        cssVars['--contact-message-textarea-focus-width'] = String(C.contactMessageFocusWidth)
+        cssVars['--contact-message-label-top'] = String(C.contactMessageLabelTop)
+        cssVars['--contact-message-label-left'] = String(C.contactMessageLabelLeft)
+        cssVars['--contact-message-label-tx-vw'] = String(C.contactMessageLabelTxVw)
+        cssVars['--contact-message-label-ty-vh'] = String(C.contactMessageLabelTyVh)
+        cssVars['--contact-message-textarea-height'] = String(C.contactMessageTextareaHeight)
+        cssVars['--contact-submit-top'] = String(C.contactSubmitTop)
+        cssVars['--contact-submit-left'] = String(C.contactSubmitLeft)
+        cssVars['--contact-submit-width'] = String(C.contactSubmitWidth)
+        cssVars['--rocket-landed-x-px'] = String(C.rocketLanded.xPx)
+        cssVars['--rocket-landed-y-px'] = String(C.rocketLanded.yPx)
+        cssVars['--rocket-landed-rotate-deg'] = String(C.rocketLanded.rotateDeg)
+        return
+    }
+
+    const habTopB = parsePx(cssVars['--exp-hab-top-px'] ?? '', EXP_HAB_GOLDEN.topPx)
+    const habLeftB = parsePx(cssVars['--exp-hab-left-px'] ?? '', EXP_HAB_GOLDEN.leftPx)
+    const habWB = parsePx(cssVars['--exp-hab-w-px'] ?? '', EXP_HAB_GOLDEN.wPx)
+    const habHB = parsePx(cssVars['--exp-hab-h-px'] ?? '', EXP_HAB_GOLDEN.hPx)
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(habTopB, C.expHabTopPx, tH)))
+    cssVars['--exp-hab-left-px'] = String(Math.round(lerp(habLeftB, C.expHabLeftPx, tW)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(habWB, C.expHabWPx, tW)))
+    cssVars['--exp-hab-h-px'] = String(Math.round(lerp(habHB, C.expHabHPx, tH)))
+
+    const mcBotB = parsePercent(cssVars['--mask-chemine-bottom'] ?? '18')
+    const mcHtB = parsePercent(cssVars['--mask-chemine-height'] ?? '59')
+    cssVars['--mask-chemine-bottom'] = String(lerp(mcBotB, C.maskChemineBottom, tH).toFixed(1))
+    cssVars['--mask-chemine-height'] = String(lerp(mcHtB, C.maskChemineHeight, tH).toFixed(1))
+    if (t > 0.985) {
+        cssVars['--mask-chemine-clip-raw'] = CALIBRATION_1600_MASK_CHEMINE_CLIP
+    }
+
+    const alienTopB = parsePercent(cssVars['--exp-alien2-top-percent'] ?? '59.5')
+    cssVars['--exp-alien2-top-percent'] = String(lerp(alienTopB, C.expAlien2TopPercent, tH).toFixed(1))
+
+    const mcvB = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5')
+    const mcvHB = parsePercent(cssVars['--mask-convoyeur-height'] ?? '37')
+    cssVars['--mask-convoyeur-bottom'] = String(lerp(mcvB, C.maskConvoyeurBottom, tH).toFixed(1))
+    cssVars['--mask-convoyeur-height'] = String(Math.round(lerp(mcvHB, C.maskConvoyeurHeight, tH)))
+
+    const goB = parsePercent(cssVars['--ground-overcoat-top'] ?? '53.5')
+    cssVars['--ground-overcoat-top'] = String(lerp(goB, C.groundOvercoatTop, tH).toFixed(1))
+
+    const cvLB = parsePx(cssVars['--convoyeur-left-px'] ?? '', CONVOYEUR_GOLDEN.leftPx)
+    const cvBB = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', CONVOYEUR_GOLDEN.bottomPx)
+    const cvWB = parsePx(cssVars['--convoyeur-w-px'] ?? '', CONVOYEUR_GOLDEN.wPx)
+    const cvEndB = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', getConvoyeurEndCorrectionPx(w, h))
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(cvLB, C.convoyeurLeftPx, tW)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(cvBB, C.convoyeurBottomPx, tH)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(cvWB, C.convoyeurWPx, tW)))
+    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(cvEndB, C.convoyeurEndCorrectionXPx, tW)))
+    const cvHRaw = (cssVars['--convoyeur-h'] ?? 'auto').trim()
+    const cvHBase =
+        cvHRaw === 'auto' || cvHRaw === '' ? CONVOYEUR_H_AUTO_LERP_BASE_PERCENT : parsePercent(cvHRaw)
+    cssVars['--convoyeur-h'] = String(lerp(cvHBase, C.convoyeurHPercent, tH).toFixed(1))
+
+    const nomWidthB = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
+    cssVars['--contact-nom-width'] = String(lerp(nomWidthB, C.contactNomWidth, tW).toFixed(1))
+
+    const prenomTopB = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const prenomLeftB = parsePercent(cssVars['--contact-prenom-left'] ?? '36')
+    const prenomWidthB = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5')
+    const prenomMinB = parsePx(cssVars['--contact-prenom-min-width-px'] ?? '', 100)
+    const prenomRotB = parseFloat(cssVars['--contact-prenom-rotate-deg'] ?? '11') || 11
+    const prenomTyB = parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1') || -3.1
+    const prenomMtB = parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5') || -0.5
+    cssVars['--contact-prenom-top'] = String(lerp(prenomTopB, C.contactPrenomTop, tH).toFixed(1))
+    cssVars['--contact-prenom-left'] = String(lerp(prenomLeftB, C.contactPrenomLeft, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = String(lerp(prenomWidthB, C.contactPrenomWidth, tW).toFixed(1))
+    cssVars['--contact-prenom-min-width-px'] = String(Math.round(lerp(prenomMinB, C.contactPrenomMinWidthPx, tW)))
+    cssVars['--contact-prenom-rotate-deg'] = String(lerp(prenomRotB, C.contactPrenomRotateDeg, tW).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = String(lerp(prenomTyB, C.contactPrenomLabelTyVh, tH).toFixed(1))
+    cssVars['--contact-prenom-input-mt-em'] = String(lerp(prenomMtB, C.contactPrenomInputMtEm, tH).toFixed(1))
+
+    const socTopB = parsePercent(cssVars['--contact-societe-top'] ?? '22')
+    const socLeftB = parsePercent(cssVars['--contact-societe-left'] ?? '24.5')
+    const socWidthB = parsePercent(cssVars['--contact-societe-width'] ?? '16.5')
+    const socTxB = parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5')
+    const socTyB = parseVh(cssVars['--contact-societe-label-ty-vh'] ?? '-1.5') || -1.5
+    cssVars['--contact-societe-top'] = String(lerp(socTopB, C.contactSocieteTop, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = String(lerp(socLeftB, C.contactSocieteLeft, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = String(lerp(socWidthB, C.contactSocieteWidth, tW).toFixed(1))
+    cssVars['--contact-societe-label-tx-vw'] = String(lerp(socTxB, C.contactSocieteLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-societe-label-ty-vh'] = String(lerp(socTyB, C.contactSocieteLabelTyVh, tH).toFixed(1))
+
+    const emTopB = parsePercent(cssVars['--contact-email-top'] ?? '13.5')
+    const emLeftB = parsePercent(cssVars['--contact-email-left'] ?? '42')
+    const emWidthB = parsePercent(cssVars['--contact-email-width'] ?? '19')
+    const emXVhB = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0') || 0
+    const emTyB = parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5') || -5
+    cssVars['--contact-email-top'] = String(lerp(emTopB, C.contactEmailTop, tH).toFixed(1))
+    cssVars['--contact-email-left'] = String(lerp(emLeftB, C.contactEmailLeft, tW).toFixed(1))
+    cssVars['--contact-email-width'] = String(lerp(emWidthB, C.contactEmailWidth, tW).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = String(lerp(emXVhB, C.contactEmailLabelXVh, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = String(lerp(emTyB, C.contactEmailLabelTyVh, tH).toFixed(1))
+
+    const msgTopB = parsePercent(cssVars['--contact-message-top'] ?? '37')
+    const msgMtB = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8') || 3.8
+    const msgMlB = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5') || 2.5
+    const msgFwB = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
+    const msgLblTopB = parsePercent(cssVars['--contact-message-label-top'] ?? '70')
+    const msgLblLeftB = parsePercent(cssVars['--contact-message-label-left'] ?? '0') || 0
+    const msgTxB = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4')
+    const msgTyB = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
+    const msgTaH = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+    cssVars['--contact-message-top'] = String(lerp(msgTopB, C.contactMessageTop, tH).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(msgMtB, C.contactMessageFocusMtVh, tH).toFixed(1))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(msgMlB, C.contactMessageFocusMlVw, tW).toFixed(2))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(msgFwB, C.contactMessageFocusWidth, tW)))
+    cssVars['--contact-message-label-top'] = String(lerp(msgLblTopB, C.contactMessageLabelTop, tH).toFixed(1))
+    cssVars['--contact-message-label-left'] = (() => {
+        const out = lerp(msgLblLeftB, C.contactMessageLabelLeft, tW)
+        return Math.abs(out) < 0.0001 ? '0' : String(out.toFixed(2))
+    })()
+    cssVars['--contact-message-label-tx-vw'] = String(lerp(msgTxB, C.contactMessageLabelTxVw, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = String(lerp(msgTyB, C.contactMessageLabelTyVh, tH).toFixed(1))
+    cssVars['--contact-message-textarea-height'] = String(lerp(msgTaH, C.contactMessageTextareaHeight, tH).toFixed(2))
+
+    const subTopB = parsePercent(cssVars['--contact-submit-top'] ?? '41')
+    const subLeftB = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
+    const subWidthB = parsePercent(cssVars['--contact-submit-width'] ?? '13.5')
+    cssVars['--contact-submit-top'] = String(lerp(subTopB, C.contactSubmitTop, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = String(lerp(subLeftB, C.contactSubmitLeft, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = String(lerp(subWidthB, C.contactSubmitWidth, tW).toFixed(1))
+
+    const rxRaw = cssVars['--rocket-landed-x-px']
+    const ryRaw = cssVars['--rocket-landed-y-px']
+    const rx0 =
+        rxRaw != null && rxRaw !== '' && Number.isFinite(parseFloat(rxRaw))
+            ? parseFloat(rxRaw)
+            : CALIBRATION_1280_800.rocketLanded.xPx
+    const ry0 =
+        ryRaw != null && ryRaw !== '' && Number.isFinite(parseFloat(ryRaw))
+            ? parseFloat(ryRaw)
+            : CALIBRATION_1280_800.rocketLanded.yPx
+    cssVars['--rocket-landed-x-px'] = String(lerp(rx0, C.rocketLanded.xPx, tW).toFixed(2))
+    cssVars['--rocket-landed-y-px'] = String(lerp(ry0, C.rocketLanded.yPx, tH).toFixed(2))
+    const rrRaw = cssVars['--rocket-landed-rotate-deg']
+    const rr0 =
+        rrRaw != null && rrRaw !== '' && Number.isFinite(parseFloat(rrRaw))
+            ? parseFloat(rrRaw)
+            : C.rocketLanded.rotateDeg
+    cssVars['--rocket-landed-rotate-deg'] = String(lerp(rr0, C.rocketLanded.rotateDeg, t).toFixed(1))
+}
+
+/** Applique uniquement les tokens ciblés pour 1680×1050. */
+function apply1680x1050Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT1680x1050W(w)
+    const tH = getT1680x1050H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    // Home
+    cssVars['--home-description-font-size-delta-vw'] = String(
+        Math.round(lerp(parseVw(cssVars['--home-description-font-size-delta-vw'] ?? '0vw'), -2, tW)),
+    )
+    cssVars['--home-myname-font-size-delta-vw'] = String(
+        Math.round(lerp(parseVw(cssVars['--home-myname-font-size-delta-vw'] ?? '0vw'), -2, tW)),
+    )
+
+    // About
+    cssVars['--about-hologram-top'] = String(Math.round(lerp(parsePercent(cssVars['--about-hologram-top'] ?? '42'), 35, tH)))
+
+    cssVars['--profile-text-left'] = String(lerp(parsePercent(cssVars['--profile-text-left'] ?? '64'), 73, tW))
+
+    // Experience / alien / habitation
+    cssVars['--exp-alien2-top-percent'] = String(lerp(parsePercent(cssVars['--exp-alien2-top-percent'] ?? '59.5'), 45.2, tH).toFixed(1))
+    cssVars['--exp-hab-top-px'] = String(Math.round(lerp(parsePx(cssVars['--exp-hab-top-px'] ?? '', 604), 604, tH)))
+    cssVars['--exp-hab-w-px'] = String(Math.round(lerp(parsePx(cssVars['--exp-hab-w-px'] ?? '', 1246), 1246, tW)))
+
+    // Masks / cheminée
+    cssVars['--mask-chemine-bottom'] = String(lerp(parsePercent(cssVars['--mask-chemine-bottom'] ?? '18'), 25.4, tH).toFixed(1))
+    cssVars['--mask-chemine-height'] = String(lerp(parsePercent(cssVars['--mask-chemine-height'] ?? '59'), 52.0, tH).toFixed(1))
+    const targetMaskChemineClipRaw = 'polygon(100% 12%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+    const curMaskChemineClipRaw = (cssVars['--mask-chemine-clip-raw'] ?? '').trim()
+    // La clip-path est une chaîne non-interpolable : à haut t, on force exactement la valeur demandée.
+    cssVars['--mask-chemine-clip-raw'] = (t > 0.999 ? targetMaskChemineClipRaw : lerpPolygonClipRaw(curMaskChemineClipRaw, targetMaskChemineClipRaw, t))
+
+    // Masks / convoyeur
+    cssVars['--mask-convoyeur-bottom'] = String(lerp(parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '8.5'), 13.2, tH).toFixed(1))
+
+    // Convoyeur
+    cssVars['--convoyeur-left-px'] = String(Math.round(lerp(parsePx(cssVars['--convoyeur-left-px'] ?? '', -1017), -1017, tW)))
+    cssVars['--convoyeur-bottom-px'] = String(Math.round(lerp(parsePx(cssVars['--convoyeur-bottom-px'] ?? '', 840), 840, tH)))
+    cssVars['--convoyeur-w-px'] = String(Math.round(lerp(parsePx(cssVars['--convoyeur-w-px'] ?? '', 1950), 1950, tW)))
+    {
+        const cvHRaw = (cssVars['--convoyeur-h'] ?? '').trim()
+        const cvHBase = cvHRaw === 'auto' || cvHRaw === '' ? 18 : parsePercent(cvHRaw)
+        cssVars['--convoyeur-h'] = String(Math.round(lerp(cvHBase, 18, tH)))
+    }
+    cssVars['--convoyeur-end-correction-x-px'] = String(Math.round(lerp(parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', -46), -46, tW)))
+
+    // Robot
+    cssVars['--robot-above-y-percent'] = String(lerp(parsePercent(cssVars['--robot-above-y-percent'] ?? '50'), 37.5, tH).toFixed(1))
+    cssVars['--robot-ground-y-percent'] = String(lerp(parsePercent(cssVars['--robot-ground-y-percent'] ?? '61'), 45.3, tH).toFixed(1))
+
+    // Contact / nom
+    cssVars['--contact-nom-top'] = String(lerp(parsePercent(cssVars['--contact-nom-top'] ?? '3.5'), 3.2, tH).toFixed(1))
+    cssVars['--contact-nom-left'] = String(lerp(parsePercent(cssVars['--contact-nom-left'] ?? '16'), 16.8, tW).toFixed(1))
+    cssVars['--contact-nom-width'] = String(lerp(parsePercent(cssVars['--contact-nom-width'] ?? '13.5'), 14.5, tW).toFixed(1))
+
+    // Contact / prénom
+    cssVars['--contact-prenom-top'] = String(lerp(parsePercent(cssVars['--contact-prenom-top'] ?? '6.8'), 5.5, tH).toFixed(1))
+    cssVars['--contact-prenom-left'] = String(lerp(parsePercent(cssVars['--contact-prenom-left'] ?? '36'), 37.3, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = String(Math.round(lerp(parsePercent(cssVars['--contact-prenom-width'] ?? '13.5'), 14, tW)))
+    cssVars['--contact-prenom-min-width-px'] = String(Math.round(lerp(parsePx(cssVars['--contact-prenom-min-width-px'] ?? '', 100), 100, tW)))
+    cssVars['--contact-prenom-rotate-deg'] = String(lerp(parseFloat(cssVars['--contact-prenom-rotate-deg'] ?? '10'), 10.0, tW).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = String(lerp(parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1'), -2.1, tH).toFixed(1))
+    cssVars['--contact-prenom-input-mt-em'] = String(lerp(parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5'), 0.4, tH).toFixed(1))
+
+    // Contact / société
+    cssVars['--contact-societe-top'] = String(lerp(parsePercent(cssVars['--contact-societe-top'] ?? '22'), 16.5, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = String(lerp(parsePercent(cssVars['--contact-societe-left'] ?? '24.5'), 25.6, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = String(Math.round(lerp(parsePercent(cssVars['--contact-societe-width'] ?? '16.5'), 17, tW)))
+    cssVars['--contact-societe-label-tx-vw'] = String(lerp(parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5'), -7.3, tW).toFixed(1))
+    cssVars['--contact-societe-label-ty-vh'] = String(lerp(parseVh(cssVars['--contact-societe-label-ty-vh'] ?? '-1.5'), -1, tH).toFixed(1))
+
+    // Contact / email
+    cssVars['--contact-email-top'] = String(lerp(parsePercent(cssVars['--contact-email-top'] ?? '13.5'), 10.5, tH).toFixed(1))
+    cssVars['--contact-email-left'] = String(lerp(parsePercent(cssVars['--contact-email-left'] ?? '42'), 43.5, tW).toFixed(1))
+    cssVars['--contact-email-width'] = String(Math.round(lerp(parsePercent(cssVars['--contact-email-width'] ?? '19'), 20, tW)))
+    cssVars['--contact-email-label-x-vh'] = String(lerp(parseVh(cssVars['--contact-email-label-x-vh'] ?? '0'), 4.2, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = String(lerp(parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5'), -4, tH).toFixed(1))
+
+    // Contact / message
+    cssVars['--contact-message-top'] = String(lerp(parsePercent(cssVars['--contact-message-top'] ?? '37'), 28.5, tH).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
+    cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8'), -0.5, tH).toFixed(1))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5'), 0.5, tW).toFixed(1))
+    cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80'), 105, tW)))
+    cssVars['--contact-message-label-top'] = String(lerp(parsePercent(cssVars['--contact-message-label-top'] ?? '70'), 50, tH).toFixed(1))
+    cssVars['--contact-message-label-left'] = String(Math.round(lerp(parsePercent(cssVars['--contact-message-label-left'] ?? '0'), 6, tW)))
+    cssVars['--contact-message-label-tx-vw'] = String(lerp(parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4'), -4.0, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = String(lerp(parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5'), -12, tH).toFixed(1))
+    cssVars['--contact-message-textarea-height'] = String(lerp(parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5'), 13, tH).toFixed(0))
+
+    // Contact / title wrapper + arc scroll + submit
+    cssVars['--contact-section-title-wrapper-right'] = t > 0.999 ? '6vw' : `${lerp(parseVw(cssVars['--contact-section-title-wrapper-right'] ?? '6vw'), 6, tW).toFixed(2)}vw`
+    cssVars['--contact-section-title-wrapper-top'] = '10vh'
+    cssVars['--contact-arc-scroll-left'] = `${lerp(parsePx(cssVars['--contact-arc-scroll-left'] ?? '', -30.5), -30.5, tW).toFixed(1)}px`
+    cssVars['--contact-arc-scroll-top'] = String(Math.round(lerp(parseFloat(cssVars['--contact-arc-scroll-top'] ?? '0') || 0, 0, tH)))
+    cssVars['--contact-arc-scroll-height'] = `${Math.round(lerp(parsePercent(cssVars['--contact-arc-scroll-height'] ?? '70'), 70, tH))}%`
+    cssVars['--contact-arc-scroll-width'] = `${Math.round(lerp(parsePx(cssVars['--contact-arc-scroll-width'] ?? '', 80), 80, tW))}px`
+
+    cssVars['--contact-submit-top'] = String(lerp(parsePercent(cssVars['--contact-submit-top'] ?? '41'), 30.6, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = String(lerp(parsePercent(cssVars['--contact-submit-left'] ?? '50.5'), 52.2, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = String(Math.round(lerp(parsePercent(cssVars['--contact-submit-width'] ?? '13.5'), 14, tW)))
+
+    // Rocket : override final (blend géré côté JS dans scrollAnimations).
+    cssVars['--rocket-landed-x-px'] = '4592.64'
+    cssVars['--rocket-landed-y-px'] = '949.59'
+    cssVars['--rocket-landed-rotate-deg'] = '140'
+}
+
+/** Applique uniquement les tokens ciblés pour 2560×1440. */
+function apply2560x1440Mix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // Ground : seule variable autorisée dans ce mix (le reste est appliqué via overlay dédié).
+    cssVars['--ground-overcoat-top'] = tPeak
+        ? '33.3'
+        : String(lerp(parsePercent(cssVars['--ground-overcoat-top'] ?? '53.5'), 33.3, tH).toFixed(1))
+
+    // Rocket : correction du point bas initial (phase 1) (à garder pour éviter toute régression d’animation).
+    const ratioTarget = 1032 / h
+    const ratioBase = parseFloat(cssVars['--rocket-phase1-end-y-ratio'] ?? '0.95') || 0.95
+    cssVars['--rocket-phase1-end-y-ratio'] = tPeak ? String(ratioTarget) : String(lerp(ratioBase, ratioTarget, t).toFixed(4))
+}
+
+/** Overlay strict : rocket (landing final), ground et contact (2560×1440 uniquement). */
+function apply2560x1440RocketGroundContactMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // Rocket landing final
+    const targetRocketX = 4548
+    const targetRocketY = 1133.24
+    const targetRocketRot = 140
+    const curRocketX = Number.isFinite(parseFloat(cssVars['--rocket-landed-x-px'] ?? '')) ? parseFloat(cssVars['--rocket-landed-x-px'] ?? '') : NaN
+    const curRocketY = Number.isFinite(parseFloat(cssVars['--rocket-landed-y-px'] ?? '')) ? parseFloat(cssVars['--rocket-landed-y-px'] ?? '') : NaN
+    const curRocketRot = Number.isFinite(parseFloat(cssVars['--rocket-landed-rotate-deg'] ?? '')) ? parseFloat(cssVars['--rocket-landed-rotate-deg'] ?? '') : NaN
+
+    if (tPeak) {
+        cssVars['--rocket-landed-x-px'] = '4548'
+        cssVars['--rocket-landed-y-px'] = '1133.24'
+        cssVars['--rocket-landed-rotate-deg'] = '140'
+    } else {
+        const outX = Number.isFinite(curRocketX) ? lerp(curRocketX, targetRocketX, t) : targetRocketX
+        const outY = Number.isFinite(curRocketY) ? lerp(curRocketY, targetRocketY, t) : targetRocketY
+        const outRot = Number.isFinite(curRocketRot) ? lerp(curRocketRot, targetRocketRot, t) : targetRocketRot
+        cssVars['--rocket-landed-x-px'] = String(outX.toFixed(2))
+        cssVars['--rocket-landed-y-px'] = String(outY.toFixed(2))
+        cssVars['--rocket-landed-rotate-deg'] = String(outRot.toFixed(1))
+    }
+
+    // Ground
+    const targetGroundOvercoat = 33.3
+    const curGroundOvercoat = parsePercent(cssVars['--ground-overcoat-top'] ?? '53.5')
+    cssVars['--ground-overcoat-top'] = tPeak ? '33.3' : String(lerp(curGroundOvercoat, targetGroundOvercoat, tH).toFixed(1))
+
+    // Contact / SVG
+    const targetContactSvgLeft = 14
+    const targetContactSvgTop = 19
+    const targetContactSvgHeightVh = 30
+    const curContactSvgLeft = parsePercent(cssVars['--contact-svg-left'] ?? '15')
+    const curContactSvgTop = parsePercent(cssVars['--contact-svg-top'] ?? '36.5')
+    const curContactSvgHeightVh = parseVh(cssVars['--contact-svg-height-vh'] ?? '63') || 63
+    cssVars['--contact-svg-left'] = tPeak ? String(targetContactSvgLeft) : String(lerp(curContactSvgLeft, targetContactSvgLeft, tW).toFixed(1))
+    cssVars['--contact-svg-top'] = tPeak ? String(targetContactSvgTop) : String(lerp(curContactSvgTop, targetContactSvgTop, tH).toFixed(1))
+    cssVars['--contact-svg-height-vh'] = tPeak ? String(targetContactSvgHeightVh) : String(lerp(curContactSvgHeightVh, targetContactSvgHeightVh, tH).toFixed(1))
+
+    // Contact / nom
+    const nomTopTarget = 3.1
+    const nomLeftTarget = 14.7
+    const nomWidthTarget = 12.6
+    const nomLabelTyTarget = -3.2
+    const nomTop = parsePercent(cssVars['--contact-nom-top'] ?? '3.5')
+    const nomLeft = parsePercent(cssVars['--contact-nom-left'] ?? '16')
+    const nomWidth = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
+    const nomLabelTyVh = parseVh(cssVars['--contact-nom-label-ty-vh'] ?? '-9.2') || -9.2
+    cssVars['--contact-nom-top'] = tPeak ? String(nomTopTarget) : String(lerp(nomTop, nomTopTarget, tH).toFixed(1))
+    cssVars['--contact-nom-left'] = tPeak ? String(nomLeftTarget) : String(lerp(nomLeft, nomLeftTarget, tW).toFixed(1))
+    cssVars['--contact-nom-width'] = tPeak ? String(nomWidthTarget) : String(lerp(nomWidth, nomWidthTarget, tW).toFixed(1))
+    cssVars['--contact-nom-label-ty-vh'] = tPeak ? String(nomLabelTyTarget) : String(lerp(nomLabelTyVh, nomLabelTyTarget, tH).toFixed(1))
+
+    // Contact / prénom
+    const prenomTopTarget = 4.7
+    const prenomLeftTarget = 32.9
+    const prenomWidthTarget = 12
+    const prenomMinWidthPxTarget = 100
+    const prenomRotateTarget = 10.0
+    const prenomLabelTyVhTarget = -1.1
+    const prenomInputMtEmTarget = 0.3
+    const prenomTop = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const prenomLeft = parsePercent(cssVars['--contact-prenom-left'] ?? '36')
+    const prenomWidth = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5')
+    const prenomMinWidthPx = parsePx(cssVars['--contact-prenom-min-width-px'] ?? '', 100)
+    const prenomRotate = parseFloat(cssVars['--contact-prenom-rotate-deg'] ?? '10') || 10
+    const prenomLabelTyVh = parseVh(cssVars['--contact-prenom-label-ty-vh'] ?? '-3.1') || -3.1
+    const prenomInputMtEm = parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5') || -0.5
+    cssVars['--contact-prenom-top'] = tPeak ? String(prenomTopTarget) : String(lerp(prenomTop, prenomTopTarget, tH).toFixed(1))
+    cssVars['--contact-prenom-left'] = tPeak ? String(prenomLeftTarget) : String(lerp(prenomLeft, prenomLeftTarget, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = tPeak ? String(prenomWidthTarget) : String(lerp(prenomWidth, prenomWidthTarget, tW).toFixed(1))
+    cssVars['--contact-prenom-min-width-px'] = tPeak ? String(prenomMinWidthPxTarget) : String(Math.round(lerp(prenomMinWidthPx, prenomMinWidthPxTarget, tW)))
+    cssVars['--contact-prenom-rotate-deg'] = tPeak ? '10.0' : String(lerp(prenomRotate, prenomRotateTarget, tW).toFixed(1))
+    cssVars['--contact-prenom-label-ty-vh'] = tPeak ? String(prenomLabelTyVhTarget) : String(lerp(prenomLabelTyVh, prenomLabelTyVhTarget, tH).toFixed(1))
+    cssVars['--contact-prenom-input-mt-em'] = tPeak ? '0.3' : String(lerp(prenomInputMtEm, prenomInputMtEmTarget, tH).toFixed(1))
+
+    // Contact / société
+    const socTopTarget = 11.8
+    const socLeftTarget = 22.5
+    const socWidthTarget = 14.7
+    const socLabelTxTarget = -4.5
+    const socLabelTyVhTarget = -0.7
+    const socTop = parsePercent(cssVars['--contact-societe-top'] ?? '22')
+    const socLeft = parsePercent(cssVars['--contact-societe-left'] ?? '24.5')
+    const socWidth = parsePercent(cssVars['--contact-societe-width'] ?? '16.5')
+    const socLabelTxVw = parseVw(cssVars['--contact-societe-label-tx-vw'] ?? '-9.5')
+    const socLabelTyVh = parseVh(cssVars['--contact-societe-label-ty-vh'] ?? '-1.5') || -1.5
+    cssVars['--contact-societe-top'] = tPeak ? String(socTopTarget) : String(lerp(socTop, socTopTarget, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = tPeak ? String(socLeftTarget) : String(lerp(socLeft, socLeftTarget, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = tPeak ? String(socWidthTarget) : String(lerp(socWidth, socWidthTarget, tW).toFixed(1))
+    cssVars['--contact-societe-label-tx-vw'] = tPeak ? String(socLabelTxTarget) : String(lerp(socLabelTxVw, socLabelTxTarget, tW).toFixed(1))
+    cssVars['--contact-societe-label-ty-vh'] = tPeak ? String(socLabelTyVhTarget) : String(lerp(socLabelTyVh, socLabelTyVhTarget, tH).toFixed(1))
+
+    // Contact / email
+    const emailTopTarget = 7.7
+    const emailLeftTarget = 38.2
+    const emailWidthTarget = 17.2
+    const emailLabelXTarget = 3.0
+    const emailLabelTyTarget = -3
+    const emailTop = parsePercent(cssVars['--contact-email-top'] ?? '13.5')
+    const emailLeft = parsePercent(cssVars['--contact-email-left'] ?? '42')
+    const emailWidth = parsePercent(cssVars['--contact-email-width'] ?? '19')
+    const emailLabelXVh = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0') || 0
+    const emailLabelTyVh = parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5') || -5
+    cssVars['--contact-email-top'] = tPeak ? String(emailTopTarget) : String(lerp(emailTop, emailTopTarget, tH).toFixed(1))
+    cssVars['--contact-email-left'] = tPeak ? String(emailLeftTarget) : String(lerp(emailLeft, emailLeftTarget, tW).toFixed(1))
+    cssVars['--contact-email-width'] = tPeak ? String(emailWidthTarget) : String(lerp(emailWidth, emailWidthTarget, tW).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = tPeak ? '3.0' : String(lerp(emailLabelXVh, emailLabelXTarget, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = tPeak ? String(emailLabelTyTarget) : String(lerp(emailLabelTyVh, emailLabelTyTarget, tH).toFixed(1))
+
+    // Contact / submit
+    const submitTopTarget = 21
+    const submitLeftTarget = 45.7
+    const submitWidthTarget = 12.5
+    const submitRotateTarget = 27.0
+    const submitHeightTarget = 2.5
+    const submitTop = parsePercent(cssVars['--contact-submit-top'] ?? '41')
+    const submitLeft = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
+    const submitWidth = parsePercent(cssVars['--contact-submit-width'] ?? '13.5')
+    const submitRotate = parseFloat(cssVars['--contact-submit-rotate-deg'] ?? '27') || 27
+    const submitHeight = parsePercent(cssVars['--contact-submit-height'] ?? '4.5')
+    cssVars['--contact-submit-top'] = tPeak ? String(submitTopTarget) : String(lerp(submitTop, submitTopTarget, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = tPeak ? String(submitLeftTarget) : String(lerp(submitLeft, submitLeftTarget, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = tPeak ? String(submitWidthTarget) : String(lerp(submitWidth, submitWidthTarget, tW).toFixed(1))
+    cssVars['--contact-submit-rotate-deg'] = tPeak ? '27.0' : String(lerp(submitRotate, submitRotateTarget, tW).toFixed(1))
+    cssVars['--contact-submit-height'] = tPeak ? String(submitHeightTarget) : String(lerp(submitHeight, submitHeightTarget, tH).toFixed(1))
+}
+
+/**
+ * Overlay 2560×1440 (post-RC2) : rétablit les tokens du prompt robot
+ * (home/presentation + contact title wrapper + contact SVG) au pic, sans toucher
+ * à rocket/phase1/landing finale ni aux tokens contact arc/message.
+ */
+function apply2560x1440RobotHomeContactTitleSvgMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // Ground line (numérique en % ; pilotage vertical)
+    const groundLineTopTarget = 33
+    const groundLineTopBase = parsePercent(cssVars['--ground-line-top'] ?? '70')
+    cssVars['--ground-line-top'] = tPeak ? String(groundLineTopTarget) : String(lerp(groundLineTopBase, groundLineTopTarget, tH).toFixed(1))
+
+    // Home / presentation / typography deltas (vw ; pilotage horizontal)
+    const presentationMarginTopTarget = -51
+    const presentationMarginTopBase = parseFloat(cssVars['--presentation-margin-top-vh'] ?? String(PRESENTATION_MARGIN_TOP_VH_BASE)) || PRESENTATION_MARGIN_TOP_VH_BASE
+    cssVars['--presentation-margin-top-vh'] = tPeak ? String(presentationMarginTopTarget) : String(Math.round(lerp(presentationMarginTopBase, presentationMarginTopTarget, tH)))
+
+    const homeMynameDeltaTarget = -4
+    const homeMynameDeltaBase = parseFloat(cssVars['--home-myname-font-size-delta-vw'] ?? '0') || 0
+    cssVars['--home-myname-font-size-delta-vw'] =
+        tPeak ? String(homeMynameDeltaTarget) : String(lerp(homeMynameDeltaBase, homeMynameDeltaTarget, tW).toFixed(1))
+
+    const homeDescriptionDeltaTarget = -2.5
+    const homeDescriptionDeltaBase = parseFloat(cssVars['--home-description-font-size-delta-vw'] ?? '0') || 0
+    cssVars['--home-description-font-size-delta-vw'] =
+        tPeak ? String(homeDescriptionDeltaTarget) : String(lerp(homeDescriptionDeltaBase, homeDescriptionDeltaTarget, tW).toFixed(1))
+
+    // Contact / title wrapper
+    const contactTitleRightTargetVw = 5
+    const contactTitleRightBaseVw = parseVw(cssVars['--contact-section-title-wrapper-right'] ?? '6vw')
+    cssVars['--contact-section-title-wrapper-right'] =
+        tPeak ? `${contactTitleRightTargetVw}vw` : `${lerp(contactTitleRightBaseVw, contactTitleRightTargetVw, tW).toFixed(2)}vw`
+
+    const contactTitleTopTargetVh = 5
+    const contactTitleTopBaseVh = parseVh(cssVars['--contact-section-title-wrapper-top'] ?? '10vh')
+    cssVars['--contact-section-title-wrapper-top'] =
+        tPeak ? `${contactTitleTopTargetVh}vh` : `${lerp(contactTitleTopBaseVh, contactTitleTopTargetVh, tH).toFixed(2)}vh`
+
+    // Contact / SVG : left/top (% ; pilotage horizontal/vertical) + height-vh (pilotage vertical)
+    const contactSvgLeftTarget = 16
+    const contactSvgLeftBase = parsePercent(cssVars['--contact-svg-left'] ?? '15')
+    cssVars['--contact-svg-left'] = tPeak ? String(contactSvgLeftTarget) : String(lerp(contactSvgLeftBase, contactSvgLeftTarget, tW).toFixed(1))
+
+    const contactSvgTopTarget = 19
+    const contactSvgTopBase = parsePercent(cssVars['--contact-svg-top'] ?? '36.5')
+    cssVars['--contact-svg-top'] = tPeak ? String(contactSvgTopTarget) : String(lerp(contactSvgTopBase, contactSvgTopTarget, tH).toFixed(1))
+
+    const contactSvgHeightVhTarget = 29
+    const contactSvgHeightVhBase = parseVh(cssVars['--contact-svg-height-vh'] ?? '63') || 63
+    cssVars['--contact-svg-height-vh'] = tPeak ? String(contactSvgHeightVhTarget) : String(lerp(contactSvgHeightVhBase, contactSvgHeightVhTarget, tH).toFixed(1))
+}
+
+/**
+ * Overlay 2560×1440 (post-RC2) : ground-line-top + robot y-percent/hand-end-x-delta + facteur anti-dépassement X.
+ * - Garde le comportement progressif via tW/tH.
+ * - Force les valeurs exactes uniquement au pic (t > 0.999).
+ */
+function apply2560x1440RobotXAdjustMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // Réduction X finale (côté JS uniquement, sur rollRightProgress).
+    // Valeur cible à 2560×1440 : < 1 (pour limiter la tête et la main à droite sur écrans très larges).
+    const robotFinalXMultTarget = 0.75
+
+    const groundLineTopTarget = 33
+    const groundLineTopBase = parsePercent(cssVars['--ground-line-top'] ?? '70')
+    cssVars['--ground-line-top'] = tPeak
+        ? String(groundLineTopTarget)
+        : String(lerp(groundLineTopBase, groundLineTopTarget, tH).toFixed(1))
+
+    // Robot
+    const robotAboveYTarget = 23.5
+    const robotAboveYBase = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
+    cssVars['--robot-above-y-percent'] = tPeak ? String(robotAboveYTarget) : String(lerp(robotAboveYBase, robotAboveYTarget, tH).toFixed(1))
+
+    const robotGroundYTarget = 34.5
+    const robotGroundYBase = parseFloat(cssVars['--robot-ground-y-percent'] ?? '61') || 61
+    cssVars['--robot-ground-y-percent'] = tPeak ? String(robotGroundYTarget) : String(lerp(robotGroundYBase, robotGroundYTarget, tH).toFixed(1))
+
+    const robotHandEndXDeltaTarget = 1.1
+    const robotHandEndXDeltaBase = parseFloat(cssVars['--robot-hand-end-x-delta'] ?? '0') || 0
+    cssVars['--robot-hand-end-x-delta'] = tPeak
+        ? String(robotHandEndXDeltaTarget)
+        : String(lerp(robotHandEndXDeltaBase, robotHandEndXDeltaTarget, tW).toFixed(1))
+
+    // Token consommé par scrollAnimations pour réduire l’amplitude X finale (rollRight) tête+main.
+    const robotFinalXMultBase = parseFloat(cssVars['--robot-final-x-mult'] ?? '1') || 1
+    cssVars['--robot-final-x-mult'] = tPeak
+        ? String(robotFinalXMultTarget)
+        : String(lerp(robotFinalXMultBase, robotFinalXMultTarget, tW).toFixed(3))
+}
+
+/**
+ * Overlay 2560×1440 (post-RC2) : ground/about/profile/exp-alien2/quest/convoyeur/masks + contact arc scroll/message.
+ * - Garde le comportement progressif via tW/tH.
+ * - Force les valeurs exactes uniquement au pic (t > 0.999).
+ * - Ne modifie volontairement pas rocket/submit/contact-svg/contact-section-title-wrapper.
+ */
+function apply2560x1440RC4TokensMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // About / alien
+    const aboutAlienLeftTargetVw = 6.5
+    const aboutAlienLeftBaseVw = parseVw(cssVars['--about-alien-left'] ?? '5.5vw')
+    cssVars['--about-alien-left'] = tPeak
+        ? `${aboutAlienLeftTargetVw}vw`
+        : `${lerp(aboutAlienLeftBaseVw, aboutAlienLeftTargetVw, tW).toFixed(1)}vw`
+
+    const aboutAlienTopTarget = 34
+    const aboutAlienTopBase = parsePercent(cssVars['--about-alien-top'] ?? '34')
+    cssVars['--about-alien-top'] = tPeak ? String(aboutAlienTopTarget) : String(lerp(aboutAlienTopBase, aboutAlienTopTarget, tH).toFixed(1))
+
+    // Profile
+    const profileLeftTarget = 77
+    const profileLeftBase = parsePercent(cssVars['--profile-text-left'] ?? '64')
+    cssVars['--profile-text-left'] = tPeak ? String(profileLeftTarget) : String(Math.round(lerp(profileLeftBase, profileLeftTarget, tW)))
+
+    const profileTopTarget = 23
+    const profileTopBase = parsePercent(cssVars['--profile-text-top'] ?? '41')
+    cssVars['--profile-text-top'] = tPeak ? String(profileTopTarget) : String(Math.round(lerp(profileTopBase, profileTopTarget, tH)))
+
+    const profileWidthTarget = 31
+    const profileWidthBase = parseVw(cssVars['--profile-text-width'] ?? '45vw')
+    cssVars['--profile-text-width'] = tPeak ? String(profileWidthTarget) : String(Math.round(lerp(profileWidthBase, profileWidthTarget, tW)))
+
+    // Experience / alien2
+    const alien2LeftTargetPx = 25.6
+    const alien2LeftBasePx = parsePx(cssVars['--exp-alien2-left-px'] ?? '', alien2LeftTargetPx)
+    cssVars['--exp-alien2-left-px'] = tPeak ? String(alien2LeftTargetPx) : String(lerp(alien2LeftBasePx, alien2LeftTargetPx, tW).toFixed(1))
+
+    const alien2TopTarget = 29.7
+    const alien2TopBase = parsePercent(cssVars['--exp-alien2-top-percent'] ?? String(alien2TopTarget))
+    cssVars['--exp-alien2-top-percent'] = tPeak ? String(alien2TopTarget) : String(lerp(alien2TopBase, alien2TopTarget, tH).toFixed(1))
+
+    const alien2WidthTargetPx = 82
+    const alien2WidthBasePx = parsePx(cssVars['--exp-alien2-width-px'] ?? '', alien2WidthTargetPx)
+    cssVars['--exp-alien2-width-px'] = tPeak ? String(alien2WidthTargetPx) : String(Math.round(lerp(alien2WidthBasePx, alien2WidthTargetPx, tW)))
+
+    // Quest
+    const questTitreTopTargetVh = 3
+    const questTitreTopBaseVh = parseVh(cssVars['--quest-titre-top'] ?? '3vh') || questTitreTopTargetVh
+    cssVars['--quest-titre-top'] = tPeak ? `${questTitreTopTargetVh}vh` : `${lerp(questTitreTopBaseVh, questTitreTopTargetVh, tH).toFixed(1)}vh`
+
+    const questTitreLeftTargetVw = 4
+    const questTitreLeftBaseVw = parseVw(cssVars['--quest-titre-left'] ?? '1vw')
+    cssVars['--quest-titre-left'] = tPeak ? `${questTitreLeftTargetVw}vw` : `${lerp(questTitreLeftBaseVw, questTitreLeftTargetVw, tW).toFixed(1)}vw`
+
+    const questTitreMaxWidthTargetVw = 32
+    const questTitreMaxWidthBaseVw = parseVw(cssVars['--quest-titre-max-width'] ?? '28vw')
+    cssVars['--quest-titre-max-width'] = tPeak ? `${questTitreMaxWidthTargetVw}vw` : `${lerp(questTitreMaxWidthBaseVw, questTitreMaxWidthTargetVw, tW).toFixed(1)}vw`
+
+    const questDescripTopTargetVh = 7
+    const questDescripTopBaseVh = parseVh(cssVars['--quest-descrip-top'] ?? '7vh') || questDescripTopTargetVh
+    cssVars['--quest-descrip-top'] = tPeak ? `${questDescripTopTargetVh}vh` : `${lerp(questDescripTopBaseVh, questDescripTopTargetVh, tH).toFixed(1)}vh`
+
+    // Convoyeur / masks / robot
+    const convoyeurLeftTarget = -1935
+    const convoyeurLeftBase = parsePx(cssVars['--convoyeur-left-px'] ?? '', convoyeurLeftTarget)
+    cssVars['--convoyeur-left-px'] = tPeak ? String(convoyeurLeftTarget) : String(Math.round(lerp(convoyeurLeftBase, convoyeurLeftTarget, tW)))
+
+    const convoyeurBottomTarget = 2339
+    const convoyeurBottomBase = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', convoyeurBottomTarget)
+    cssVars['--convoyeur-bottom-px'] = tPeak ? String(convoyeurBottomTarget) : String(Math.round(lerp(convoyeurBottomBase, convoyeurBottomTarget, tH)))
+
+    const convoyeurWTarget = 3300
+    const convoyeurWBase = parsePx(cssVars['--convoyeur-w-px'] ?? '', convoyeurWTarget)
+    cssVars['--convoyeur-w-px'] = tPeak ? String(convoyeurWTarget) : String(Math.round(lerp(convoyeurWBase, convoyeurWTarget, tW)))
+
+    const convoyeurHTarget = 11.5
+    const convoyeurHRaw = (cssVars['--convoyeur-h'] ?? 'auto').trim()
+    const convoyeurHBase = convoyeurHRaw === 'auto' ? 0 : parsePercent(convoyeurHRaw)
+    cssVars['--convoyeur-h'] = tPeak ? String(convoyeurHTarget) : String(lerp(convoyeurHBase, convoyeurHTarget, tH).toFixed(1))
+
+    const convoyeurEndCorrectionTarget = 36
+    const convoyeurEndCorrectionBase = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', convoyeurEndCorrectionTarget)
+    cssVars['--convoyeur-end-correction-x-px'] = tPeak
+        ? String(convoyeurEndCorrectionTarget)
+        : String(Math.round(lerp(convoyeurEndCorrectionBase, convoyeurEndCorrectionTarget, tW)))
+
+    const maskConvoyeurBottomTarget = 13
+    const maskConvoyeurBottomBase = parsePercent(cssVars['--mask-convoyeur-bottom'] ?? '13') || 13
+    cssVars['--mask-convoyeur-bottom'] = tPeak ? String(maskConvoyeurBottomTarget) : String(lerp(maskConvoyeurBottomBase, maskConvoyeurBottomTarget, tH).toFixed(1))
+
+    // Contact / arc scroll
+    const arcScrollLeftTargetPx = -36.5
+    const arcScrollLeftBasePx = parsePx(cssVars['--contact-arc-scroll-left'] ?? '', arcScrollLeftTargetPx)
+    cssVars['--contact-arc-scroll-left'] = tPeak ? `${arcScrollLeftTargetPx}px` : `${lerp(arcScrollLeftBasePx, arcScrollLeftTargetPx, tW).toFixed(1)}px`
+
+    const arcScrollTopTarget = 6
+    const arcScrollTopBase = parseFloat(cssVars['--contact-arc-scroll-top'] ?? '0') || 0
+    cssVars['--contact-arc-scroll-top'] = tPeak ? String(arcScrollTopTarget) : String(Math.round(lerp(arcScrollTopBase, arcScrollTopTarget, tH)))
+
+    const arcScrollHeightTargetPct = 70
+    const arcScrollHeightBasePct = parsePercent(cssVars['--contact-arc-scroll-height'] ?? '70') || 70
+    cssVars['--contact-arc-scroll-height'] = tPeak ? `${arcScrollHeightTargetPct}%` : `${Math.round(lerp(arcScrollHeightBasePct, arcScrollHeightTargetPct, tH))}%`
+
+    const arcScrollWidthTargetPx = 84
+    const arcScrollWidthBasePx = parsePx(cssVars['--contact-arc-scroll-width'] ?? '', arcScrollWidthTargetPx)
+    cssVars['--contact-arc-scroll-width'] = tPeak ? `${arcScrollWidthTargetPx}px` : `${Math.round(lerp(arcScrollWidthBasePx, arcScrollWidthTargetPx, tW))}px`
+
+    // Contact / message
+    const contactMessageLabelTopTarget = 55.0
+    const contactMessageLabelTopBase = parsePercent(cssVars['--contact-message-label-top'] ?? '55') || 55
+    cssVars['--contact-message-label-top'] = tPeak ? String(contactMessageLabelTopTarget) : String(lerp(contactMessageLabelTopBase, contactMessageLabelTopTarget, tH).toFixed(1))
+
+    const contactMessageLabelLeftTarget = 0
+    const contactMessageLabelLeftBase = parsePercent(cssVars['--contact-message-label-left'] ?? '0') || 0
+    cssVars['--contact-message-label-left'] = tPeak
+        ? String(contactMessageLabelLeftTarget)
+        : String(Math.round(lerp(contactMessageLabelLeftBase, contactMessageLabelLeftTarget, tW)))
+
+    const contactMessageLabelTxVwTarget = -3
+    const contactMessageLabelTxVwBase = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4') || -4
+    cssVars['--contact-message-label-tx-vw'] = tPeak ? String(contactMessageLabelTxVwTarget) : String(lerp(contactMessageLabelTxVwBase, contactMessageLabelTxVwTarget, tW).toFixed(1))
+
+    const contactMessageLabelTyVhTarget = -8
+    const contactMessageLabelTyVhBase = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
+    cssVars['--contact-message-label-ty-vh'] = tPeak ? String(contactMessageLabelTyVhTarget) : String(lerp(contactMessageLabelTyVhBase, contactMessageLabelTyVhTarget, tH).toFixed(1))
+
+    const contactMessageTextareaHeightTarget = 11.2
+    const contactMessageTextareaHeightBase = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+    cssVars['--contact-message-textarea-height'] = tPeak
+        ? String(contactMessageTextareaHeightTarget)
+        : String(lerp(contactMessageTextareaHeightBase, contactMessageTextareaHeightTarget, tH).toFixed(1))
+}
+
+/**
+ * Overlay 2560×1440 (merge-only, post-toutes les overlays RC4) :
+ * - Répare/force uniquement les tokens listés (pas de suppression, pas de remplacement destructif).
+ * - Forçage exact au pic, interpolation progressive autour via tW/tH.
+ */
+function apply2560x1440FinalPriorityMergeMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // About / hologram
+    const aboutHoloLeftTargetVw = 6
+    const aboutHoloLeftRaw = (cssVars['--about-hologram-left'] ?? '').trim()
+    const aboutHoloLeftBaseNum =
+        aboutHoloLeftRaw.toLowerCase() === 'auto' || aboutHoloLeftRaw === '' ? 11 : parsePercent(aboutHoloLeftRaw)
+    cssVars['--about-hologram-left'] = tPeak
+        ? `${aboutHoloLeftTargetVw}vw`
+        : `${lerp(aboutHoloLeftBaseNum, aboutHoloLeftTargetVw, tW).toFixed(1)}vw`
+
+    const aboutHoloTopTarget = 23.5
+    const aboutHoloTopBase = parsePercent(cssVars['--about-hologram-top'] ?? '42')
+    cssVars['--about-hologram-top'] = tPeak ? String(aboutHoloTopTarget) : String(lerp(aboutHoloTopBase, aboutHoloTopTarget, tH).toFixed(1))
+
+    const aboutHoloWidthTargetPct = 80
+    const aboutHoloWidthRaw = (cssVars['--about-hologram-width'] ?? '').trim()
+    const aboutHoloWidthBasePct = (() => {
+        if (aboutHoloWidthRaw === '' || aboutHoloWidthRaw.toLowerCase() === 'auto') return aboutHoloWidthTargetPct
+        if (aboutHoloWidthRaw.includes('%')) return parsePercent(aboutHoloWidthRaw)
+        if (aboutHoloWidthRaw.toLowerCase().includes('vw')) return parseVw(aboutHoloWidthRaw)
+        const n = parseFloat(aboutHoloWidthRaw)
+        return Number.isFinite(n) ? n : aboutHoloWidthTargetPct
+    })()
+    cssVars['--about-hologram-width'] = tPeak
+        ? `${aboutHoloWidthTargetPct}%`
+        : `${lerp(aboutHoloWidthBasePct, aboutHoloWidthTargetPct, tW).toFixed(2)}%`
+
+    // Experience / habitation
+    const expHabTopTargetPx = 849
+    const expHabTopBasePx = parsePx(cssVars['--exp-hab-top-px'] ?? '', expHabTopTargetPx)
+    cssVars['--exp-hab-top-px'] = tPeak ? String(expHabTopTargetPx) : String(Math.round(lerp(expHabTopBasePx, expHabTopTargetPx, tH)))
+
+    const expHabLeftTargetPx = 1286
+    const expHabLeftBasePx = parsePx(cssVars['--exp-hab-left-px'] ?? '', expHabLeftTargetPx)
+    cssVars['--exp-hab-left-px'] = tPeak ? String(expHabLeftTargetPx) : String(Math.round(lerp(expHabLeftBasePx, expHabLeftTargetPx, tW)))
+
+    const expHabWTargetPx = 1600
+    const expHabWBasePx = parsePx(cssVars['--exp-hab-w-px'] ?? '', expHabWTargetPx)
+    cssVars['--exp-hab-w-px'] = tPeak ? String(expHabWTargetPx) : String(Math.round(lerp(expHabWBasePx, expHabWTargetPx, tW)))
+
+    const expHabHTargetPx = 980
+    const expHabHBasePx = parsePx(cssVars['--exp-hab-h-px'] ?? '', expHabHTargetPx)
+    cssVars['--exp-hab-h-px'] = tPeak ? String(expHabHTargetPx) : String(Math.round(lerp(expHabHBasePx, expHabHTargetPx, tH)))
+
+    // Masks / cheminée
+    const maskChemineBottomTarget = 16.5
+    const maskChemineBottomBase = parsePercent(cssVars['--mask-chemine-bottom'] ?? '18')
+    cssVars['--mask-chemine-bottom'] = tPeak ? String(maskChemineBottomTarget) : String(lerp(maskChemineBottomBase, maskChemineBottomTarget, tH).toFixed(1))
+
+    const maskChemineHeightTarget = 68.0
+    const maskChemineHeightBase = parsePercent(cssVars['--mask-chemine-height'] ?? '59')
+    cssVars['--mask-chemine-height'] = tPeak ? '68.0' : String(lerp(maskChemineHeightBase, maskChemineHeightTarget, tH).toFixed(1))
+
+    const targetMaskChemineClipRaw = 'polygon(100% 23%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%)'
+    const curMaskChemineClipRaw = (cssVars['--mask-chemine-clip-raw'] ?? '').trim()
+    cssVars['--mask-chemine-clip-raw'] = tPeak ? targetMaskChemineClipRaw : lerpPolygonClipRaw(curMaskChemineClipRaw, targetMaskChemineClipRaw, tH)
+}
+
+/**
+ * Overlay 2560×1440 (merge non destructif) : met à jour UNIQUEMENT les variables listées.
+ * Ne touche à aucune autre variable. Priorité finale.
+ */
+function apply2560x1440MergeUpdateMix(cssVars: Record<string, string>, w: number, h: number): void {
+    const tW = getT2560x1440W(w)
+    const tH = getT2560x1440H(h)
+    const t = tW * tH
+    if (t === 0) return
+
+    const tPeak = t > 0.999
+
+    // Profile
+    const profileLeftTarget = 72
+    const profileLeftBase = parsePercent(cssVars['--profile-text-left'] ?? '64')
+    cssVars['--profile-text-left'] = tPeak ? String(profileLeftTarget) : String(Math.round(lerp(profileLeftBase, profileLeftTarget, tW)))
+
+    // Convoyeur
+    const convoyeurLeftTarget = -1985
+    const convoyeurLeftBase = parsePx(cssVars['--convoyeur-left-px'] ?? '', convoyeurLeftTarget)
+    cssVars['--convoyeur-left-px'] = tPeak ? String(convoyeurLeftTarget) : String(Math.round(lerp(convoyeurLeftBase, convoyeurLeftTarget, tW)))
+
+    const convoyeurBottomTarget = 2339
+    const convoyeurBottomBase = parsePx(cssVars['--convoyeur-bottom-px'] ?? '', convoyeurBottomTarget)
+    cssVars['--convoyeur-bottom-px'] = tPeak ? String(convoyeurBottomTarget) : String(Math.round(lerp(convoyeurBottomBase, convoyeurBottomTarget, tH)))
+
+    const convoyeurWTarget = 3300
+    const convoyeurWBase = parsePx(cssVars['--convoyeur-w-px'] ?? '', convoyeurWTarget)
+    cssVars['--convoyeur-w-px'] = tPeak ? String(convoyeurWTarget) : String(Math.round(lerp(convoyeurWBase, convoyeurWTarget, tW)))
+
+    const convoyeurHTarget = 11
+    const convoyeurHRaw = (cssVars['--convoyeur-h'] ?? 'auto').trim()
+    const convoyeurHBase = convoyeurHRaw === 'auto' ? 0 : parsePercent(convoyeurHRaw)
+    cssVars['--convoyeur-h'] = tPeak ? String(convoyeurHTarget) : String(Math.round(lerp(convoyeurHBase, convoyeurHTarget, tH)))
+
+    const convoyeurEndCorrectionTarget = 71
+    const convoyeurEndCorrectionBase = parsePx(cssVars['--convoyeur-end-correction-x-px'] ?? '', convoyeurEndCorrectionTarget)
+    cssVars['--convoyeur-end-correction-x-px'] = tPeak ? String(convoyeurEndCorrectionTarget) : String(Math.round(lerp(convoyeurEndCorrectionBase, convoyeurEndCorrectionTarget, tW)))
+
+    // Robot
+    const robotAboveYTarget = 24.7
+    const robotAboveYBase = parseFloat(cssVars['--robot-above-y-percent'] ?? '50') || 50
+    cssVars['--robot-above-y-percent'] = tPeak ? String(robotAboveYTarget) : String(lerp(robotAboveYBase, robotAboveYTarget, tH).toFixed(1))
+
+    const robotGroundYTarget = 29.6
+    const robotGroundYBase = parseFloat(cssVars['--robot-ground-y-percent'] ?? '61') || 61
+    cssVars['--robot-ground-y-percent'] = tPeak ? String(robotGroundYTarget) : String(lerp(robotGroundYBase, robotGroundYTarget, tH).toFixed(1))
+
+    // Projets
+    const projetsTextRightTargetVw = 3
+    const projetsTextRightBaseVw = parseVw(cssVars['--projets-text-right'] ?? '10vw')
+    cssVars['--projets-text-right'] = tPeak ? `${projetsTextRightTargetVw}vw` : `${lerp(projetsTextRightBaseVw, projetsTextRightTargetVw, tW).toFixed(2)}vw`
+
+    // Contact / nom
+    const nomTopTarget = 3.5
+    const nomLeftTarget = 16.8
+    const nomWidthTarget = 12
+    const nomTopBase = parsePercent(cssVars['--contact-nom-top'] ?? '3.5')
+    const nomLeftBase = parsePercent(cssVars['--contact-nom-left'] ?? '16')
+    const nomWidthBase = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
+    cssVars['--contact-nom-top'] = tPeak ? String(nomTopTarget) : String(lerp(nomTopBase, nomTopTarget, tH).toFixed(1))
+    cssVars['--contact-nom-left'] = tPeak ? String(nomLeftTarget) : String(lerp(nomLeftBase, nomLeftTarget, tW).toFixed(1))
+    cssVars['--contact-nom-width'] = tPeak ? String(nomWidthTarget) : String(lerp(nomWidthBase, nomWidthTarget, tW).toFixed(1))
+
+    // Contact / prénom
+    const prenomTopTarget = 5.15
+    const prenomLeftTarget = 34
+    const prenomWidthTarget = 11.9
+    const prenomTopBase = parsePercent(cssVars['--contact-prenom-top'] ?? '6.8')
+    const prenomLeftBase = parsePercent(cssVars['--contact-prenom-left'] ?? '36')
+    const prenomWidthBase = parsePercent(cssVars['--contact-prenom-width'] ?? '13.5')
+    cssVars['--contact-prenom-top'] = tPeak ? String(prenomTopTarget) : String(lerp(prenomTopBase, prenomTopTarget, tH).toFixed(2))
+    cssVars['--contact-prenom-left'] = tPeak ? String(prenomLeftTarget) : String(lerp(prenomLeftBase, prenomLeftTarget, tW).toFixed(1))
+    cssVars['--contact-prenom-width'] = tPeak ? String(prenomWidthTarget) : String(lerp(prenomWidthBase, prenomWidthTarget, tW).toFixed(1))
+
+    // Contact / société
+    const socTopTarget = 11.9
+    const socLeftTarget = 24.1
+    const socWidthTarget = 14.5
+    const socTopBase = parsePercent(cssVars['--contact-societe-top'] ?? '22')
+    const socLeftBase = parsePercent(cssVars['--contact-societe-left'] ?? '24.5')
+    const socWidthBase = parsePercent(cssVars['--contact-societe-width'] ?? '16.5')
+    cssVars['--contact-societe-top'] = tPeak ? String(socTopTarget) : String(lerp(socTopBase, socTopTarget, tH).toFixed(1))
+    cssVars['--contact-societe-left'] = tPeak ? String(socLeftTarget) : String(lerp(socLeftBase, socLeftTarget, tW).toFixed(1))
+    cssVars['--contact-societe-width'] = tPeak ? String(socWidthTarget) : String(lerp(socWidthBase, socWidthTarget, tW).toFixed(1))
+
+    // Contact / email
+    const emailTopTarget = 7.9
+    const emailLeftTarget = 39.5
+    const emailWidthTarget = 16.3
+    const emailLabelXVhTarget = 3.0
+    const emailLabelTyVhTarget = -2.5
+    const emailTopBase = parsePercent(cssVars['--contact-email-top'] ?? '13.5')
+    const emailLeftBase = parsePercent(cssVars['--contact-email-left'] ?? '42')
+    const emailWidthBase = parsePercent(cssVars['--contact-email-width'] ?? '19')
+    const emailLabelXVhBase = parseVh(cssVars['--contact-email-label-x-vh'] ?? '0') || 0
+    const emailLabelTyVhBase = parseVh(cssVars['--contact-email-label-ty-vh'] ?? '-5') || -5
+    cssVars['--contact-email-top'] = tPeak ? String(emailTopTarget) : String(lerp(emailTopBase, emailTopTarget, tH).toFixed(1))
+    cssVars['--contact-email-left'] = tPeak ? String(emailLeftTarget) : String(lerp(emailLeftBase, emailLeftTarget, tW).toFixed(1))
+    cssVars['--contact-email-width'] = tPeak ? String(emailWidthTarget) : String(lerp(emailWidthBase, emailWidthTarget, tW).toFixed(1))
+    cssVars['--contact-email-label-x-vh'] = tPeak ? String(emailLabelXVhTarget) : String(lerp(emailLabelXVhBase, emailLabelXVhTarget, tW).toFixed(1))
+    cssVars['--contact-email-label-ty-vh'] = tPeak ? String(emailLabelTyVhTarget) : String(lerp(emailLabelTyVhBase, emailLabelTyVhTarget, tH).toFixed(1))
+
+    // Contact / submit
+    const submitTopTarget = 21
+    const submitLeftTarget = 46.7
+    const submitWidthTarget = 11.7
+    const submitTopBase = parsePercent(cssVars['--contact-submit-top'] ?? '41')
+    const submitLeftBase = parsePercent(cssVars['--contact-submit-left'] ?? '50.5')
+    const submitWidthBase = parsePercent(cssVars['--contact-submit-width'] ?? '13.5')
+    cssVars['--contact-submit-top'] = tPeak ? String(submitTopTarget) : String(lerp(submitTopBase, submitTopTarget, tH).toFixed(1))
+    cssVars['--contact-submit-left'] = tPeak ? String(submitLeftTarget) : String(lerp(submitLeftBase, submitLeftTarget, tW).toFixed(1))
+    cssVars['--contact-submit-width'] = tPeak ? String(submitWidthTarget) : String(lerp(submitWidthBase, submitWidthTarget, tW).toFixed(1))
+
+    // Contact / message
+    const msgTopTarget = 18.5
+    const msgLeftTarget = 19
+    const msgFocusMtVhTarget = 0.6
+    const msgFocusMlVwTarget = 0.1
+    const msgFocusWidthTarget = 88
+    const msgLabelTopTarget = 55
+    const msgLabelLeftTarget = -1
+    const msgLabelTxVwTarget = -3
+    const msgLabelTyVhTarget = -8
+    const msgTextareaHeightTarget = 11
+    const msgTopBase = parsePercent(cssVars['--contact-message-top'] ?? '37')
+    const msgFocusMtVhBase = parseVh(cssVars['--contact-message-textarea-focus-mt-vh'] ?? '3.8') || 3.8
+    const msgFocusMlVwBase = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5') || 2.5
+    const msgFocusWidthBase = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80') || 80
+    const msgLabelTopBase = parsePercent(cssVars['--contact-message-label-top'] ?? '70') || 70
+    const msgLabelLeftBase = parsePercent(cssVars['--contact-message-label-left'] ?? '0') || 0
+    const msgLabelTxVwBase = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4') || -4
+    const msgLabelTyVhBase = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
+    const msgTextareaHeightBase = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
+    cssVars['--contact-message-top'] = tPeak ? String(msgTopTarget) : String(lerp(msgTopBase, msgTopTarget, tH).toFixed(1))
+    cssVars['--contact-message-left'] = tPeak ? String(msgLeftTarget) : String(Math.round(lerp(parsePercent(cssVars['--contact-message-left'] ?? '19') || 19, msgLeftTarget, tW)))
+    cssVars['--contact-message-textarea-focus-mt-vh'] = tPeak ? String(msgFocusMtVhTarget) : String(lerp(msgFocusMtVhBase, msgFocusMtVhTarget, tH).toFixed(1))
+    cssVars['--contact-message-textarea-focus-ml-vw'] = tPeak ? String(msgFocusMlVwTarget) : String(lerp(msgFocusMlVwBase, msgFocusMlVwTarget, tW).toFixed(1))
+    cssVars['--contact-message-textarea-focus-width'] = tPeak ? String(msgFocusWidthTarget) : String(Math.round(lerp(msgFocusWidthBase, msgFocusWidthTarget, tW)))
+    cssVars['--contact-message-label-top'] = tPeak ? String(msgLabelTopTarget) : String(lerp(msgLabelTopBase, msgLabelTopTarget, tH).toFixed(1))
+    cssVars['--contact-message-label-left'] = tPeak ? String(msgLabelLeftTarget) : String(Math.round(lerp(msgLabelLeftBase, msgLabelLeftTarget, tW)))
+    cssVars['--contact-message-label-tx-vw'] = tPeak ? String(msgLabelTxVwTarget) : String(lerp(msgLabelTxVwBase, msgLabelTxVwTarget, tW).toFixed(1))
+    cssVars['--contact-message-label-ty-vh'] = tPeak ? String(msgLabelTyVhTarget) : String(lerp(msgLabelTyVhBase, msgLabelTyVhTarget, tH).toFixed(1))
+    cssVars['--contact-message-textarea-height'] = tPeak ? String(msgTextareaHeightTarget) : String(lerp(msgTextareaHeightBase, msgTextareaHeightTarget, tH).toFixed(1))
+
+    // Rocket landing final
+    const rocketXTarget = 4488
+    const rocketYTarget = 1133.24
+    const rocketRotTarget = 140
+    const rocketXBase = Number.isFinite(parseFloat(cssVars['--rocket-landed-x-px'] ?? '')) ? parseFloat(cssVars['--rocket-landed-x-px'] ?? '') : rocketXTarget
+    const rocketYBase = Number.isFinite(parseFloat(cssVars['--rocket-landed-y-px'] ?? '')) ? parseFloat(cssVars['--rocket-landed-y-px'] ?? '') : rocketYTarget
+    const rocketRotBase = Number.isFinite(parseFloat(cssVars['--rocket-landed-rotate-deg'] ?? '')) ? parseFloat(cssVars['--rocket-landed-rotate-deg'] ?? '') : rocketRotTarget
+    cssVars['--rocket-landed-x-px'] = tPeak ? String(rocketXTarget) : String(lerp(rocketXBase, rocketXTarget, t).toFixed(2))
+    cssVars['--rocket-landed-y-px'] = tPeak ? String(rocketYTarget) : String(lerp(rocketYBase, rocketYTarget, t).toFixed(2))
+    cssVars['--rocket-landed-rotate-deg'] = tPeak ? String(rocketRotTarget) : String(lerp(rocketRotBase, rocketRotTarget, t).toFixed(1))
 }
 
 /** Applique le mix 1440×900 (calibration intermédiaire). Bande 1380–1500 × 860–940, pic à (1440, 900). */
@@ -612,6 +2714,7 @@ function apply1440x900Mix(cssVars: Record<string, string>, w: number, h: number)
     const contactMessageLabelTyVh = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5') || -18.5
     const contactMessageTextareaHeight = parseFloat(cssVars['--contact-message-textarea-height'] ?? '11.5') || 11.5
     cssVars['--contact-message-top'] = String(lerp(contactMessageTop, CALIBRATION_1440_900.contactMessageTop, t).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
     cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(contactMessageTextareaFocusMtVh, CALIBRATION_1440_900.contactMessageTextareaFocusMtVh, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(contactMessageTextareaFocusMlVw, CALIBRATION_1440_900.contactMessageTextareaFocusMlVw, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(contactMessageTextareaFocusWidth, CALIBRATION_1440_900.contactMessageTextareaFocusWidth, t)))
@@ -621,6 +2724,18 @@ function apply1440x900Mix(cssVars: Record<string, string>, w: number, h: number)
     cssVars['--contact-message-label-tx-vw'] = String(lerp(contactMessageLabelTxVw, CALIBRATION_1440_900.contactMessageLabelTxVw, t).toFixed(1))
     cssVars['--contact-message-label-ty-vh'] = String(lerp(contactMessageLabelTyVh, CALIBRATION_1440_900.contactMessageLabelTyVh, t).toFixed(1))
     cssVars['--contact-message-textarea-height'] = String(lerp(contactMessageTextareaHeight, CALIBRATION_1440_900.contactMessageTextareaHeightEm, t).toFixed(1))
+
+    // Overrides de restauration au pic 1440×900.
+    // Important : on force ici les tokens absents / insuffisamment pilotés dans ce mix,
+    // pour éviter qu'ils soient hérités d'un mix précédent (ex. MID_1536_864).
+    if (t > 0.999) {
+        cssVars['--robot-hand-end-x-delta'] = String(CALIBRATION_1440_900.robotHandEndXDeltaVw)
+        cssVars['--contact-submit-top'] = String(CALIBRATION_1440_900.contactSubmitTop)
+        cssVars['--contact-submit-left'] = String(CALIBRATION_1440_900.contactSubmitLeft)
+        cssVars['--rocket-landed-x-px'] = String(CALIBRATION_1440_900.rocketLanded.xPx)
+        cssVars['--rocket-landed-y-px'] = String(CALIBRATION_1440_900.rocketLanded.yPx)
+        cssVars['--rocket-landed-rotate-deg'] = String(CALIBRATION_1440_900.rocketLanded.rotateDeg)
+    }
 }
 
 /** Applique le mix wideDesktop. w/h = viewport officiel (getResponsiveViewport). */
@@ -789,6 +2904,7 @@ function applyWideDesktopMix(
     const contactMsgTyVh = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-18.5')
     if (tWide > 0) {
         cssVars['--contact-message-top'] = String(lerp(contactMsgTop, WIDE_1920_1080.contactMessageTop, tWide).toFixed(1))
+        cssVars['--contact-message-left'] = '19'
         cssVars['--contact-message-label-ty-vh'] = String(lerp(contactMsgTyVh, WIDE_1920_1080.contactMessageLabelTyVh, tWide).toFixed(1))
     }
     cssVars['--contact-message-label-top'] = String(lerp(contactMsgLabelTop, WIDE_1920_1080.contactMessageLabelTop, tWide).toFixed(1))
@@ -951,6 +3067,7 @@ function applyShortWideMix(cssVars: Record<string, string>, w: number, h: number
     const contactMsgTxVw = parseVw(cssVars['--contact-message-label-tx-vw'] ?? '-4') || -4
     const contactMsgTyVh = parseVh(cssVars['--contact-message-label-ty-vh'] ?? '-11') || -11
     cssVars['--contact-message-top'] = String(lerp(contactMsgTop, WIDE_1920_944.contactMessageTop, t).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
     cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(contactMsgMtVh, WIDE_1920_944.contactMessageTextareaFocusMtVh, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(contactMsgMlVw, WIDE_1920_944.contactMessageTextareaFocusMlVw, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(contactMsgWidth, WIDE_1920_944.contactMessageTextareaFocusWidth, t)))
@@ -1397,6 +3514,8 @@ function computeQuestTextCssVars(w: number): Record<string, string> {
         '--quest-titre-left': titreLeft,
         '--quest-titre-max-width': titreMaxW,
         '--quest-titre-max-height': '15vh',
+        '--quest-descrip-left': '2vw',
+        '--quest-descrip-right': '2vw',
         '--quest-descrip-top': descripTop,
         '--quest-descrip-max-width': descripMaxW,
         '--quest-descrip-max-height': '25vh',
@@ -1505,10 +3624,11 @@ const NEAR_GOLDEN_CONTACT = {
     contactArcScrollTopPx: -4,
     contactArcScrollHeightPercent: 70,
     contactArcScrollWidthPx: 80,
-    contactPrenomTop: 9,
+    contactPrenomTop: 7.5,
     contactPrenomLeft: 34,
     contactPrenomWidth: 12.5,
-    contactPrenomLabelTyVh: -3.5,
+    contactPrenomLabelTyVh: -2.5,
+    contactPrenomInputMtEm: 0.1,
     contactNomTop: 4,
     contactNomWidth: 12.5,
     contactNomLabelTyVh: -5.5,
@@ -1544,6 +3664,7 @@ function applyNearGoldenContactMix(cssVars: Record<string, string>, w: number): 
     const msgMlVwBase = parseVw(cssVars['--contact-message-textarea-focus-ml-vw'] ?? '2.5') || 2.5
     const msgWidthBase = parsePercent(cssVars['--contact-message-textarea-focus-width'] ?? '80')
     cssVars['--contact-message-top'] = String(lerp(msgTopBase, NEAR_GOLDEN_CONTACT.contactMessageTop, t).toFixed(1))
+    cssVars['--contact-message-left'] = '19'
     cssVars['--contact-message-textarea-focus-mt-vh'] = String(lerp(msgMtVhBase, NEAR_GOLDEN_CONTACT.contactMessageTextareaFocusMtVh, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-ml-vw'] = String(lerp(msgMlVwBase, NEAR_GOLDEN_CONTACT.contactMessageTextareaFocusMlVw, t).toFixed(1))
     cssVars['--contact-message-textarea-focus-width'] = String(Math.round(lerp(msgWidthBase, NEAR_GOLDEN_CONTACT.contactMessageTextareaFocusWidth, t)))
@@ -1566,6 +3687,10 @@ function applyNearGoldenContactMix(cssVars: Record<string, string>, w: number): 
     cssVars['--contact-prenom-left'] = String(lerp(prenomLeftBase, NEAR_GOLDEN_CONTACT.contactPrenomLeft, t).toFixed(1))
     cssVars['--contact-prenom-width'] = String(lerp(prenomWidthBase, NEAR_GOLDEN_CONTACT.contactPrenomWidth, t).toFixed(1))
     cssVars['--contact-prenom-label-ty-vh'] = String(lerp(prenomLabelTyVhBase, NEAR_GOLDEN_CONTACT.contactPrenomLabelTyVh, t).toFixed(1))
+
+    // Prénom : input margin-top (mt-em) piloté par la hauteur/vertical.
+    const prenomInputMtEmBase = parseFloat(cssVars['--contact-prenom-input-mt-em'] ?? '-0.5') || -0.5
+    cssVars['--contact-prenom-input-mt-em'] = String(lerp(prenomInputMtEmBase, NEAR_GOLDEN_CONTACT.contactPrenomInputMtEm, t).toFixed(1))
 
     const nomTopBase = parsePercent(cssVars['--contact-nom-top'] ?? '3.5')
     const nomWidthBase = parsePercent(cssVars['--contact-nom-width'] ?? '13.5')
@@ -1629,6 +3754,7 @@ function computeContactFormCssVars(): Record<string, string> {
         '--contact-email-label-x-vh': '0',
         '--contact-email-label-ty-vh': '-5',
         '--contact-message-top': '37',
+        '--contact-message-left': '19',
         '--contact-message-textarea-focus-mt-vh': '3.8',
         '--contact-message-textarea-focus-ml-vw': '2.5',
         '--contact-message-textarea-focus-width': '80',
@@ -1715,6 +3841,10 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--ar': String(aspect.toFixed(4)),
         '--scale': String(scale.toFixed(4)),
         '--scale-clamped': String(scaleClamped.toFixed(4)),
+        '--paper-step-mult': '1',
+        '--robot-final-x-mult': '1',
+        '--contact-section-title-wrapper-right': '6vw',
+        '--contact-section-title-wrapper-top': '10vh',
         '--contact-arc-scroll-left': `${CONTACT_ARC_SCROLL_BASE.leftPx}px`,
         '--contact-arc-scroll-top': String(CONTACT_ARC_SCROLL_BASE.topPx),
         '--contact-arc-scroll-height': `${CONTACT_ARC_SCROLL_BASE.heightPercent}%`,
@@ -1739,17 +3869,34 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         cssVars['--presentation-margin-top-vh'] = String(PRESENTATION_MARGIN_TOP_VH_BASE)
     }
     applyNearGoldenContactMix(cssVars, w)
+    apply1024x768Mix(cssVars, w, h)
     applyMidDesktopMix(cssVars, w, h)
     apply1440x900Mix(cssVars, w, h)
     applyWideDesktopMix(cssVars, w, h)
     applyShortWideMix(cssVars, w, h)
+    apply1280x720Mix(cssVars, w, h)
+    apply1280x800Mix(cssVars, w, h)
+    apply1600x900Mix(cssVars, w, h)
+    apply1680x1050Mix(cssVars, w, h)
+    apply2560x1440Mix(cssVars, w, h)
+    apply2560x1440RocketGroundContactMix(cssVars, w, h)
+    apply2560x1440RobotHomeContactTitleSvgMix(cssVars, w, h)
+    apply2560x1440RobotXAdjustMix(cssVars, w, h)
+    apply2560x1440RC4TokensMix(cssVars, w, h)
+    apply2560x1440FinalPriorityMergeMix(cssVars, w, h)
+    apply2560x1440MergeUpdateMix(cssVars, w, h)
 
     if (isNearGoldenViewport(w, h)) {
         cssVars['--rocket-landed-x-px'] = '4650'
         cssVars['--rocket-landed-y-px'] = '770.304'
     }
+    if (w === 1920 && h === 1080) {
+        cssVars['--rocket-landed-x-px'] = '4558'
+        cssVars['--rocket-landed-y-px'] = '927.24'
+        cssVars['--rocket-landed-rotate-deg'] = '140'
+    }
     if (w === 1536 && h === 864) {
-        cssVars['--exp-alien2-top-percent'] = '48.2'
+        cssVars['--exp-alien2-top-percent'] = '47.1'
         cssVars['--exp-alien2-width-px'] = '87'
         cssVars['--mask-chemine-bottom'] = '31'
         cssVars['--mask-chemine-height'] = '42.1'
@@ -1757,10 +3904,13 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         cssVars['--robot-above-y-percent'] = '38.5'
         cssVars['--robot-ground-y-percent'] = '47.5'
         cssVars['--contact-message-top'] = '29'
-        cssVars['--contact-message-label-top'] = '72'
-        cssVars['--contact-message-label-ty-vh'] = '-17.5'
+        cssVars['--contact-message-left'] = '19'
+        cssVars['--contact-message-label-top'] = '54'
+        cssVars['--contact-message-label-ty-vh'] = '-13.5'
         cssVars['--contact-nom-label-ty-vh'] = '-4.8'
-        cssVars['--contact-prenom-top'] = '6.2'
+        cssVars['--contact-prenom-top'] = '5.2'
+        cssVars['--contact-prenom-label-ty-vh'] = '-2.1'
+        cssVars['--contact-prenom-input-mt-em'] = '0.2'
         cssVars['--contact-societe-label-tx-vw'] = '-7.5'
         cssVars['--contact-email-label-ty-vh'] = '-4'
         cssVars['--contact-message-textarea-focus-mt-vh'] = '0.25'

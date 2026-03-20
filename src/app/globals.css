@@ -139,8 +139,8 @@ body::before {
   z-index: 10;
   pointer-events: none;
   background-color: var(--paper-color);
-  --paper-step: calc(0.4vmin / var(--camera-scale, 1));
-  --paper-half: calc(0.2vmin / var(--camera-scale, 1));
+  --paper-step: calc((0.4vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
+  --paper-half: calc((0.2vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
   background-image:
     repeating-linear-gradient(
       0deg,

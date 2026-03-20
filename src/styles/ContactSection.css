@@ -327,7 +327,7 @@
 
 .contact-field-message {
     top: calc(var(--contact-message-top, 37) * 1%);
-    left: 19%;
+    left: calc(var(--contact-message-left, 19) * 1%);
     width: 30%;
     min-width: 200px;
     min-height: 100px;
