@@ -151,14 +151,6 @@ const ProjectsSection = forwardRef<HTMLElement, ProjectsSectionProps>((props, re
     }, [])
     return (
         <section className="horizontal-section experiences-section" ref={ref}>
-            {/* En arrière-plan (ordre d'empilement croissant) */}
-            {extraterrestreSvgContent && (
-                <div
-                    ref={alien2ContainerRef}
-                    className="experiences-extraterrestre-container alien2"
-                    dangerouslySetInnerHTML={{ __html: extraterrestreSvgContent }}
-                />
-            )}
             {(habitationBackSvgContent || habitationFrontSvgContent) && (
                 <div className="experiences-habitation-container">
                     {habitationBackSvgContent && (
@@ -175,6 +167,13 @@ const ProjectsSection = forwardRef<HTMLElement, ProjectsSectionProps>((props, re
                             ref={habitationFrontRef}
                             className="experiences-habitation-layer experiences-habitation-front"
                             dangerouslySetInnerHTML={{ __html: habitationFrontSvgContent }}
+                        />
+                    )}
+                    {extraterrestreSvgContent && (
+                        <div
+                            ref={alien2ContainerRef}
+                            className="experiences-extraterrestre-container alien2"
+                            dangerouslySetInnerHTML={{ __html: extraterrestreSvgContent }}
                         />
                     )}
                 </div>

@@ -286,16 +286,13 @@
 
 /* Habitation au centre : 3/4 de l'écran (rabaissée de 10 %) */
 /* isolation: isolate pour que les z-index 0 / 1 / 2 s’appliquent bien entre eux */
-/* Tokens px compensés par --camera-scale (réf. golden 1348×768 : 779, 461, 1032, 500) */
+/* Tokens layout réels (px calculés par responsive tokens). */
 .experiences-habitation-container {
     position: absolute;
-    left: calc(var(--exp-hab-left-px, 779) / var(--camera-scale, 1) * 1px);
-    top: calc(var(--exp-hab-top-px, 461) / var(--camera-scale, 1) * 1px);
-    transform: translate(-50%, -50%);
-    width: calc(var(--exp-hab-w-px, 1032) / var(--camera-scale, 1) * 1px);
-    height: calc(var(--exp-hab-h-px, 500) / var(--camera-scale, 1) * 1px);
-    max-width: calc(var(--exp-hab-w-px, 1032) / var(--camera-scale, 1) * 1px);
-    max-height: calc(var(--exp-hab-h-px, 500) / var(--camera-scale, 1) * 1px);
+    left: 15vw;
+    bottom: calc(var(--ground-bottom-vh, 25) * 1vh - .5vw);
+    width: 75vw;
+    height: 32vw;
     z-index: 20;
     isolation: isolate;
     overflow: visible;
@@ -327,13 +324,13 @@
     z-index: 3;
 }
 
-/* Masques strictement entre z-index 0 et 3 — grille compensée par --camera-scale, fond légèrement plus clair. */
+/* Masques strictement entre z-index 0 et 3, fond légèrement plus clair. */
 .experiences-mask {
     position: absolute;
     z-index: 1;
     background-color: color-mix(in srgb, var(--paper-color) 88%, white);
-    --paper-step: calc((0.4vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
-    --paper-half: calc((0.2vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
+    --paper-step: calc(0.4vmin * var(--paper-step-mult, 1));
+    --paper-half: calc(0.2vmin * var(--paper-step-mult, 1));
     background-image:
         repeating-linear-gradient(
             0deg,
@@ -364,65 +361,6 @@
     clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
 }
 
-@media (max-width: 768px) {
-    .experiences-mask-chemine {
-        bottom: 37%;
-        height: 43%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-    }
-    .experiences-mask-convoyeur {
-        bottom: 34%;
-        height: 14%;
-    }
-    .experiences-extraterrestre-container {
-        width: 80px;
-        left: 1vw;
-    }
-}
-
-@media (max-width: 480px) {
-    .experiences-mask-chemine {
-        bottom: 42%;
-        height: 28%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-    }
-    .experiences-mask-convoyeur {
-        bottom: 36%;
-        height: 12%;
-    }
-    .experiences-extraterrestre-container {
-        width: 60px;
-    }
-}
-
-@media (max-width: 425px) {
-    .experiences-mask-chemine {
-        bottom: 53%;
-        height: 27%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-    }
-    .experiences-mask-convoyeur {
-        bottom: 46%;
-        height: 12%;
-    }
-    .experiences-extraterrestre-container.alien2 {
-        top: 53%;
-        width: 40px;
-    }
-}
-
-@media (max-width: 320px) {
-    .experiences-mask-chemine {
-        bottom: 44%;
-        height: 25%;
-        -webkit-clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-        clip-path: var(--mask-chemine-clip-raw, polygon(65% 30%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
-    }
-}
-
 /* Masque convoyeur : Responsive Tokens (golden 1348 : bottom 8.5, height 37 numériques ; wide 1920 : 12.5, 33) */
 .experiences-mask-convoyeur {
     left: var(--mask-convoyeur-left, 4.5%);
@@ -431,15 +369,17 @@
     height: calc(var(--mask-convoyeur-height, 37) * 1%);
 }
 
-/* Alien2 dans le stage (scalé) : left/width en px compensés, top en % (réf. golden 1348 : -26.96px, 59.5%, 98px). */
+/* Alien2 ancré à la maison : left/width en % du conteneur habitation, bottom au sol. */
 .experiences-extraterrestre-container.alien2 {
     position: absolute;
-    left: calc(var(--exp-alien2-left-px, -26.96) / var(--camera-scale, 1) * 1px);
-    top: calc(var(--exp-alien2-top-percent, 59.5) * 1%);
-    transform: translateY(-50%) scaleX(-1);
-    width: calc(var(--exp-alien2-width-px, 98) * 1px);
+    left: calc(var(--exp-alien2-left-percent, -2.6) * 1%);
+    bottom: 0;
+    transform: translateY(50%) scaleX(-1);
+    transform-origin: center bottom;
+    width: calc(var(--exp-alien2-width-percent, 9.5) * 1%);
+    min-width: 24px;
     height: auto;
-    z-index: 20;
+    z-index: 4;
     overflow: visible;
 }
 
@@ -474,13 +414,13 @@
     display: block;
 }
 
-/* Convoyeur : tokens px compensés par --camera-scale (golden 1348×768 : -700, 188, 1481). --convoyeur-h : auto (golden/near) ou numérique % (wide 1920 : 16). */
+/* Convoyeur : tokens layout réels (px). */
 .projets-convoyeur-svg {
     display: block;
     position: absolute;
-    left: calc(var(--convoyeur-left-px, -700) / var(--camera-scale, 1) * 1px);
-    bottom: calc(var(--convoyeur-bottom-px, 188) / var(--camera-scale, 1) * 1px);
-    width: calc(var(--convoyeur-w-px, 1481) / var(--camera-scale, 1) * 1px);
+    left: calc(var(--convoyeur-left-px, -700) * 1px);
+    bottom: calc(var(--convoyeur-bottom-px, 188) * 1px);
+    width: calc(var(--convoyeur-w-px, 1481) * 1px);
     height: auto;
     /* Quand `--convoyeur-h` vaut `auto`, la règle `calc()` est invalide et est ignorée :
        la hauteur retombe sur `auto`. On force alors le ratio historique du convoyeur

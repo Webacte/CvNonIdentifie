@@ -11,19 +11,11 @@ import {
     SECOND_SECTION_BLOCK_START,
     SECOND_SECTION_BLOCK_END,
     VIEWPORT_REFERENCE_WIDTH,
-    ROCKET_HEIGHT_PX,
     ROCKET_END_Y_PERCENTAGE,
     ROCKET_Y_COMPLETION_PROGRESS,
-    ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR,
-    ROCKET_Y_COMPLETION_MOBILE_FACTOR,
-    GROUND_LINE_425_MAX_WIDTH,
     ROCKET_END_Y_PERCENTAGE_425,
-    ROCKET_Y_COMPLETION_425_FACTOR,
-    MOBILE_SMALL_MAX_WIDTH,
-    MOBILE_MAX_WIDTH,
     ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL,
     ROCKET_END_Y_PERCENTAGE_MOBILE,
-    TABLET_MAX_WIDTH,
     LARGE_DESKTOP_MIN_WIDTH,
     ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
     ROCKET_X_BASE_SPEED_EASE,
@@ -69,7 +61,6 @@ import {
     ROCKET_TETE_LANDED_X,
     ROCKET_TETE_LANDED_Y,
     ROCKET_TETE_LANDED_ROTATE,
-    ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX,
     ALIEN_BRAS_GAUCHE_START_ROTATE,
     ALIEN_BRAS_GAUCHE_END_ROTATE,
     ALIEN_AVANT_BRAS_GAUCHE_START_ROTATE,
@@ -163,7 +154,7 @@ import {
     ALIEN2_ARM_SWING_DEG,
     ALIEN2_FOREARM_SWING_DEG,
     ALIEN2_START_X,
-    ALIEN2_END_X,
+    ALIEN2_END_X_PERCENT_OF_HOUSE,
     ALIEN2_FADE_START,
     EXP_DOOR_SCALE_MIN,
     EXP_CHIMNEY_START_Y,
@@ -324,41 +315,18 @@ function getRocketResponsiveParams(viewportW: number, _viewportH: number): {
     endYOffsetPx: number
     yCompletionProgress: number
 } {
-    if (viewportW <= GROUND_LINE_425_MAX_WIDTH) {
-        return {
-            endYOffsetPx: 0,
-            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_425_FACTOR,
-        }
-    }
-    if (viewportW <= MOBILE_SMALL_MAX_WIDTH) {
-        return {
-            endYOffsetPx: 0,
-            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_SMALL_FACTOR,
-        }
-    }
-    if (viewportW <= MOBILE_MAX_WIDTH) {
-        return {
-            endYOffsetPx: 0,
-            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS * ROCKET_Y_COMPLETION_MOBILE_FACTOR,
-        }
-    }
-    if (viewportW <= TABLET_MAX_WIDTH) {
-        return {
-            endYOffsetPx: -ROCKET_HEIGHT_PX,
-            yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS,
-        }
-    }
-    // Desktop > 768px : pas de décalage supplémentaire, progress Y de base.
+    void viewportW
+    // Mode desktop-only : pas d'adaptation selon la largeur.
     return {
         endYOffsetPx: 0,
         yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS,
     }
 }
 
-/** Transform-origin alien selon viewport (mobile ≤ ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX). */
+/** Transform-origin alien en mode desktop-only. */
 function getAlienResponsiveParams(viewportW: number): { transformOrigin: 'right bottom' | 'bottom center' } {
-    const useMobile = typeof viewportW === 'number' && viewportW <= ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX
-    return { transformOrigin: useMobile ? 'right bottom' : 'bottom center' }
+    void viewportW
+    return { transformOrigin: 'bottom center' }
 }
 
 type Point = {x: number, y: number}
@@ -564,16 +532,17 @@ export function createRocketScrollAnimation(
     const rocketStartRotate = ROCKET_START_ROTATE
     const rocketEndRotate = ROCKET_END_ROTATE
     
-    const getScaleRatio = () => (scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : VIEWPORT_REFERENCE_WIDTH)) / VIEWPORT_REFERENCE_WIDTH
-
-    const getRocketEndX = () => {
-        const scaleRatio = getScaleRatio()
-        return Math.max(scrollDistance * ROCKET_END_X_MIN_RATIO, ROCKET_END_X_MIN_PX * scaleRatio)
-    }
-
     const viewportW = scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1050)
     const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
     const rocketParams = getRocketResponsiveParams(viewportW, viewportH)
+    const getRocketEndX = () => {
+        // Normalise le plancher X sur la largeur de référence pour garder un rendu
+        // cohérent entre mobile, desktop et ultrawide.
+        const viewportScale = viewportW / VIEWPORT_REFERENCE_WIDTH
+        const clampedViewportScale = Math.max(0.7, Math.min(viewportScale, 2))
+        const responsiveMinPx = ROCKET_END_X_MIN_PX * clampedViewportScale
+        return Math.max(scrollDistance * ROCKET_END_X_MIN_RATIO, responsiveMinPx)
+    }
 
     /** Position Y à la fin de la phase 1 (point bas atteint avant le départ sur X). Phase 2 part exactement de cette position. */
     const getPhase1EndY = () => {
@@ -877,16 +846,12 @@ export function createRocketFireScrollAnimation(
     const scrollDistance = scrollValues.scrollDistanceWithMovement
     const horizontalProgressMultiplier = 3
 
-    const getScaleRatio = () => (scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : VIEWPORT_REFERENCE_WIDTH)) / VIEWPORT_REFERENCE_WIDTH
-
     const getFireMinX = () => {
-        const scaleRatio = getScaleRatio()
-        return VIEWPORT_REFERENCE_WIDTH * scaleRatio
+        return scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : VIEWPORT_REFERENCE_WIDTH)
     }
     
     const getRocketEndX = () => {
-        const scaleRatio = getScaleRatio()
-        return Math.max(scrollDistance * 0.3, 500 * scaleRatio)
+        return Math.max(scrollDistance * 0.3, 500)
     }
 
     // Fonction pour déterminer quel feu doit être visible en fonction de la progression
@@ -895,9 +860,7 @@ export function createRocketFireScrollAnimation(
         const currentRocketEndX = getRocketEndX()
         const rocketX = currentRocketEndX * horizontalProgress
         const currentFireMinX = getFireMinX()
-        const scaleRatio = getScaleRatio()
-
-        if (rocketX < currentFireMinX - (100 * scaleRatio)) {
+        if (rocketX < currentFireMinX - 100) {
             gsap.set([feuElement1, feuElement2, feuElement3], { opacity: 0 })
             return
         }
@@ -1596,7 +1559,7 @@ export interface ExperienceSectionScrollAnimationParams {
     alien2Element: HTMLElement | null
 }
 
-/** Calcule la progression 0–1 dans le bloc Expérience. Début/fin alignés sur le scroll horizontal (timeline) : utilise progressAtStartOfThirdBlock / progressAtEndOfThirdBlock quand disponibles (camera scale), sinon fallback en px (scaleRatio). */
+/** Calcule la progression 0–1 dans le bloc Expérience. Début/fin alignés sur le scroll horizontal (timeline), sinon fallback en px layout. */
 function getExperiencePhaseProgress(progress: number, scrollValues: ScrollValues): number {
     const start = (scrollValues as ScrollValues & { progressAtStartOfThirdBlock?: number }).progressAtStartOfThirdBlock
     const end = (scrollValues as ScrollValues & { progressAtEndOfThirdBlock?: number }).progressAtEndOfThirdBlock
@@ -1605,11 +1568,14 @@ function getExperiencePhaseProgress(progress: number, scrollValues: ScrollValues
         if (range <= 0) return 0
         return Math.max(0, Math.min(1, (progress - start) / range))
     }
-    /* Fallback si scrollValues sans progressions (ex. build manuel) : formule en px avec scaleRatio. */
+    /* Fallback si scrollValues sans progressions (ex. build manuel) : formule en px layout. */
     const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
-    const scaleRatio = scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH
-    const thirdBlockStart = (THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * scaleRatio
-    const thirdBlockEnd = (THIRD_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * scaleRatio
+    const referenceUnit =
+        scrollValues.initialScrollBlock > 0
+            ? scrollValues.initialScrollBlock / SECOND_SECTION_BLOCK_START
+            : (scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH)
+    const thirdBlockStart = (THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * referenceUnit
+    const thirdBlockEnd = (THIRD_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * referenceUnit
     const range = thirdBlockEnd - thirdBlockStart
     if (range <= 0) return 0
     return Math.max(0, Math.min(1, (scrollY - thirdBlockStart) / range))
@@ -1630,11 +1596,14 @@ function getProjetsPhaseProgress(progress: number, scrollValues: ScrollValues): 
         if (range <= 0) return 0
         return Math.max(0, Math.min(1, (progress - start) / range))
     }
-    /* Fallback si scrollValues sans progressions (ex. calcul local) : ancienne formule en px (peut être décalée). */
+    /* Fallback si scrollValues sans progressions (ex. calcul local) : formule en px layout. */
     const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
-    const scaleRatio = scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH
-    const phaseStartPx = (CONVOYEUR_PROJET_PHASE_START + FIRST_SECTION_PAN_SCROLL) * scaleRatio
-    const phaseEndPx = (CONVOYEUR_PROJET_PHASE_END + FIRST_SECTION_PAN_SCROLL) * scaleRatio
+    const referenceUnit =
+        scrollValues.initialScrollBlock > 0
+            ? scrollValues.initialScrollBlock / SECOND_SECTION_BLOCK_START
+            : (scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH)
+    const phaseStartPx = (CONVOYEUR_PROJET_PHASE_START + FIRST_SECTION_PAN_SCROLL) * referenceUnit
+    const phaseEndPx = (CONVOYEUR_PROJET_PHASE_END + FIRST_SECTION_PAN_SCROLL) * referenceUnit
     const range = phaseEndPx - phaseStartPx
     if (range <= 0) return 0
     return Math.max(0, Math.min(1, (scrollY - phaseStartPx) / range))
@@ -1725,7 +1694,10 @@ export function createExperienceSectionScrollAnimation(
         const windowSwapProgress = mapProgressToAnimation(progressExp, EXP_WINDOW_SWAP_START, EXP_WINDOW_SWAP_END)
 
         if (alien2) {
-            const moveX = ALIEN2_START_X + (ALIEN2_END_X - ALIEN2_START_X) * alienInProgress
+            const habitationContainer = alien2.parentElement
+            const houseWidth = habitationContainer?.offsetWidth ?? 1032
+            const endX = houseWidth * ALIEN2_END_X_PERCENT_OF_HOUSE
+            const moveX = ALIEN2_START_X + endX * alienInProgress
             const fadeStart = ALIEN2_FADE_START
             const opacity = alienInProgress >= fadeStart ? Math.max(0, 1 - (alienInProgress - fadeStart) / (1 - fadeStart)) : 1
             gsap.set(alien2, { x: moveX, opacity, force3D: true })
@@ -2442,9 +2414,12 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             if (DEBUG_PROJETS_CONVOYEUR && frameCount === 300 && !loggedNeverInRange && progressProjets <= 0) {
                 loggedNeverInRange = true
                 const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
-                const scaleRatio = scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH
-                const phaseStart = (CONVOYEUR_PROJET_PHASE_START + FIRST_SECTION_PAN_SCROLL) * scaleRatio
-                const phaseEnd = (CONVOYEUR_PROJET_PHASE_END + FIRST_SECTION_PAN_SCROLL) * scaleRatio
+                const referenceUnit =
+                    scrollValues.initialScrollBlock > 0
+                        ? scrollValues.initialScrollBlock / SECOND_SECTION_BLOCK_START
+                        : (scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH)
+                const phaseStart = (CONVOYEUR_PROJET_PHASE_START + FIRST_SECTION_PAN_SCROLL) * referenceUnit
+                const phaseEnd = (CONVOYEUR_PROJET_PHASE_END + FIRST_SECTION_PAN_SCROLL) * referenceUnit
                 console.log('[Projets convoyeur] après ~5s: progressProjets toujours 0', {
                     progress,
                     progressProjets,
@@ -2507,7 +2482,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                         '--convoyeur-w-px': getComputedStyle(stage).getPropertyValue('--convoyeur-w-px').trim(),
                         '--convoyeur-end-correction-x-px': getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim(),
                         '--robot-above-y-percent': getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim(),
-                        '--exp-hab-top-px': getComputedStyle(stage).getPropertyValue('--exp-hab-top-px').trim(),
                         '--exp-hab-left-px': getComputedStyle(stage).getPropertyValue('--exp-hab-left-px').trim(),
                     } : {}
                     console.log('[Projets] progressProjets >= 1 — tokens appliqués et slideX final', { tokens, finalSlideX, progressProjets })
@@ -2770,12 +2744,12 @@ export function configureAllScrollAnimations(
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1050
         const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
         const scrollDistance = totalWidth - viewportWidth
-        const scaleRatio = viewportWidth / VIEWPORT_REFERENCE_WIDTH
-        const initialScrollBlock = SECOND_SECTION_BLOCK_START * scaleRatio
-        const phase1EndScroll = (SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * scaleRatio
+        const referenceUnit = viewportWidth / VIEWPORT_REFERENCE_WIDTH
+        const initialScrollBlock = SECOND_SECTION_BLOCK_START * referenceUnit
+        const phase1EndScroll = (SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * referenceUnit
         const phase2StartScroll = phase1EndScroll
-        const phase2EndScroll = (SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * scaleRatio
-        const phase2EarlyStartScroll = Math.max(0, phase2StartScroll - PHASE2_EARLY_START_OFFSET * scaleRatio)
+        const phase2EndScroll = (SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * referenceUnit
+        const phase2EarlyStartScroll = Math.max(0, phase2StartScroll - PHASE2_EARLY_START_OFFSET * referenceUnit)
         const secondBlockStartWorld = SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
         const secondBlockEndWorld = SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
         const thirdBlockStartWorld = THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
@@ -2812,7 +2786,7 @@ export function configureAllScrollAnimations(
         const cumulativeAtConvoyeurPhaseStart = cumulativeAtEndOfThird - thirdBlockDurationWorld * 1.5
         scrollValues = {
             scrollDistanceWithMovement: scrollDistance,
-            scrollDistanceWithoutMovement: initialScrollBlock + FIRST_SECTION_PAN_SCROLL * scaleRatio + scrollDistance,
+            scrollDistanceWithoutMovement: initialScrollBlock + FIRST_SECTION_PAN_SCROLL * referenceUnit + scrollDistance,
             initialScrollBlock,
             totalWidth,
             viewportWidth,
@@ -2821,7 +2795,7 @@ export function configureAllScrollAnimations(
             phase2StartScroll,
             phase2EarlyStartScroll: phase2EarlyStartScroll,
             phase2EndScroll,
-            rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * scaleRatio,
+            rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * referenceUnit,
             progressAtStartOfThirdBlock: cumulativeAtStartOfThird / totalWorld,
             progressAtEndOfThirdBlock: cumulativeAtEndOfThird / totalWorld,
             progressAtEndOfFourthBlock: cumulativeAtEndOfFourth / totalWorld,

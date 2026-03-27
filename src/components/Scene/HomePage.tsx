@@ -5,9 +5,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import '@/animations/gsap'
 import { setupHorizontalScroll } from '@/animations/horizontalScroll'
 import { configureAllScrollAnimations } from '@/animations/scrollAnimations'
-import { observeViewport, getViewportMetrics } from '@/animations/viewport'
-import { computeCamera, applyCamera } from '@/animations/camera'
-import { sceneConfig } from '@/animations/sceneConfig'
 import { computeResponsiveTokens, applyResponsiveTokens } from '@/scene/responsiveTokens'
 import { runTokensDebugSnapshot } from '@/scene/tokensDebug'
 import PresentationSection from './PresentationSection'
@@ -63,9 +60,6 @@ export default function HomePage() {
     const likethatDescRef = useRef<HTMLDivElement | null>(null)
     const scrollAnimationsCleanupRef = useRef<(() => void) | void>(undefined)
     const horizontalScrollKillRef = useRef<(() => void) | null>(null)
-    const observeUnsubscribeRef = useRef<(() => void) | null>(null)
-    const lastViewportWRef = useRef<number>(0)
-    const lastViewportHRef = useRef<number>(0)
     const [profileDescriptionSvgContent, setProfileDescriptionSvgContent] = useState<string>('')
     const [rocketContent, setRocketContent] = useState<string>('')
     const [aboutSvgContent, setAboutSvgContent] = useState<string>('')
@@ -140,6 +134,25 @@ export default function HomePage() {
             })
     }, [])
 
+    // Expose la demi-hauteur de l'hologramme (mesure unique à l'init).
+    useEffect(() => {
+        const stage = stageRef.current
+        const hologram = hologramSvgRef.current
+        if (!stage || !hologram || typeof window === 'undefined') return
+
+        const updateHologramHalfHeight = () => {
+            const rect = hologram.getBoundingClientRect()
+            const halfHeight = Math.max(0, rect.height / 2)
+            stage.style.setProperty('--about-hologram-half-height-px', `${halfHeight}px`)
+        }
+
+        const raf = requestAnimationFrame(() => requestAnimationFrame(updateHologramHalfHeight))
+
+        return () => {
+            cancelAnimationFrame(raf)
+        }
+    }, [hologramSvgContent])
+
     // Charger le SVG pour la description de profil
     useEffect(() => {
         fetch("/assets/svg/text/profile-desktop.svg")
@@ -163,9 +176,7 @@ export default function HomePage() {
           .catch(() => {});
       }, []);
 
-    // Init GSAP + caméra avant paint (useLayoutEffect) ; double rAF pour attendre le layout.
-    // Tests manuels : refresh page -> pas de saut après 0.5–1s, juste fade-in 160ms ;
-    // zoom -> rebuild ok, stage centré ; resize -> pas de boucle ResizeObserver, scrub inchangé.
+    // Init GSAP + caméra avant paint (useLayoutEffect) ; init unique, sans listener resize.
     useLayoutEffect(() => {
         if (!horizontalContainerRef.current || !stageRef.current || !horizontalWrapperRef.current || !rocketContent) return
 
@@ -175,7 +186,11 @@ export default function HomePage() {
 
         stage.classList.remove('is-ready')
 
-        const runInit = (metrics: { width: number; height: number }) => {
+        const runInit = (): boolean => {
+            const metrics = {
+                width: Math.max(1, Math.round(container.clientWidth || window.innerWidth || 1)),
+                height: Math.max(1, Math.round(container.clientHeight || window.innerHeight || 1)),
+            }
             const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
             if (sections.length === 0) return false
             const allSectionsReady = sections.every(section => section.offsetWidth > 0 && section.offsetHeight > 0)
@@ -184,16 +199,8 @@ export default function HomePage() {
             const tokens = computeResponsiveTokens(metrics)
             applyResponsiveTokens(stage, tokens)
 
-            const camera = computeCamera({
-                viewportW: metrics.width,
-                viewportH: metrics.height,
-                worldW: sceneConfig.world.width,
-                worldH: sceneConfig.world.height,
-                ...sceneConfig.cameraOptions,
-            })
-            applyCamera(stage, camera)
             if (typeof window !== 'undefined' && ((window as Window & { __TOKENS_DEBUG__?: boolean }).__TOKENS_DEBUG__ || (window as Window & { __TOKENS_DEBUG_OVERLAY__?: boolean }).__TOKENS_DEBUG_OVERLAY__)) {
-                requestAnimationFrame(() => requestAnimationFrame(() => runTokensDebugSnapshot(metrics, stage, camera)))
+                requestAnimationFrame(() => requestAnimationFrame(() => runTokensDebugSnapshot(metrics, stage)))
             }
 
             scrollAnimationsCleanupRef.current?.()
@@ -202,7 +209,7 @@ export default function HomePage() {
             horizontalScrollKillRef.current = null
             ScrollTrigger.getAll().forEach(trigger => trigger.kill())
 
-            const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections, camera)
+            const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections)
             horizontalScrollKillRef.current = kill
             scrollAnimationsCleanupRef.current = configureAllScrollAnimations(
                 container,
@@ -235,82 +242,29 @@ export default function HomePage() {
             return true
         }
 
-        const onResize = (metrics: { width: number; height: number }) => {
-            const w = Math.round(metrics.width)
-            const h = Math.round(metrics.height)
-            if (w === lastViewportWRef.current && h === lastViewportHRef.current) return
-            lastViewportWRef.current = w
-            lastViewportHRef.current = h
+        let rafId = 0
+        let retryTimeout: ReturnType<typeof setTimeout> | null = null
+        let tries = 0
+        const maxTries = 30
 
-            requestAnimationFrame(() => {
-                scrollAnimationsCleanupRef.current?.()
-                scrollAnimationsCleanupRef.current = undefined
-                horizontalScrollKillRef.current?.()
-                horizontalScrollKillRef.current = null
-                ScrollTrigger.getAll().forEach(trigger => trigger.kill())
-
-                const sections = [section1Ref.current, section2Ref.current, section3Ref.current, section4Ref.current, section5Ref.current].filter(Boolean) as HTMLElement[]
-                if (sections.length === 0) return
-                const tokens = computeResponsiveTokens(metrics)
-                applyResponsiveTokens(stage, tokens)
-                const camera = computeCamera({
-                    viewportW: metrics.width,
-                    viewportH: metrics.height,
-                    worldW: sceneConfig.world.width,
-                    worldH: sceneConfig.world.height,
-                    ...sceneConfig.cameraOptions,
-                })
-                applyCamera(stage, camera)
-                if (typeof window !== 'undefined' && ((window as Window & { __TOKENS_DEBUG__?: boolean }).__TOKENS_DEBUG__ || (window as Window & { __TOKENS_DEBUG_OVERLAY__?: boolean }).__TOKENS_DEBUG_OVERLAY__)) {
-                    requestAnimationFrame(() => requestAnimationFrame(() => runTokensDebugSnapshot(metrics, stage, camera)))
-                }
-                const { scrollTween, scrollValues, kill } = setupHorizontalScroll(container, stage, wrapper, sections, camera)
-                horizontalScrollKillRef.current = kill
-                scrollAnimationsCleanupRef.current = configureAllScrollAnimations(
-                    container,
-                    sections,
-                    wrapper,
-                    rocketRef.current,
-                    scrollTween,
-                    scrollValues,
-                    portraitRef.current,
-                    descriptionContainerRef.current,
-                    aboutSvgRef.current,
-                    hologramSvgRef.current,
-                    profileDescriptionSvgRef.current,
-                    experiencesHabitationBackRef.current,
-                    experiencesHabitationFrontRef.current,
-                    alien2ContainerRef.current,
-                    () => convoyeurProjetRef.current,
-                    robotHeadRef.current,
-                    robotHandRef.current,
-                    experienceQuestTitreRef,
-                    experienceQuestDescripRefs,
-                    scaniaTitreRef,
-                    scaniaDescRef,
-                    likethatTitreRef,
-                    likethatDescRef,
-                    tokens
-                )
-                ScrollTrigger.refresh()
-            })
+        const initWithRetry = () => {
+            if (runInit()) {
+                window.scrollTo(0, 0)
+                return
+            }
+            tries += 1
+            if (tries >= maxTries) {
+                runInit()
+                return
+            }
+            retryTimeout = setTimeout(initWithRetry, 100)
         }
 
-        let rafId = 0
         const scheduleInit = () => {
             rafId = requestAnimationFrame(() => {
                 rafId = requestAnimationFrame(() => {
                     window.scrollTo(0, 0)
-                    const metrics = getViewportMetrics(container)
-                    lastViewportWRef.current = Math.round(metrics.width)
-                    lastViewportHRef.current = Math.round(metrics.height)
-                    if (!runInit(metrics)) {
-                        ScrollTrigger.refresh()
-                        observeUnsubscribeRef.current = observeViewport(container, onResize)
-                        return
-                    }
-                    window.scrollTo(0, 0)
-                    observeUnsubscribeRef.current = observeViewport(container, onResize)
+                    initWithRetry()
                 })
             })
         }
@@ -318,8 +272,7 @@ export default function HomePage() {
 
         return () => {
             cancelAnimationFrame(rafId)
-            observeUnsubscribeRef.current?.()
-            observeUnsubscribeRef.current = null
+            if (retryTimeout) clearTimeout(retryTimeout)
             scrollAnimationsCleanupRef.current?.()
             scrollAnimationsCleanupRef.current = undefined
             horizontalScrollKillRef.current?.()

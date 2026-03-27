@@ -3,6 +3,7 @@
 
 :root {
   --paper-color: #e6dbbd;
+  /* --ground-bottom-vh injecté par responsiveTokens depuis GROUND_BOTTOM_VH (constants.ts) */
   --paper-bg-image:
     repeating-linear-gradient(
       0deg,
@@ -73,7 +74,7 @@ body {
 img,
 svg {
   -webkit-user-drag: none;
-  user-drag: none;
+  /* `user-drag` n'est pas standardisé partout ; on garde la variante WebKit. */
   -webkit-user-select: none;
   user-select: none;
 }
@@ -128,19 +129,19 @@ body::before {
 }
 
 /* Surcouche « mur / sol » : recopie le fond sous la ligne de sol.
-   Grille compensée par --camera-scale (stage scalé) pour même densité visuelle que le fond. */
+   Utilise --ground-bottom-vh (bottom) et height = ground + 1vh. */
 .ground-overcoat {
   position: absolute;
-  top: calc(var(--ground-overcoat-top, 60) * 1%);
+  bottom: 0;
   left: 0;
   width: 100%;
   min-width: 100%;
-  bottom: 0;
+  height: calc(var(--ground-bottom-vh, 25) * 1vh);
   z-index: 10;
   pointer-events: none;
   background-color: var(--paper-color);
-  --paper-step: calc((0.4vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
-  --paper-half: calc((0.2vmin / var(--camera-scale, 1)) * var(--paper-step-mult, 1));
+  --paper-step: calc(0.4vmin * var(--paper-step-mult, 1));
+  --paper-half: calc(0.2vmin * var(--paper-step-mult, 1));
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -164,10 +165,11 @@ body::before {
   background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
 }
 
-/* Ligne de sol : à l'intérieur du horizontal-scroll-wrapper */
+/* Ligne de sol : à l'intérieur du horizontal-scroll-wrapper. */
 .ground-line {
   position: absolute;
-  top: calc(var(--ground-line-top, 70) * 1%);
+  bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
+  transform: translateY(50%);
   left: 0;
   width: 100%;
   min-width: 100%;

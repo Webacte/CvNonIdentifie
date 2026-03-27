@@ -25,11 +25,9 @@ function getFH(h: number): number {
 }
 
 type Metrics = { width: number; height: number }
-type Camera = { scale: number }
 
 const VAR_KEYS = [
-    '--ground-line-top',
-    '--ground-overcoat-top',
+    '--ground-bottom-vh',
     '--presentation-margin-top-vh',
     '--home-myname-font-size-base-vw',
     '--home-myname-font-size-delta-vw',
@@ -44,7 +42,7 @@ function getVarRaw(stage: HTMLElement, key: string): string {
     return getComputedStyle(stage).getPropertyValue(key).trim()
 }
 
-function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
+function buildSnapshot(metrics: Metrics, stage: HTMLElement) {
     const w = metrics.width
     const h = metrics.height
     const tNearGolden = getNearGoldenT(w)
@@ -63,7 +61,7 @@ function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
     const descriptionContainer = document.querySelector('.descriptionContainer') as HTMLElement | null
     const presentationContainer = document.querySelector('.presentationContainer') as HTMLElement | null
     const contactPlaceholder = document.querySelector('.contact-section-placeholder') as HTMLElement | null
-    const contactSvgWrapper = document.querySelector('.contact-section-svg-wrapper') as HTMLElement | null
+    const contactFormIllustratedWrapper = document.querySelector('.contact-form-illustrated-wrapper') as HTMLElement | null
 
     const computed = (el: Element | null, ...props: string[]) => {
         if (!el) return null
@@ -77,13 +75,12 @@ function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
 
     return {
         viewport: { w, h },
-        scaleS: camera.scale,
         factors: { tNearGolden, tWide, fw, fh },
         varsRaw,
         elements: {
             groundLine: groundLine
                 ? {
-                      top: getComputedStyle(groundLine).top,
+                      bottom: getComputedStyle(groundLine).bottom,
                       position: getComputedStyle(groundLine).position,
                       transform: getComputedStyle(groundLine).transform,
                       offsetParent: groundLine.offsetParent
@@ -93,7 +90,10 @@ function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
                   }
                 : null,
             groundOvercoat: groundOvercoat
-                ? { top: getComputedStyle(groundOvercoat).top }
+                ? {
+                      bottom: getComputedStyle(groundOvercoat).bottom,
+                      height: getComputedStyle(groundOvercoat).height,
+                  }
                 : null,
             myName: myName
                 ? (() => {
@@ -127,10 +127,10 @@ function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
                       offsetTop: contactPlaceholder.offsetTop,
                   }
                 : null,
-            contactSvgWrapper: contactSvgWrapper
+            contactFormIllustratedWrapper: contactFormIllustratedWrapper
                 ? {
-                      top: getComputedStyle(contactSvgWrapper).top,
-                      left: getComputedStyle(contactSvgWrapper).left,
+                      top: getComputedStyle(contactFormIllustratedWrapper).top,
+                      left: getComputedStyle(contactFormIllustratedWrapper).left,
                   }
                 : null,
         },
@@ -139,14 +139,13 @@ function buildSnapshot(metrics: Metrics, stage: HTMLElement, camera: Camera) {
 
 export function runTokensDebugSnapshot(
     metrics: Metrics,
-    stage: HTMLElement,
-    camera: Camera
+    stage: HTMLElement
 ): void {
     if (typeof window === 'undefined') return
     const win = window as Window & { __TOKENS_DEBUG__?: boolean; __TOKENS_DEBUG_OVERLAY__?: boolean }
     if (!win.__TOKENS_DEBUG__ && !win.__TOKENS_DEBUG_OVERLAY__) return
 
-    const snapshot = buildSnapshot(metrics, stage, camera)
+    const snapshot = buildSnapshot(metrics, stage)
 
     if (win.__TOKENS_DEBUG__) {
         console.log('[TokensDebug] snapshot', snapshot)
@@ -183,7 +182,7 @@ function updateOverlay(snapshot: ReturnType<typeof buildSnapshot>): void {
         document.body.appendChild(el)
     }
     const lines = [
-        `w=${snapshot.viewport.w} h=${snapshot.viewport.h} S=${snapshot.scaleS.toFixed(3)}`,
+        `w=${snapshot.viewport.w} h=${snapshot.viewport.h}`,
         `tNearGolden=${snapshot.factors.tNearGolden.toFixed(3)} tWide=${snapshot.factors.tWide.toFixed(3)}`,
         `fw=${snapshot.factors.fw.toFixed(3)} fh=${snapshot.factors.fh.toFixed(3)}`,
         '--- vars ---',

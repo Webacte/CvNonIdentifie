@@ -15,19 +15,10 @@
 .handwriting-wrapper {
     position: absolute;
     z-index: 12;
-    left: calc(var(--profile-text-left, 64) * 1%);
-    top: calc(var(--profile-text-top, 41) * 1%);
-    transform: translate(calc(-50% - 4vw + 5vw), -50%);
-    width: calc(var(--profile-text-width, 45) * 1vw);
-    max-width: var(--profile-text-max-width, none);
-}
-
-@media (max-width: 768px) {
-    .handwriting-wrapper {
-        transform: translate(-50%, -50%);
-    }
-    .section-content {
-        width: 80vw;
-        margin-left: 10vw;
-    }
+    left: var(--about-hologram-left, 11vw);
+    bottom: calc(
+        var(--ground-bottom-vh, 25) * 1vh
+    );
+    transform: translate(50%, -50%);
+    width: 45vw;
 }

@@ -132,20 +132,13 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                 <h2 className="placeholder-title">premiers</h2>
                 <h2 className="placeholder-title">échanges.</h2>
             </div>
-            <div className="contact-section-svg-wrapper" aria-hidden="true">
-                <img
-                    src="/assets/svg/support-contact.svg"
-                    alt=""
-                    className="contact-section-svg"
-                    draggable={false}
-                />
-            </div>
-            <form
-                className="contact-form-overlay"
-                aria-label="Formulaire de contact"
-                onSubmit={handleSubmit}
-                noValidate
-            >
+            <div className="contact-form-illustrated-wrapper">
+                <form
+                    className="contact-form-overlay"
+                    aria-label="Formulaire de contact"
+                    onSubmit={handleSubmit}
+                    noValidate
+                >
                 <div
                     className={`contact-field contact-field-nom ${formState.nom.trim() ? 'is-filled' : ''} ${fieldErrors.nom ? 'has-error' : ''}`}
                 >
@@ -262,7 +255,8 @@ const ContactSection = forwardRef<HTMLElement>((props, ref) => {
                         Message envoyé.
                     </p>
                 )}
-            </form>
+                </form>
+            </div>
         </section>
     )
 })

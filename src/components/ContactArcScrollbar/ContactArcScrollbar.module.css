@@ -1,14 +1,14 @@
 /* ContactArcScrollbar : track courbe + thumb levier à gauche du textarea contact */
 
+/* Position relative au champ message (wrapper formulaire) */
 .contactArcScrollbar {
   position: absolute;
-  left: var(--contact-arc-scroll-left, -32px);
-  /* calc() permet valeurs unitless (ex. 10 → 10px) ; sinon top: 10 invalide → top: auto → position incorrecte */
-  top: calc(var(--contact-arc-scroll-top, 0) * 1px);
-  height: var(--contact-arc-scroll-height, 100%);
-  width: var(--contact-arc-scroll-width, 50px);
+  left: -3vw;
+  top: 0.1vh;
+  height: 23vh;
+  width: 8vw;
   pointer-events: none;
-  z-index: var(--contact-arc-scroll-z-index, 5);
+  z-index: 5;
   display: flex;
   align-items: stretch;
   justify-content: stretch;

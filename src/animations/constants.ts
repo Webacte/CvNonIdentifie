@@ -113,6 +113,9 @@ export const ROCKET_Y_COMPLETION_MOBILE_FACTOR = 72 / 65
 /** Seuil viewport (px) : en dessous, sol à 55% et atterrissage fusée à 55%. */
 export const GROUND_LINE_425_MAX_WIDTH = 425
 
+/** Position verticale de la ground line (vh). Source unique : injecté en --ground-bottom-vh par responsiveTokens. */
+export const GROUND_BOTTOM_VH = 25
+
 /** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand sol à 55% (≤425px). */
 export const ROCKET_END_Y_PERCENTAGE_425 = 0.55
 
@@ -149,11 +152,11 @@ export const ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER = 3
  */
 export const ROCKET_X_BASE_SPEED_EASE = 2
 
-/** Valeur minimale (px) pour rocketEndX : la fusée doit sortir du champ visuel avant Contact. */
-export const ROCKET_END_X_MIN_PX = 1800
+/** Valeur minimale (px) pour rocketEndX : la fusée doit sortir du champ visuel avant Contact (augmentée x2.25). */
+export const ROCKET_END_X_MIN_PX = 4050
 
-/** Ratio minimal (0–1) de scrollDistance pour rocketEndX. */
-export const ROCKET_END_X_MIN_RATIO = 0.3
+/** Ratio minimal (0–1) de scrollDistance pour rocketEndX (augmenté x2.25). */
+export const ROCKET_END_X_MIN_RATIO = 0.675
 
 /** Position/rotation de départ de la fusée (createRocketScrollAnimation). */
 export const ROCKET_START_X = 0
@@ -444,7 +447,8 @@ export const ALIEN2_FOREARM_SWING_DEG = 8
 /** Position X de départ du conteneur alien2 (px). */
 export const ALIEN2_START_X = 0
 /** Position X d’arrivée alien2 à la cabane (px). */
-export const ALIEN2_END_X = 280
+/** Trajectoire alien2 : fraction de la largeur du conteneur habitation (ex. 0.27 ≈ 280px pour 1032px). */
+export const ALIEN2_END_X_PERCENT_OF_HOUSE = 280 / 1032
 /** Début de la sous-plage (0–1 dans EXP_ALIEN_IN) où l’opacité alien2 passe à 0. */
 export const ALIEN2_FADE_START = 0.75
 /** Rotation porte ouverte (#porte, degrés) — non utilisé si scale activé. */
@@ -515,7 +519,7 @@ export const ROBOT_ABOVE_TO_GROUND_Y_GAP = ROBOT_GROUND_Y_PERCENT - ROBOT_ABOVE_
 export const ROBOT_Y_OFFSET_LARGE = -11.5
 /** Hauteur viewport de référence (px) où les positions sont correctes. Sur écrans plus hauts (ex. 904px), la position finale (sol) reçoit plus d'offset pour éviter que la tête soit trop basse. */
 export const ROBOT_Y_REFERENCE_HEIGHT = 768
-/** Retourne { above, ground } selon la largeur et hauteur viewport. above = offset plein ; ground = offset × (viewportH / refH) pour que sur écrans plus hauts le sol remonte. */
+/** Fallback { above, ground } quand les tokens responsive (--robot-above-y-percent, --robot-ground-y-percent dérivés du convoyeur) ne sont pas disponibles. Utilisé uniquement en dernier recours par scrollAnimations. */
 export function getRobotYPercentByViewport(viewportWidthPx: number, viewportHeightPx?: number): { above: number, ground: number } {
     const offset = viewportWidthPx > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX ? ROBOT_Y_OFFSET_LARGE : 0
     const h = viewportHeightPx != null && viewportHeightPx > 0 ? viewportHeightPx : ROBOT_Y_REFERENCE_HEIGHT

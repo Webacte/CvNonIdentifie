@@ -21,12 +21,13 @@
     left: 0;
 }
 
-/* Stage : même largeur que le monde (1050px) pour que scale + offsetX donnent des marges gauche/droite égales */
+/* Stage responsive natif: plus de zoom global. */
 .horizontal-scroll-stage {
-    width: 1050px; /* WORLD_REFERENCE_WIDTH, doit rester aligné avec .horizontal-scroll-viewport-mask */
+    width: 100vw;
+    min-height: 100vh;
+    min-height: 100svh;
     opacity: 0;
     visibility: hidden;
-    transform-origin: 0 0;
     will-change: transform;
     position: relative;
 }
@@ -36,9 +37,9 @@
     transition: opacity 160ms ease;
 }
 
-/* Masque viewport : une seule section visible (largeur = WORLD_REFERENCE_WIDTH), pas de débord des sections voisines */
+/* Masque viewport optionnel: largeur viewport réelle. */
 .horizontal-scroll-viewport-mask {
-    width: 1050px; /* WORLD_REFERENCE_WIDTH */
+    width: 100vw;
     overflow: hidden;
     position: relative;
     min-height: 100vh;
@@ -55,9 +56,9 @@
     position: relative;
 }
 
-/* Chaque section horizontale : largeur monde (surchargée en JS par WORLD_REFERENCE_WIDTH) */
+/* Chaque section horizontale : largeur viewport (surchargée en JS). */
 .horizontal-section {
-    width: 1050px; /* WORLD_REFERENCE_WIDTH, cohérent avec world + camera */
+    width: 100vw;
     min-height: 100vh;
     min-height: 100svh;
     flex-shrink: 0;
@@ -112,30 +113,22 @@
     margin: 0;
 }
 
-.contact-section-svg-wrapper {
+/* Wrapper unique : SVG fond + overlay formulaire, même conteneur de référence */
+.contact-form-illustrated-wrapper {
     position: absolute;
-    left: calc(var(--contact-svg-left, 15) * 1%);
-    top: calc(var(--contact-svg-top, 36.5) * 1%);
-    transform: translateY(-50%);
-    height: calc(var(--contact-svg-height-vh, 63) * 1vh);
-    max-height: 63svh;
+    left: calc(var(--contact-form-wrapper-left, 15) * 1%);
+    bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
+    height: calc(var(--contact-form-wrapper-height-vh, 75) * 1vh);
+    aspect-ratio: 642 / 598;
     width: auto;
-    max-width: var(--contact-svg-max-width, 85vw);
-    min-width: var(--contact-svg-min-width, 60vw);
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    pointer-events: none;
+    max-width: 85vw;
+    min-width: 0;
+    container-type: inline-size;
+    background-image: url('/assets/svg/support-contact.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
     z-index: 1;
-}
-
-.contact-section-svg {
-    width: auto;
-    height: 100%;
-    max-height: 95vh;
-    max-height: 95svh;
-    object-fit: contain;
-    object-position: left center;
 }
 
 /* margin-top via token numérique (--presentation-margin-top-vh * 1vh), défaut -5, 1920×1080 = -35 */
@@ -170,8 +163,8 @@
 /* Image portrait */
 .portrait-image {
     position: absolute;
-    width: 200px;
-    max-width: 400px;
+    width: 20vw;
+    max-width: 30vh;
     height: auto;
     object-fit: contain;
     left: 50%;
@@ -181,12 +174,6 @@
     border-radius: 100%;
     opacity: 0;
 }
-
-/* @media (min-width: 1500px) {
-    .portrait-image {
-        left: 33vw;
-    }
-} */
 
 /* Conteneur de la fusée : position/taille via --rocket-* (Responsive Tokens) */
 .rocket-container {
@@ -247,8 +234,7 @@
     width: var(--about-alien-width, 200px);
     height: auto;
     left: var(--about-alien-left, 10vw);
-    top: calc(var(--about-alien-top, 65) * 1%);
-    transform: translateY(-50%);
+    bottom: calc(var(--ground-bottom-vh, 25) * 0.5vh);
     z-index: 12;
     overflow: visible;
 }
@@ -264,8 +250,7 @@
     width: var(--about-hologram-width, auto);
     height: auto;
     left: var(--about-hologram-left, 11vw);
-    top: calc(var(--about-hologram-top, 42) * 1%);
-    transform: var(--about-hologram-transform, translateY(-50%));
+    bottom: calc(var(--ground-bottom-vh, 25) * 2 / 3 * 1vh);
     z-index: 12;
     opacity: 1;
 }
@@ -281,17 +266,6 @@
 #hologramme {
     scale: .75;
     transform-origin: 450px 200px;
-}
-
-/* MQ 768 : marges et transform-origin (layout rocket/about/hologram via Responsive Tokens) */
-@media (max-width: 768px) {
-    #myName,
-    .descriptionContainer {
-        margin-top: -4vh;
-    }
-    #hologramme {
-        transform-origin: center center;
-    }
 }
 
 /* Réduction des mouvements : cycles feu/fumée fusée et effets animés lourds (layout inchangé) */

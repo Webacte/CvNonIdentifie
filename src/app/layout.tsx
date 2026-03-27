@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import './globals.css'
 import '@/styles/cursors.css'
 import '@/styles/ErrorFallback.css'
-import '@/animations/gsap'
 
 const InkScrollWindowOverlay = dynamic(
   () => import('@/components/InkScroll/InkScrollWindowOverlay'),

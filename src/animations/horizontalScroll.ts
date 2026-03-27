@@ -1,6 +1,5 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import type { Camera } from './camera'
 import {
     FIRST_SECTION_PAN_SCROLL,
     PHASE2_EARLY_START_OFFSET,
@@ -25,7 +24,7 @@ export interface ScrollValues {
     scrollDistanceWithoutMovement: number
     /** Distance du bloc initial (scroll bloqué au début) en px */
     initialScrollBlock: number
-    /** Largeur totale du contenu en px (world × scale) */
+    /** Largeur totale du contenu en px */
     totalWidth: number
     /** Largeur du viewport en px */
     viewportWidth: number
@@ -52,120 +51,115 @@ export interface ScrollValues {
 }
 
 /**
- * Configure le scroll horizontal contrôlé (World + Camera).
- * Wrapper.x en unités monde ; ScrollTrigger end en px (world × scale).
+ * Configure le scroll horizontal contrôlé en layout réel.
+ * Wrapper.x en px ; ScrollTrigger end en px réels.
  * Retourne le tween, les valeurs de scroll uniformisées et une fonction kill pour teardown/rebuild.
  */
 export function setupHorizontalScroll(
     container: HTMLElement,
     stage: HTMLElement,
     wrapper: HTMLElement,
-    sections: HTMLElement[],
-    camera: Camera
+    sections: HTMLElement[]
 ): { scrollTween: gsap.core.Tween; scrollValues: ScrollValues; kill: () => void } {
-    const { scale: cameraScale, viewportW, viewportH } = camera
-    const WORLD_REFERENCE_WIDTH = sceneConfig.world.width
-    const totalWorldWidth = sections.length * WORLD_REFERENCE_WIDTH
-    const travelWorld = totalWorldWidth - WORLD_REFERENCE_WIDTH
+    const viewportW = Math.max(1, Math.round(container.clientWidth || window.innerWidth || 1))
+    const viewportH = Math.max(1, Math.round(container.clientHeight || window.innerHeight || 1))
+    const sectionWidth = viewportW
+    const totalWidth = sections.length * sectionWidth
+    const travelPx = Math.max(0, totalWidth - sectionWidth)
+    const pxPerReferenceUnit = sectionWidth / sceneConfig.world.width
 
     // Réinitialiser wrapper
     gsap.set(wrapper, { x: 0, clearProps: 'transform' })
     gsap.set(container, { clearProps: 'transform,top,left' })
-    gsap.set(wrapper, { width: totalWorldWidth })
+    gsap.set(stage, { clearProps: 'x,y,scale,transform' })
+    gsap.set(wrapper, { width: totalWidth })
     sections.forEach((section) => {
-        gsap.set(section, { width: WORLD_REFERENCE_WIDTH, flexShrink: 0 })
+        gsap.set(section, { width: sectionWidth, flexShrink: 0 })
     })
 
     // Premier écran : fixe comme les autres blocs (0 à SECOND_SECTION_BLOCK_START), puis pan sur FIRST_SECTION_PAN_SCROLL
-    const initialScrollBlockWorld = SECOND_SECTION_BLOCK_START
-    const secondBlockStartWorld = SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
-    const secondBlockEndWorld = SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
-    const secondBlockDurationWorld = secondBlockEndWorld - secondBlockStartWorld
-    const thirdBlockStartWorld = THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
-    const thirdBlockEndWorld = THIRD_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
-    const thirdBlockDurationWorld = thirdBlockEndWorld - thirdBlockStartWorld
-    const fourthBlockStartWorld = FOURTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
-    const fourthBlockEndWorld = FOURTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
-    const fourthBlockDurationWorld = fourthBlockEndWorld - fourthBlockStartWorld
-    const fifthBlockStartWorld = FIFTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL
-    const fifthBlockEndWorld = FIFTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL
-    const fifthBlockDurationWorld = fifthBlockEndWorld - fifthBlockStartWorld
+    const initialScrollBlock = SECOND_SECTION_BLOCK_START * pxPerReferenceUnit
+    const secondBlockStart = (SECOND_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const secondBlockEnd = (SECOND_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const secondBlockDuration = secondBlockEnd - secondBlockStart
+    const thirdBlockStart = (THIRD_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const thirdBlockEnd = (THIRD_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const thirdBlockDuration = thirdBlockEnd - thirdBlockStart
+    const fourthBlockStart = (FOURTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const fourthBlockEnd = (FOURTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const fourthBlockDuration = fourthBlockEnd - fourthBlockStart
+    const fifthBlockStart = (FIFTH_SECTION_BLOCK_START + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const fifthBlockEnd = (FIFTH_SECTION_BLOCK_END + FIRST_SECTION_PAN_SCROLL) * pxPerReferenceUnit
+    const fifthBlockDuration = fifthBlockEnd - fifthBlockStart
 
-    const scrollBeforeSecondBlockWorld = FIRST_SECTION_PAN_SCROLL
-    const scrollBeforeThirdBlockWorld = thirdBlockStartWorld - secondBlockEndWorld
-    const scrollBeforeFourthBlockWorld = fourthBlockStartWorld - thirdBlockEndWorld
-    const scrollBeforeFifthBlockWorld = fifthBlockStartWorld - fourthBlockEndWorld
+    const scrollBeforeSecondBlock = FIRST_SECTION_PAN_SCROLL * pxPerReferenceUnit
+    const scrollBeforeThirdBlock = thirdBlockStart - secondBlockEnd
+    const scrollBeforeFourthBlock = fourthBlockStart - thirdBlockEnd
+    const scrollBeforeFifthBlock = fifthBlockStart - fourthBlockEnd
 
-    const scrollDistanceWithoutMovementWorld =
-        initialScrollBlockWorld +
-        scrollBeforeSecondBlockWorld +
-        secondBlockDurationWorld +
-        scrollBeforeThirdBlockWorld +
-        thirdBlockDurationWorld +
-        scrollBeforeFourthBlockWorld +
-        fourthBlockDurationWorld +
-        scrollBeforeFifthBlockWorld +
-        fifthBlockDurationWorld
+    const scrollDistanceWithoutMovement =
+        initialScrollBlock +
+        scrollBeforeSecondBlock +
+        secondBlockDuration +
+        scrollBeforeThirdBlock +
+        thirdBlockDuration +
+        scrollBeforeFourthBlock +
+        fourthBlockDuration +
+        scrollBeforeFifthBlock +
+        fifthBlockDuration
 
-    const totalScrollPx = scrollDistanceWithoutMovementWorld * cameraScale
-    const travelPx = travelWorld * cameraScale
-
-    const initialScrollBlockPx = initialScrollBlockWorld * cameraScale
-    const secondBlockStartPx = secondBlockStartWorld * cameraScale
-    const secondBlockEndPx = secondBlockEndWorld * cameraScale
-
-    const phase2EarlyStartPx = Math.max(0, secondBlockStartPx - PHASE2_EARLY_START_OFFSET * cameraScale)
-    const cumulativeWorldAtStartOfThird =
-        initialScrollBlockWorld +
-        scrollBeforeSecondBlockWorld +
-        secondBlockDurationWorld +
-        scrollBeforeThirdBlockWorld
-    const cumulativeWorldAtEndOfThird =
-        cumulativeWorldAtStartOfThird + thirdBlockDurationWorld
-    const cumulativeWorldAtEndOfFourth =
-        cumulativeWorldAtEndOfThird + scrollBeforeFourthBlockWorld + fourthBlockDurationWorld
+    const phase2EarlyStartPx = Math.max(0, secondBlockStart - PHASE2_EARLY_START_OFFSET * pxPerReferenceUnit)
+    const cumulativeAtStartOfThird =
+        initialScrollBlock +
+        scrollBeforeSecondBlock +
+        secondBlockDuration +
+        scrollBeforeThirdBlock
+    const cumulativeAtEndOfThird =
+        cumulativeAtStartOfThird + thirdBlockDuration
+    const cumulativeAtEndOfFourth =
+        cumulativeAtEndOfThird + scrollBeforeFourthBlock + fourthBlockDuration
     /* Début phase convoyeur : au premier quart du bloc Expérience, pour que l’animation démarre bien avant d’arriver sur Projets. */
-    const cumulativeWorldAtConvoyeurPhaseStart =
-        cumulativeWorldAtEndOfThird - thirdBlockDurationWorld * 1.5
+    const cumulativeAtConvoyeurPhaseStart =
+        cumulativeAtEndOfThird - thirdBlockDuration * 1.5
     const scrollValues: ScrollValues = {
         scrollDistanceWithMovement: travelPx,
-        scrollDistanceWithoutMovement: totalScrollPx,
-        initialScrollBlock: initialScrollBlockPx,
-        totalWidth: totalWorldWidth * cameraScale,
+        scrollDistanceWithoutMovement,
+        initialScrollBlock,
+        totalWidth,
         viewportWidth: viewportW,
         viewportHeight: viewportH,
-        phase1EndScroll: secondBlockStartPx,
-        phase2StartScroll: secondBlockStartPx,
+        phase1EndScroll: secondBlockStart,
+        phase2StartScroll: secondBlockStart,
         phase2EarlyStartScroll: phase2EarlyStartPx,
-        phase2EndScroll: secondBlockEndPx,
-        rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * cameraScale,
-        progressAtStartOfThirdBlock: cumulativeWorldAtStartOfThird / scrollDistanceWithoutMovementWorld,
-        progressAtEndOfThirdBlock: cumulativeWorldAtEndOfThird / scrollDistanceWithoutMovementWorld,
-        progressAtEndOfFourthBlock: cumulativeWorldAtEndOfFourth / scrollDistanceWithoutMovementWorld,
-        progressAtConvoyeurPhaseStart: Math.max(0, cumulativeWorldAtConvoyeurPhaseStart / scrollDistanceWithoutMovementWorld),
+        phase2EndScroll: secondBlockEnd,
+        rocketPhase1EndScroll: SECOND_SECTION_BLOCK_START * pxPerReferenceUnit,
+        progressAtStartOfThirdBlock: cumulativeAtStartOfThird / scrollDistanceWithoutMovement,
+        progressAtEndOfThirdBlock: cumulativeAtEndOfThird / scrollDistanceWithoutMovement,
+        progressAtEndOfFourthBlock: cumulativeAtEndOfFourth / scrollDistanceWithoutMovement,
+        progressAtConvoyeurPhaseStart: Math.max(0, cumulativeAtConvoyeurPhaseStart / scrollDistanceWithoutMovement),
     }
 
-    // Positions wrapper.x en unités monde (négatives)
-    const xPositionAtSecondBlockWorld = -WORLD_REFERENCE_WIDTH
-    const xPositionAtThirdBlockWorld = -2 * WORLD_REFERENCE_WIDTH
-    const xPositionAtFourthBlockWorld = -3 * WORLD_REFERENCE_WIDTH
-    const xPositionAtFifthBlockWorld = -4 * WORLD_REFERENCE_WIDTH
+    // Positions wrapper.x en px (négatives)
+    const xPositionAtSecondBlock = -sectionWidth
+    const xPositionAtThirdBlock = -2 * sectionWidth
+    const xPositionAtFourthBlock = -3 * sectionWidth
+    const xPositionAtFifthBlock = -4 * sectionWidth
 
-    const initialBlockDuration = initialScrollBlockWorld / scrollDistanceWithoutMovementWorld
-    const firstMovementDuration = scrollBeforeSecondBlockWorld / scrollDistanceWithoutMovementWorld
-    const secondBlockDurationRatio = secondBlockDurationWorld / scrollDistanceWithoutMovementWorld
-    const scrollBeforeThirdBlockDuration = scrollBeforeThirdBlockWorld / scrollDistanceWithoutMovementWorld
-    const thirdBlockDurationRatio = thirdBlockDurationWorld / scrollDistanceWithoutMovementWorld
-    const scrollBeforeFourthBlockDuration = scrollBeforeFourthBlockWorld / scrollDistanceWithoutMovementWorld
-    const fourthBlockDurationRatio = fourthBlockDurationWorld / scrollDistanceWithoutMovementWorld
-    const scrollBeforeFifthBlockDuration = scrollBeforeFifthBlockWorld / scrollDistanceWithoutMovementWorld
-    const fifthBlockDurationRatio = fifthBlockDurationWorld / scrollDistanceWithoutMovementWorld
+    const initialBlockDuration = initialScrollBlock / scrollDistanceWithoutMovement
+    const firstMovementDuration = scrollBeforeSecondBlock / scrollDistanceWithoutMovement
+    const secondBlockDurationRatio = secondBlockDuration / scrollDistanceWithoutMovement
+    const scrollBeforeThirdBlockDuration = scrollBeforeThirdBlock / scrollDistanceWithoutMovement
+    const thirdBlockDurationRatio = thirdBlockDuration / scrollDistanceWithoutMovement
+    const scrollBeforeFourthBlockDuration = scrollBeforeFourthBlock / scrollDistanceWithoutMovement
+    const fourthBlockDurationRatio = fourthBlockDuration / scrollDistanceWithoutMovement
+    const scrollBeforeFifthBlockDuration = scrollBeforeFifthBlock / scrollDistanceWithoutMovement
+    const fifthBlockDurationRatio = fifthBlockDuration / scrollDistanceWithoutMovement
 
     const timeline = gsap.timeline({
         scrollTrigger: {
             trigger: container,
             start: 'top top',
-            end: () => `+=${totalScrollPx}`,
+            end: () => `+=${scrollDistanceWithoutMovement}`,
             pin: true,
             pinSpacing: true,
             scrub: 1,
@@ -182,15 +176,15 @@ export function setupHorizontalScroll(
 
     timeline
         .to(wrapper, { x: 0, duration: initialBlockDuration, ease: 'none' })
-        .to(wrapper, { x: xPositionAtSecondBlockWorld, duration: firstMovementDuration, ease: 'none' })
-        .to(wrapper, { x: xPositionAtSecondBlockWorld, duration: secondBlockDurationRatio, ease: 'none' })
-        .to(wrapper, { x: xPositionAtThirdBlockWorld, duration: scrollBeforeThirdBlockDuration, ease: 'none' })
-        .to(wrapper, { x: xPositionAtThirdBlockWorld, duration: thirdBlockDurationRatio, ease: 'none' })
-        .to(wrapper, { x: xPositionAtFourthBlockWorld, duration: scrollBeforeFourthBlockDuration, ease: 'none' })
-        .to(wrapper, { x: xPositionAtFourthBlockWorld, duration: fourthBlockDurationRatio, ease: 'none' })
-        .to(wrapper, { x: xPositionAtFifthBlockWorld, duration: scrollBeforeFifthBlockDuration, ease: 'none' })
-        .to(wrapper, { x: xPositionAtFifthBlockWorld, duration: fifthBlockDurationRatio, ease: 'none' })
-        .to(wrapper, { x: -travelWorld, duration: 0, ease: 'none' })
+        .to(wrapper, { x: xPositionAtSecondBlock, duration: firstMovementDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtSecondBlock, duration: secondBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtThirdBlock, duration: scrollBeforeThirdBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtThirdBlock, duration: thirdBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFourthBlock, duration: scrollBeforeFourthBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFourthBlock, duration: fourthBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFifthBlock, duration: scrollBeforeFifthBlockDuration, ease: 'none' })
+        .to(wrapper, { x: xPositionAtFifthBlock, duration: fifthBlockDurationRatio, ease: 'none' })
+        .to(wrapper, { x: -travelPx, duration: 0, ease: 'none' })
 
     const scrollTween = timeline as unknown as gsap.core.Tween
 

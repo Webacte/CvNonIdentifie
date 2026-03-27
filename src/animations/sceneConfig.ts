@@ -1,9 +1,8 @@
 /**
- * Config unique de la scène (World + Camera + scroll + breakpoints + positions).
+ * Config unique de la scène (World + Camera + scroll + positions).
  * Référence constants.ts sans dupliquer les valeurs.
  *
- * Stratégie responsive : scène = desktop « golden viewport » (WORLD_REFERENCE_WIDTH × WORLD_REFERENCE_HEIGHT),
- * adaptation par camera.scale ; UI = mobile-first dans les CSS (base petit écran, puis min-width).
+ * Mode desktop-only : valeurs de référence fixes.
  */
 
 import {
@@ -18,15 +17,6 @@ import {
     FIFTH_SECTION_BLOCK_START,
     FIFTH_SECTION_BLOCK_END,
     FIRST_SECTION_PAN_SCROLL,
-    GROUND_LINE_425_MAX_WIDTH,
-    MOBILE_SMALL_MAX_WIDTH,
-    MOBILE_MAX_WIDTH,
-    TABLET_MAX_WIDTH,
-    ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX,
-    HOLOGRAM_BASES_TABLET_MAX,
-    HOLOGRAM_BASES_MOBILE_MAX,
-    HOLOGRAM_BASES_SMALL_PHONE_MAX,
-    HOLOGRAM_BASES_VERY_SMALL_PHONE_MAX,
     ROCKET_START_X,
     ROCKET_START_Y,
     ROCKET_START_ROTATE,
@@ -51,12 +41,6 @@ export const world = {
     height: WORLD_REFERENCE_HEIGHT,
 } as const
 
-/** Options caméra : cover = remplit tout l'écran (plus de bandes vides sur les côtés en desktop) */
-export const cameraOptions = {
-    mode: 'cover' as const,
-    center: true,
-}
-
 /** Scroll : blocs et segments (unités monde) */
 export const scroll = {
     blocks: {
@@ -73,20 +57,6 @@ export const scroll = {
     ratios: {
         firstSectionPanScroll: FIRST_SECTION_PAN_SCROLL,
     },
-} as const
-
-/** Breakpoints viewport (px) */
-export const breakpoints = {
-    viewportReferenceWidth: WORLD_REFERENCE_WIDTH,
-    groundLine425MaxWidth: GROUND_LINE_425_MAX_WIDTH,
-    mobileSmallMaxWidth: MOBILE_SMALL_MAX_WIDTH,
-    mobileMaxWidth: MOBILE_MAX_WIDTH,
-    tabletMaxWidth: TABLET_MAX_WIDTH,
-    alienTransformOriginMobileMax: ALIEN_TRANSFORM_ORIGIN_MOBILE_MAX,
-    hologramBasesTabletMax: HOLOGRAM_BASES_TABLET_MAX,
-    hologramBasesMobileMax: HOLOGRAM_BASES_MOBILE_MAX,
-    hologramBasesSmallPhoneMax: HOLOGRAM_BASES_SMALL_PHONE_MAX,
-    hologramBasesVerySmallPhoneMax: HOLOGRAM_BASES_VERY_SMALL_PHONE_MAX,
 } as const
 
 /** Positions fusée */
@@ -111,33 +81,10 @@ export const hologram = {
     },
 } as const
 
-/** Seuils UI pour currentBreakpoint (alignés avec constants) */
-const BP_SM = GROUND_LINE_425_MAX_WIDTH      // 425
-const BP_MD = TABLET_MAX_WIDTH               // 768
-const BP_LG = WORLD_REFERENCE_WIDTH         // 1050
-const BP_XL = 1349
-
-export type BreakpointName = 'sm' | 'md' | 'lg' | 'xl'
-
-/** Retourne true si viewport considéré comme mobile (≤ tablette). */
-export function isMobile(viewportW: number): boolean {
-    return viewportW <= breakpoints.tabletMaxWidth
-}
-
-/** Retourne le nom du breakpoint actuel pour la largeur donnée. */
-export function currentBreakpoint(viewportW: number): BreakpointName {
-    if (viewportW <= BP_SM) return 'sm'
-    if (viewportW <= BP_MD) return 'md'
-    if (viewportW <= BP_LG) return 'lg'
-    return 'xl'
-}
-
 /** Config unique de la scène (référence pour HomePage / horizontalScroll) */
 export const sceneConfig = {
     world,
-    cameraOptions,
     scroll,
-    breakpoints,
     rocket,
     hologram,
 } as const
