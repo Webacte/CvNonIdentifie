@@ -20,7 +20,7 @@ Tokens en px visuels : `--exp-hab-top`, `--exp-hab-left`, `--exp-hab-w`, `--exp-
 
 ### Convoyeur (.projets-convoyeur-svg)
 
-Tokens en px visuels : `--convoyeur-left-px`, `--convoyeur-bottom-px`, `--convoyeur-w-px` (compensés par `--camera-scale` en CSS). À 1348×768 la référence impose bottom visuel ≈ 138 px (18 % de 768). `--convoyeur-h` reste en `auto` (w < 1500) ou `19%` (w ≥ 1500). Le `transform: scaleY(0.6667)` sur `#convoyeur-projet` reste en dur.
+Tokens en px visuels : `--convoyeur-left-vw`,`--convoyeur-w-vw` (compensés par `--camera-scale` en CSS). À 1348×768 la référence impose bottom visuel ≈ 138 px (18 % de 768). `--convoyeur-h` reste en `auto` (w < 1500) ou `19%` (w ≥ 1500). Le `transform: scaleY(0.6667)` sur `#convoyeur-projet` reste en dur.
 
 ### Mask chemine – clip-path
 

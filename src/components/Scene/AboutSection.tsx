@@ -28,15 +28,19 @@ const AboutSection = forwardRef<HTMLElement, AboutSectionProps>(
                     <div 
                         ref={hologramSvgRef}
                         className="hologram-svg-container"
-                        dangerouslySetInnerHTML={{ __html: hologramSvgContent }}
-                    />
-                )}
-                {profileDescriptionSvgContent && (
-                    <div 
-                        ref={profileDescriptionSvgRef}
-                        className="handwriting-wrapper"
-                        dangerouslySetInnerHTML={{ __html: profileDescriptionSvgContent }}
-                     />
+                    >
+                        <div
+                            className="hologram-svg-inner"
+                            dangerouslySetInnerHTML={{ __html: hologramSvgContent }}
+                        />
+                        {profileDescriptionSvgContent && (
+                            <div 
+                                ref={profileDescriptionSvgRef}
+                                className="handwriting-wrapper"
+                                dangerouslySetInnerHTML={{ __html: profileDescriptionSvgContent }}
+                            />
+                        )}
+                    </div>
                 )}
             </section>
         )

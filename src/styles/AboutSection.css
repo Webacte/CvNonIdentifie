@@ -15,10 +15,10 @@
 .handwriting-wrapper {
     position: absolute;
     z-index: 12;
-    left: var(--about-hologram-left, 11vw);
-    bottom: calc(
-        var(--ground-bottom-vh, 25) * 1vh
-    );
-    transform: translate(50%, -50%);
-    width: 45vw;
+    left: 60%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(85%, 45vw);
+    max-width: 100%;
+    pointer-events: none;
 }

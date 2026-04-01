@@ -2477,9 +2477,8 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     loggedProgressOne = true
                     const finalSlideX = EXP_CONVEYOR_SLIDE_X + endCorrection
                     const tokens = stage ? {
-                        '--convoyeur-left-px': getComputedStyle(stage).getPropertyValue('--convoyeur-left-px').trim(),
-                        '--convoyeur-bottom-px': getComputedStyle(stage).getPropertyValue('--convoyeur-bottom-px').trim(),
-                        '--convoyeur-w-px': getComputedStyle(stage).getPropertyValue('--convoyeur-w-px').trim(),
+                        '--convoyeur-left-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-left-vw').trim(),
+                        '--convoyeur-w-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-w-vw').trim(),
                         '--convoyeur-end-correction-x-px': getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim(),
                         '--robot-above-y-percent': getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim(),
                         '--exp-hab-left-px': getComputedStyle(stage).getPropertyValue('--exp-hab-left-px').trim(),

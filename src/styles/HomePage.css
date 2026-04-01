@@ -253,6 +253,7 @@
     bottom: calc(var(--ground-bottom-vh, 25) * 2 / 3 * 1vh);
     z-index: 12;
     opacity: 1;
+    overflow: visible;
 }
 
 /* Le SVG s’adapte à la taille du conteneur (responsive) */
