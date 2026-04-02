@@ -161,6 +161,8 @@ import {
     EXP_CHIMNEY_RISE_Y,
     EXP_CONVEYOR_SLIDE_X,
     EXP_CONVEYOR_START_X,
+    CONVOYEUR_SLIDE_END_X_MAX,
+    CONVOYEUR_VIEWPORT_CENTER_OFFSET_PX,
     getConvoyeurScaleX,
     CONVOYEUR_SCALE_Y,
     CONVOYEUR_TOP_PERCENT,
@@ -2334,6 +2336,74 @@ export interface ProjectsSectionScrollAnimationParams {
     responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent'>
 }
 
+type ConvoyeurSlideGeomCache = {
+    key: string
+    dXdTx: number
+}
+
+function measureConvoyeurRightEdgeClientX(
+    conv: SVGGElement,
+    localRightX: number,
+    localMidY: number,
+    slideX: number,
+    translateY: number,
+    scaleX: number,
+    scaleY: number,
+): number {
+    conv.setAttribute('transform', `translate(${slideX}, ${translateY}) scale(${scaleX}, ${scaleY})`)
+    const svg = conv.ownerSVGElement
+    if (!svg) return 0
+    const pt = svg.createSVGPoint()
+    pt.x = localRightX
+    pt.y = localMidY
+    const ctm = conv.getScreenCTM()
+    if (!ctm) return 0
+    return pt.matrixTransform(ctm).x
+}
+
+/**
+ * Translate X de fin pour aligner le bord droit du #convoyeur (point milieu du bord droit du bbox) sur le milieu horizontal du viewport.
+ * dXdTx est mis en cache ; x0 à tx=0 est remes chaque frame car la cible viewport est fixe pendant que le wrapper peut encore défiler.
+ */
+function getConvoyeurSlideEndX(
+    conv: SVGGElement,
+    bbox: DOMRect,
+    translateY: number,
+    scaleX: number,
+    scaleY: number,
+    startX: number,
+    centerOffsetPx: number,
+    slideEndMax: number,
+    fallbackSlideEndX: number,
+    cacheRef: { current: ConvoyeurSlideGeomCache | null },
+    viewportWidthRound: number,
+): number {
+    if (bbox.width < 0.5 || bbox.height < 0.5) {
+        return fallbackSlideEndX
+    }
+    const lx = bbox.x + bbox.width
+    const ly = bbox.y + bbox.height * 0.5
+    const key = `${viewportWidthRound}|${scaleX}|${translateY}|${lx.toFixed(2)}|${ly.toFixed(2)}`
+    let dXdTx: number
+    let xAtZero: number
+    if (cacheRef.current?.key === key) {
+        dXdTx = cacheRef.current.dXdTx
+        xAtZero = measureConvoyeurRightEdgeClientX(conv, lx, ly, 0, translateY, scaleX, scaleY)
+    } else {
+        xAtZero = measureConvoyeurRightEdgeClientX(conv, lx, ly, 0, translateY, scaleX, scaleY)
+        const xAtOne = measureConvoyeurRightEdgeClientX(conv, lx, ly, 1, translateY, scaleX, scaleY)
+        dXdTx = xAtOne - xAtZero
+        cacheRef.current = { key, dXdTx }
+    }
+    if (!Number.isFinite(dXdTx) || Math.abs(dXdTx) < 1e-4) {
+        return fallbackSlideEndX
+    }
+    const viewportW = typeof window !== 'undefined' ? window.innerWidth : viewportWidthRound
+    const targetX = viewportW * 0.5 + centerOffsetPx
+    const slideToViewportCenter = (targetX - xAtZero) / dXdTx
+    return Math.max(startX, Math.min(slideToViewportCenter, slideEndMax))
+}
+
 /**
  * Animation de la section Projets : convoyeur/battant pilotés par la plage de scroll Projets (FOURTH_SECTION_BLOCK_*).
  * La boucle rAF démarre même si le SVG n'est pas encore chargé (résolution du conteneur à chaque frame).
@@ -2369,6 +2439,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     let loggedProgressOne = false
     let loggedHandEndX = false
     let frameCount = 0
+    const convoyeurSlideGeomCacheRef: { current: ConvoyeurSlideGeomCache | null } = { current: null }
     /** Debug robot (window.__ROBOT_DEBUG__ = true) : throttle et valeurs précédentes pour deltas */
     let _robotDebugLastLog = 0
     const _robotDebugPrev: { headX?: number; headY?: number; headR?: number; handX?: number; handY?: number; handR?: number } = {}
@@ -2381,6 +2452,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
         const progressProjets = getProjetsPhaseProgress(progress, scrollValues)
         const container = getConvoyeurProjetElement() ?? null
         const conv = (container?.querySelector('#convoyeur') ?? null) as HTMLElement | null
+        if (!conv) convoyeurSlideGeomCacheRef.current = null
         const batt = (container?.querySelector('#battant') ?? null) as HTMLElement | null
 
         if (DEBUG_PROJETS_CONVOYEUR && !loggedFirstContainer) {
@@ -2467,23 +2539,36 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 setSvgTransform(batt, `translate(${EXP_BATTANT_OFFSET_X}, ${EXP_BATTANT_OFFSET_Y}) rotate(${battantRotation}) scale(${battantScaleX}, ${EXP_BATTANT_SCALE_Y})`)
             }
             if (conv) {
-                const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
-                const endCorrection = parseFloat(stage ? getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim() : '') || 0
+                const convG = conv as unknown as SVGGElement
+                const slideEndX = getConvoyeurSlideEndX(
+                    convG,
+                    convG.getBBox(),
+                    convoyeurTranslateY,
+                    convoyeurScaleX,
+                    CONVOYEUR_SCALE_Y,
+                    EXP_CONVEYOR_START_X,
+                    CONVOYEUR_VIEWPORT_CENTER_OFFSET_PX,
+                    CONVOYEUR_SLIDE_END_X_MAX,
+                    EXP_CONVEYOR_SLIDE_X,
+                    convoyeurSlideGeomCacheRef,
+                    Math.round(scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 0)),
+                )
                 const slideX =
-                    EXP_CONVEYOR_START_X +
-                    (EXP_CONVEYOR_SLIDE_X + endCorrection - EXP_CONVEYOR_START_X) * conveyorSlideProgress
+                    EXP_CONVEYOR_START_X + (slideEndX - EXP_CONVEYOR_START_X) * conveyorSlideProgress
                 setSvgTransform(conv, `translate(${slideX}, ${convoyeurTranslateY}) scale(${convoyeurScaleX}, ${CONVOYEUR_SCALE_Y})`)
                 if (DEBUG_PROJETS_CONVOYEUR && progressProjets >= 1 && !loggedProgressOne) {
                     loggedProgressOne = true
-                    const finalSlideX = EXP_CONVEYOR_SLIDE_X + endCorrection
-                    const tokens = stage ? {
-                        '--convoyeur-left-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-left-vw').trim(),
-                        '--convoyeur-w-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-w-vw').trim(),
-                        '--convoyeur-end-correction-x-px': getComputedStyle(stage).getPropertyValue('--convoyeur-end-correction-x-px').trim(),
-                        '--robot-above-y-percent': getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim(),
-                        '--exp-hab-left-px': getComputedStyle(stage).getPropertyValue('--exp-hab-left-px').trim(),
-                    } : {}
-                    console.log('[Projets] progressProjets >= 1 — tokens appliqués et slideX final', { tokens, finalSlideX, progressProjets })
+                    const stage = container?.closest?.('.horizontal-scroll-stage') as HTMLElement | null
+                    console.log('[Projets] progressProjets >= 1 — convoyeur', {
+                        slideEndX,
+                        progressProjets,
+                        tokens: stage
+                            ? {
+                                  '--convoyeur-left-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-left-vw').trim(),
+                                  '--convoyeur-w-vw': getComputedStyle(stage).getPropertyValue('--convoyeur-w-vw').trim(),
+                              }
+                            : {},
+                    })
                 }
             }
         }

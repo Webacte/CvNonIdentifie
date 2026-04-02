@@ -419,7 +419,7 @@
 .projets-convoyeur-svg {
     display: block;
     position: absolute;
-    left: calc(var(--convoyeur-left-vw, -57) * 1vw);
+    left: calc(var(--convoyeur-left-vw, -55.8) * 1vw);
     bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     width: calc(var(--convoyeur-w-vw, 105) * 1vw);
     height: auto;
@@ -427,7 +427,7 @@
        la hauteur retombe sur `auto`. On force alors le ratio historique du convoyeur
        (anciennement obtenu via doublement de l'attribut `height` côté markup). */
     aspect-ratio: 543 / 186;
-    height: calc(var(--convoyeur-h, 20.3) * 1%);
+    height: calc(var(--convoyeur-h, 32.3) * 1vw);
     z-index: 4;
     pointer-events: none;
 }

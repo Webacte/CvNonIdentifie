@@ -459,8 +459,14 @@ export const EXP_DOOR_SCALE_MIN = 0.2
 export const EXP_CHIMNEY_START_Y = 200
 /** Translation Y cheminée-fumée montée (#chemine-fumee, px) — valeur positive, appliquée en y: -progress * valeur pour monter. */
 export const EXP_CHIMNEY_RISE_Y = 200
-/** Translation X finale convoyeur (#convoyeur, px). */
+/** Valeur de repli (unités SVG) si la mesure layout / viewport échoue. */
 export const EXP_CONVEYOR_SLIDE_X = 100
+
+/** Plafond de sécurité (unités SVG) pour translate X en fin de course — alignement milieu écran ; évite valeurs aberrantes. */
+export const CONVOYEUR_SLIDE_END_X_MAX = 400
+
+/** Décalage horizontal (px) ajouté au centre du viewport : positif = cible un peu à droite du milieu. */
+export const CONVOYEUR_VIEWPORT_CENTER_OFFSET_PX = -20
 /** Translation X initiale convoyeur (déjà appliquée dans ProjectsSection : -700). */
 export const EXP_CONVEYOR_START_X = -300
 /** Décalage X fixe du battant pour l'aligner sur le bord droit du convoyeur (viewBox). */
