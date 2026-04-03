@@ -19,7 +19,7 @@ function prepareProjetSvg(svg: string): string {
 export interface ProjetsSectionProps {
     robotHeadRef?: React.RefObject<HTMLDivElement>
     robotHandRef?: React.RefObject<HTMLDivElement>
-    /** Ref du conteneur du SVG convoyeur-projet (section Projets, bas gauche) */
+    /** Ref `.projets-convoyeur-layer` : layout + racine pour querySelector `#convoyeur-motion` / `#battant-motion`. */
     convoyeurProjetRef?: React.RefObject<HTMLDivElement>
     /** Refs pour les textes Scania / LikeThat (handwriting) */
     scaniaTitreRef?: React.RefObject<HTMLDivElement | null>
@@ -59,11 +59,9 @@ const ProjetsSection = forwardRef<HTMLElement, ProjetsSectionProps>((props, ref)
             .then((res) => res.text())
             .then((svg) => {
                 const withClass = svg.replace(/<svg\b/, '<svg class="projets-convoyeur-svg"')
-                // On évite de coupler la géométrie au markup (ex: doublement de height) :
-                // le sizing est piloté par le CSS + tokens.
                 const prepared = withClass.replace(
-                    /<path id="battant"([^>]*)stroke-width="[^"]*"/,
-                    '<path id="battant"$1stroke-width="1" vector-effect="non-scaling-stroke"'
+                    /<path d="M16\.5822 91\.174L177\.302 91\.174" stroke="black" stroke-width="[^"]*"/,
+                    '<path d="M16.5822 91.174L177.302 91.174" stroke="black" stroke-width="1" vector-effect="non-scaling-stroke"'
                 )
                 setConvoyeurProjetSvgContent(prepared)
             })
@@ -87,10 +85,7 @@ const ProjetsSection = forwardRef<HTMLElement, ProjetsSectionProps>((props, ref)
     return (
         <section className="horizontal-section projets-section-placeholder" ref={ref}>
             {convoyeurProjetSvgContent && (
-                <div
-                    ref={convoyeurProjetRef}
-                    dangerouslySetInnerHTML={{ __html: convoyeurProjetSvgContent }}
-                />
+                <div ref={convoyeurProjetRef} className="projets-convoyeur-layer" dangerouslySetInnerHTML={{ __html: convoyeurProjetSvgContent }} />
             )}
             <div className="projets-section-svgs">
                 {teteRobotSvgContent && (

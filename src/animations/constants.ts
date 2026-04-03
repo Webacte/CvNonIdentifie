@@ -505,8 +505,6 @@ export function getConvoyeurScaleX(viewportWidthPx: number): number {
         ? CONVOYEUR_SCALE_X * CONVOYEUR_SCALE_X_LARGE_MULTIPLIER
         : CONVOYEUR_SCALE_X
 }
-/** Scale Y de l’élément #convoyeur (enfant du SVG convoyeur-projet, section Projets). */
-export const CONVOYEUR_SCALE_Y = .6
 /** Hauteur du viewBox du SVG convoyeur-projet (unités SVG), pour calcul du top %. */
 export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
 /** Décalage vertical (top) en % de la hauteur du viewBox du SVG convoyeur-projet (0–100). Ex. 40 = top 40 %. */

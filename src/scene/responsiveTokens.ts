@@ -74,7 +74,6 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--exp-alien2-width-percent': '10.5',
         '--convoyeur-left-vw': '-55.8',
         '--convoyeur-w-vw': '105',
-        '--convoyeur-h': '18.3',
         '--robot-above-y-percent': round(robotAboveYPercent, 1),
         '--robot-ground-y-percent': round(robotGroundYPercent, 1),
         '--robot-final-x-mult': '1',

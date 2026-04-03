@@ -101,7 +101,7 @@ export function createHandwritingAnimation(
 
     let vivusInstance: Vivus | null = null
     try {
-        vivusInstance = new Vivus(svg, {
+        vivusInstance = new Vivus(svg as unknown as HTMLElement, {
             type: 'oneByOne',
             duration,
             start: 'manual',

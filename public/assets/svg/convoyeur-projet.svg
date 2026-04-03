@@ -1,7 +1,12 @@
 <svg width="543" height="93" viewBox="0 0 543 93" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="convoyeur-projet">
-<path id="battant" d="M16.5822 91.174L177.302 91.174" stroke="black" stroke-width="2"/>
+<g id="battant">
+<g id="battant-motion">
+<path d="M16.5822 91.174L177.302 91.174" stroke="black" stroke-width="2"/>
+</g>
+</g>
 <g id="convoyeur">
+<g id="convoyeur-motion">
 <g id="Rectangle 16">
 <mask id="path-2-inside-1_101_30" fill="white">
 <path d="M0 0H532.111C537.634 0 542.111 4.47715 542.111 10V10.9252C542.111 16.448 537.634 20.9252 532.111 20.9252H0V0Z"/>
@@ -55,6 +60,7 @@
 <path id="Rectangle 17_4" d="M58.6752 7.72595C59.8839 7.72595 60.8644 8.70573 60.8646 9.91443V77.4691H56.4867V9.91443C56.4869 8.70587 57.4666 7.72617 58.6752 7.72595Z" stroke="black" stroke-width="2"/>
 <path id="Ellipse 14_4" d="M58.6757 77.2274C61.5029 77.2275 64.0536 79.9715 64.0536 83.701C64.0534 87.4304 61.5028 90.1736 58.6757 90.1737C55.8485 90.1737 53.2979 87.4305 53.2977 83.701C53.2977 79.9714 55.8484 77.2274 58.6757 77.2274Z" stroke="black" stroke-width="2"/>
 <ellipse id="Ellipse 15_4" cx="58.6755" cy="83.7007" rx="1.91333" ry="2.24198" fill="#020202"/>
+</g>
 </g>
 </g>
 </g>

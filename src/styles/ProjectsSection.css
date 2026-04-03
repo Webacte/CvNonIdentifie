@@ -415,32 +415,43 @@
     display: block;
 }
 
-/* Convoyeur : tokens layout réels (px). */
-.projets-convoyeur-svg {
-    display: block;
+/*
+ * Convoyeur : une seule couche (pas de conteneur parent).
+ * Pas de hauteur imposée ici — la hauteur du SVG vient du viewBox (ratio largeur / hauteur).
+ * Hauteur visuelle du ruban et du battant : variables vh / ref-px sur g#convoyeur et g#battant
+ * (scaleY ; l’animation scroll cible #convoyeur-motion / #battant-motion pour ne pas écraser ces scales).
+ */
+.projets-convoyeur-layer {
     position: absolute;
     left: calc(var(--convoyeur-left-vw, -55.8) * 1vw);
     bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     width: calc(var(--convoyeur-w-vw, 105) * 1vw);
-    height: auto;
-    /* Quand `--convoyeur-h` vaut `auto`, la règle `calc()` est invalide et est ignorée :
-       la hauteur retombe sur `auto`. On force alors le ratio historique du convoyeur
-       (anciennement obtenu via doublement de l'attribut `height` côté markup). */
-    aspect-ratio: 543 / 186;
-    height: calc(var(--convoyeur-h, 32.3) * 1vw);
     z-index: 4;
     pointer-events: none;
+    isolation: isolate;
+    overflow: visible;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
 }
 
+.projets-convoyeur-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    flex-shrink: 0;
+}
 
-/* Scale sur le groupe pour rétrécir le contenu à l’intérieur du SVG (évite disparition hors viewBox). À adapter : scale (et translateY si besoin). */
-.projets-convoyeur-svg #convoyeur-projet {
+/* Hauteur en vh : ajuster --projets-*-ref-height-px pour calibrer (≈ hauteur “1” du dessin à l’échelle courante). */
+.projets-convoyeur-svg #convoyeur {
     transform-origin: bottom center;
-    transform: scaleY(0.6667);
+    transform: scaleY(calc((var(--projets-convoyeur-height-vh, 3.2) * 1vh) / var(--projets-convoyeur-ref-height-px, 20px)));
 }
 
 .projets-convoyeur-svg #battant {
     transform-origin: 4% 100%;
+    transform: scaleY(calc((var(--projets-battant-height-vh, 2.4) * 1vh) / var(--projets-battant-ref-height-px, 7px)));
 }
 
 /* Section Projets – textes Scania / LikeThat (derrière tête/main robot et convoyeur pour éviter chevauchement) */

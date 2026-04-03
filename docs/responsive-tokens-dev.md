@@ -18,9 +18,9 @@ Le stage (`.horizontal-scroll-stage`) est scalé par `applyCamera()` : `transfor
 
 Tokens en px visuels : `--exp-hab-top`, `--exp-hab-left`, `--exp-hab-w`, `--exp-hab-h`, `--exp-hab-max-w`, `--exp-hab-max-h` (nombres unitless). CSS : `calc(var(--exp-hab-*, fallback) / var(--camera-scale, 1) * 1px)`. Fallbacks = référence 1348×768 (ex. 461, 876, 1173, 499).
 
-### Convoyeur (.projets-convoyeur-svg)
+### Convoyeur (`.projets-convoyeur-layer` + `.projets-convoyeur-svg`)
 
-Tokens en px visuels : `--convoyeur-left-vw`,`--convoyeur-w-vw` (compensés par `--camera-scale` en CSS). À 1348×768 la référence impose bottom visuel ≈ 138 px (18 % de 768). `--convoyeur-h` reste en `auto` (w < 1500) ou `19%` (w ≥ 1500). Le `transform: scaleY(0.6667)` sur `#convoyeur-projet` reste en dur.
+Les tokens (`--convoyeur-left-vw`, `--convoyeur-w-vw`, `--ground-bottom-vh`, etc.) dimensionnent la **couche** ; le SVG est en largeur 100 %, hauteur **intrinsèque** (viewBox). La hauteur visuelle du ruban et du battant se règle en **vh** via `--projets-convoyeur-height-vh` / `--projets-battant-height-vh` et les `--projets-*-ref-height-px` dans `ProjectsSection.css` (échelle Y sur `g#convoyeur` et `g#battant` ; le scroll anime `#convoyeur-motion` / `#battant-motion`).
 
 ### Mask chemine – clip-path
 
