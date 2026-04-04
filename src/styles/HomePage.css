@@ -68,6 +68,12 @@
     position: relative;
 }
 
+/* Ancre verticale commune About (alien + hologram) : uniquement sur la section qui contient l’alien. */
+.horizontal-section:has(.about-svg-container) {
+    --about-ground-anchor: calc(var(--ground-bottom-vh, 25) * 0.5vh);
+    --about-hologram-offset-y: calc(var(--ground-bottom-vh, 25) * 1vh / 14);
+}
+
 /* Lettrages animés (SplitType .char) : scale au survol (transform, pas zoom = pas de reflow) */
 .presentationContainer .char,
 .contact-section-title-wrapper .char {
@@ -234,7 +240,7 @@
     width: var(--about-alien-width, 200px);
     height: auto;
     left: var(--about-alien-left, 10vw);
-    bottom: calc(var(--ground-bottom-vh, 25) * 0.5vh);
+    bottom: var(--about-ground-anchor, calc(var(--ground-bottom-vh, 25) * 0.5vh));
     z-index: 12;
     overflow: visible;
 }
@@ -250,7 +256,10 @@
     width: var(--about-hologram-width, auto);
     height: auto;
     left: var(--about-hologram-left, 11vw);
-    bottom: calc(var(--ground-bottom-vh, 25) * 2 / 3 * 1vh);
+    bottom: calc(
+        var(--about-ground-anchor, calc(var(--ground-bottom-vh, 25) * 0.5vh)) +
+            var(--about-hologram-offset-y, calc(var(--ground-bottom-vh, 25) * 1vh / 14))
+    );
     z-index: 12;
     opacity: 1;
     overflow: visible;
