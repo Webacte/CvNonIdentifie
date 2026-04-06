@@ -426,15 +426,41 @@ export const EXP_WINDOW_SWAP_START = 0.65
 /** Fin swap fenêtre (fenetre visible à 1). */
 export const EXP_WINDOW_SWAP_END = 0.75
 
-/** Début élément battant (après apparition fenetre, aligné avec EXP_CONVEYOR_SLIDE). */
+// =============================================================================
+// SVG convoyeur-projet (section Projets) — timings sur progressProjets (0–1)
+// =============================================================================
+
+/** Début rotation battant (#battant-motion). */
 export const EXP_CONVEYOR_ROTATE_START = 0.63
-/** Fin rotation. */
+/** Fin rotation battant. */
 export const EXP_CONVEYOR_ROTATE_END = 0.68
 
-/** Début glissement convoyeur (après apparition fenetre, aligné avec EXP_WINDOW_SWAP). */
+/** Début glissement convoyeur (#convoyeur-motion). */
 export const EXP_CONVEYOR_SLIDE_START = 0.68
-/** Fin glissement. */
+/** Fin glissement convoyeur. */
 export const EXP_CONVEYOR_SLIDE_END = 0.78
+
+/** Translation X initiale #convoyeur-motion (unités SVG). */
+export const EXP_CONVEYOR_START_X = -300
+/**
+ * Translation X finale si `--projets-convoyeur-slide-end-x` absente ou invalide sur le stage.
+ */
+export const EXP_CONVEYOR_END_X = 100
+/** Décalage du groupe #battant-motion (unités SVG viewBox). */
+export const EXP_BATTANT_OFFSET_X = 210
+export const EXP_BATTANT_OFFSET_Y = 0
+/** Pivot rotation (coin gauche du segment, coords locales du path). */
+export const EXP_BATTANT_PIVOT_X = 16.5822
+export const EXP_BATTANT_PIVOT_Y = 91.174
+/** Angles battant (degrés) ; `rotate(…, pivot)` sans scale animé. */
+export const EXP_BATTANT_ROTATE_START = -90
+export const EXP_BATTANT_ROTATE_END = 0
+/** Scale X sur #convoyeur-motion (attribut transform). */
+export const CONVOYEUR_SCALE_X = 0.8
+/** Hauteur du viewBox du SVG convoyeur-projet (unités SVG). */
+export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
+/** Décalage vertical (translate Y) en % de la hauteur du viewBox (0–100). */
+export const CONVOYEUR_TOP_PERCENT = 40
 
 /** Nombre de cycles de marche alien2 pendant EXP_ALIEN_IN. */
 export const ALIEN2_WALK_CYCLES = 4
@@ -459,20 +485,6 @@ export const EXP_DOOR_SCALE_MIN = 0.2
 export const EXP_CHIMNEY_START_Y = 200
 /** Translation Y cheminée-fumée montée (#chemine-fumee, px) — valeur positive, appliquée en y: -progress * valeur pour monter. */
 export const EXP_CHIMNEY_RISE_Y = 200
-/** Valeur de repli (unités SVG) si la mesure layout / viewport échoue. */
-export const EXP_CONVEYOR_SLIDE_X = 100
-
-/** Plafond de sécurité (unités SVG) pour translate X en fin de course — alignement milieu écran ; évite valeurs aberrantes. */
-export const CONVOYEUR_SLIDE_END_X_MAX = 400
-
-/** Décalage horizontal (px) ajouté au centre du viewport : positif = cible un peu à droite du milieu. */
-export const CONVOYEUR_VIEWPORT_CENTER_OFFSET_PX = -20
-/** Translation X initiale convoyeur (déjà appliquée dans ProjectsSection : -700). */
-export const EXP_CONVEYOR_START_X = -300
-/** Décalage X fixe du battant pour l'aligner sur le bord droit du convoyeur (viewBox). */
-export const EXP_BATTANT_OFFSET_X = 210
-/** Décalage Y fixe du battant (alignement vertical). */
-export const EXP_BATTANT_OFFSET_Y = 0
 /** Début visibilité titre-quest (fraction du bloc Expérience). */
 export const EXP_QUEST_TITRE_VISIBLE_START = 0
 /** Nombre de cycles descrip-quest (1 à 6). */
@@ -483,32 +495,6 @@ export const EXP_QUEST_WRITE_RATIO = 0.6
 export const EXP_QUEST_STAY_RATIO = 0.1
 /** Ratio effacement dans chaque cycle (0–1). */
 export const EXP_QUEST_ERASE_RATIO = 0.3
-
-/** Pivot du battant : défini en CSS sur #battant (transform-origin: bottom left) pour rester responsive. */
-/** Scale du battant : X = longueur à l’horizontale, Y = épaisseur / longueur à la verticale l’allongement à l’horizontale. */
-export const EXP_BATTANT_SCALE_X = 0.4437
-export const EXP_BATTANT_SCALE_Y = 0.665
-/** Rotation de départ battant (degrés). */
-export const EXP_BATTANT_ROTATE_START = -90
-/** Rotation finale battant (degrés). */
-export const EXP_BATTANT_ROTATE_END = 0
-
-/** Scale X de l’élément #convoyeur (enfant du SVG convoyeur-projet, section Projets). */
-export const CONVOYEUR_SCALE_X = .8
-/** Facteur multiplicatif pour scale X sur écrans > breakpoint (ex. 1.2 = 20 % de plus). Le convoyeur atteint mieux le centre de la section Projets. */
-export const CONVOYEUR_SCALE_X_LARGE_MULTIPLIER = 1.12
-/** Seuil (px) : au-dessus on applique le facteur scale X pour grands écrans. */
-export const CONVOYEUR_SCALE_X_BREAKPOINT_PX = 1500
-/** Retourne le scale X du convoyeur selon la largeur viewport. */
-export function getConvoyeurScaleX(viewportWidthPx: number): number {
-    return viewportWidthPx > CONVOYEUR_SCALE_X_BREAKPOINT_PX
-        ? CONVOYEUR_SCALE_X * CONVOYEUR_SCALE_X_LARGE_MULTIPLIER
-        : CONVOYEUR_SCALE_X
-}
-/** Hauteur du viewBox du SVG convoyeur-projet (unités SVG), pour calcul du top %. */
-export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
-/** Décalage vertical (top) en % de la hauteur du viewBox du SVG convoyeur-projet (0–100). Ex. 40 = top 40 %. */
-export const CONVOYEUR_TOP_PERCENT = 40
 
 // ----- Robot au-dessus du convoyeur : adaptatif selon la largeur d'écran -----
 /** Seuil (px) : au-dessus on applique l'offset Y pour grands écrans. Modifiable ici. */

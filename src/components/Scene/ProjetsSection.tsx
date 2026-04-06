@@ -65,7 +65,11 @@ const ProjetsSection = forwardRef<HTMLElement, ProjetsSectionProps>((props, ref)
                 )
                 setConvoyeurProjetSvgContent(prepared)
             })
-            .catch(() => {})
+            .catch(() => {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn('[ProjetsSection] échec chargement /assets/svg/convoyeur-projet.svg')
+                }
+            })
     }, [])
 
     useEffect(() => {

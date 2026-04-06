@@ -13,7 +13,8 @@
 /* Titre quest : --quest-titre-* (Responsive Tokens) */
 .quest-titre-container {
     position: absolute;
-    left: var(--quest-titre-left, 2vw);
+    transform: translateX(-50%);
+    left: var(--quest-titre-left, 50vw);
     top: var(--quest-titre-top, 5vh);
     z-index: 10;
     width: var(--quest-titre-max-width, 50vw);
@@ -362,6 +363,7 @@
     clip-path: var(--mask-chemine-clip-raw, polygon(65% 21%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%));
 }
 
+/* Masque convoyeur (section Expérience / habitation) — Sans lien avec le SVG convoyeur-projet (section Projets). */
 /* Masque convoyeur : Responsive Tokens (golden 1348 : bottom 8.5, height 37 numériques ; wide 1920 : 12.5, 33) */
 .experiences-mask-convoyeur {
     left: var(--mask-convoyeur-left, 4.5%);
@@ -415,12 +417,7 @@
     display: block;
 }
 
-/*
- * Convoyeur : une seule couche (pas de conteneur parent).
- * Pas de hauteur imposée ici — la hauteur du SVG vient du viewBox (ratio largeur / hauteur).
- * Hauteur visuelle du ruban et du battant : variables vh / ref-px sur g#convoyeur et g#battant
- * (scaleY ; l’animation scroll cible #convoyeur-motion / #battant-motion pour ne pas écraser ces scales).
- */
+/* Convoyeur-projet (section Projets) : calque + SVG. Scale / slide end → vars sur `.horizontal-scroll-stage` (responsiveTokens). */
 .projets-convoyeur-layer {
     position: absolute;
     left: calc(var(--convoyeur-left-vw, -55.8) * 1vw);
@@ -428,11 +425,7 @@
     width: calc(var(--convoyeur-w-vw, 105) * 1vw);
     z-index: 4;
     pointer-events: none;
-    isolation: isolate;
     overflow: visible;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-start;
 }
 
 .projets-convoyeur-svg {
@@ -440,18 +433,8 @@
     width: 100%;
     height: auto;
     overflow: visible;
-    flex-shrink: 0;
-}
-
-/* Hauteur en vh : ajuster --projets-*-ref-height-px pour calibrer (≈ hauteur “1” du dessin à l’échelle courante). */
-.projets-convoyeur-svg #convoyeur {
     transform-origin: bottom center;
-    transform: scaleY(calc((var(--projets-convoyeur-height-vh, 3.2) * 1vh) / var(--projets-convoyeur-ref-height-px, 20px)));
-}
-
-.projets-convoyeur-svg #battant {
-    transform-origin: 4% 100%;
-    transform: scaleY(calc((var(--projets-battant-height-vh, 2.4) * 1vh) / var(--projets-battant-ref-height-px, 7px)));
+    transform: scaleY(var(--projets-convoyeur-scale-y, 1));
 }
 
 /* Section Projets – textes Scania / LikeThat (derrière tête/main robot et convoyeur pour éviter chevauchement) */

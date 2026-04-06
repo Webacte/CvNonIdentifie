@@ -18,9 +18,11 @@ Le stage (`.horizontal-scroll-stage`) est scalé par `applyCamera()` : `transfor
 
 Tokens en px visuels : `--exp-hab-top`, `--exp-hab-left`, `--exp-hab-w`, `--exp-hab-h`, `--exp-hab-max-w`, `--exp-hab-max-h` (nombres unitless). CSS : `calc(var(--exp-hab-*, fallback) / var(--camera-scale, 1) * 1px)`. Fallbacks = référence 1348×768 (ex. 461, 876, 1173, 499).
 
-### Convoyeur (`.projets-convoyeur-layer` + `.projets-convoyeur-svg`)
+### Convoyeur-projet (`.projets-convoyeur-layer` + `.projets-convoyeur-svg`)
 
-Les tokens (`--convoyeur-left-vw`, `--convoyeur-w-vw`, `--ground-bottom-vh`, etc.) dimensionnent la **couche** ; le SVG est en largeur 100 %, hauteur **intrinsèque** (viewBox). La hauteur visuelle du ruban et du battant se règle en **vh** via `--projets-convoyeur-height-vh` / `--projets-battant-height-vh` et les `--projets-*-ref-height-px` dans `ProjectsSection.css` (échelle Y sur `g#convoyeur` et `g#battant` ; le scroll anime `#convoyeur-motion` / `#battant-motion`).
+- **Couche** : `--convoyeur-left-vw`, `--convoyeur-w-vw`, `--ground-bottom-vh` (et fallbacks dans `ProjectsSection.css`).
+- **Hauteur du dessin** : `--projets-convoyeur-scale-y` sur le stage (`transform: scaleY(...)` sur le `<svg>`).
+- **Animation scroll** : le JS met à jour l’attribut `transform` sur `#convoyeur-motion` (translate + scale X) et `#battant-motion` (rotate avec pivot). La position X **finale** du glissement peut être surchargée sans recompiler via `--projets-convoyeur-slide-end-x` (nombre unitless, unités SVG ; repli = `EXP_CONVEYOR_END_X` dans `constants.ts`). Le slide est **linéaire** entre début et cette fin (plus de calcul via `getScreenCTM`).
 
 ### Mask chemine – clip-path
 
@@ -52,5 +54,5 @@ Alien2 est dans le stage (scalé) : **pas de vw** dans les styles. Tokens `--exp
 ## Debug
 
 - Vérifier que `data-bp`, `data-short`, `data-ar`, `data-scale` sur `.horizontal-scroll-stage` reflètent bien le viewport.
-- En DevTools, vérifier que les variables `--rocket-*`, `--about-*`, `--quest-*`, `--robot-*`, `--contact-*`, `--ground-*`, `--exp-hab-*`, `--exp-alien2-left-px`, `--exp-alien2-top-percent`, `--convoyeur-*`, `--mask-convoyeur-*`, `--mask-chemine-*` sont présentes sur le stage et changent au resize.
+- En DevTools, vérifier que les variables `--rocket-*`, `--about-*`, `--quest-*`, `--robot-*`, `--contact-*`, `--ground-*`, `--exp-hab-*`, `--exp-alien2-left-px`, `--exp-alien2-top-percent`, `--convoyeur-*`, `--projets-convoyeur-scale-y`, `--projets-convoyeur-slide-end-x`, `--mask-convoyeur-*`, `--mask-chemine-*` sont présentes sur le stage et changent au resize.
 - Overlay optionnel : dans `responsiveTokens.ts`, mettre `DEBUG_RESPONSIVE_TOKENS = true` pour afficher vw, vh, scale, t nearGolden, robotGroundYPercent, alien2LeftPx, alien2TopPercent (en bas à gauche). Désactivé en prod.
