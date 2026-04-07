@@ -459,8 +459,12 @@ export const EXP_BATTANT_ROTATE_END = 0
 export const CONVOYEUR_SCALE_X = 0.8
 /** Hauteur du viewBox du SVG convoyeur-projet (unités SVG). */
 export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
-/** Décalage vertical (translate Y) en % de la hauteur du viewBox (0–100). */
-export const CONVOYEUR_TOP_PERCENT = 40
+/**
+ * Décalage vertical (translate Y) en % de la hauteur du viewBox (0–100), appliqué sur #convoyeur-motion.
+ * Les pieds du dessin sont vers y ≈ 90,2 pour viewBox hauteur 93 : ~3 % ≈ 2,8 unités suffit pour poser
+ * le convoyeur sur le bas du SVG (aligné avec le « sol » du calque). Une valeur type 40 % enfonçait le convoyeur sous le sol.
+ */
+export const CONVOYEUR_TOP_PERCENT = 3.05
 
 /** Nombre de cycles de marche alien2 pendant EXP_ALIEN_IN. */
 export const ALIEN2_WALK_CYCLES = 4

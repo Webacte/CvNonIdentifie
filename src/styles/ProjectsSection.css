@@ -420,7 +420,7 @@
 /* Convoyeur-projet (section Projets) : calque + SVG. Scale / slide end → vars sur `.horizontal-scroll-stage` (responsiveTokens). */
 .projets-convoyeur-layer {
     position: absolute;
-    left: calc(var(--convoyeur-left-vw, -55.8) * 1vw);
+    left: calc(var(--convoyeur-left-vw, -55) * 1vw);
     bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     width: calc(var(--convoyeur-w-vw, 105) * 1vw);
     z-index: 4;
@@ -433,7 +433,24 @@
     width: 100%;
     height: auto;
     overflow: visible;
-    transform-origin: bottom center;
+}
+
+/* SVG: assurer que les transforms sur le battant pivotent depuis le bas. */
+.projets-convoyeur-svg #battant {
+    transform-box: fill-box;
+    /* Ancrer l’échelle sur la charnière (bas-gauche) pour éviter un drift en X pendant le rotate. */
+    transform-origin: 0% 100%;
+    transform: scale(0.43);
+}
+
+/*
+  IMPORTANT:
+  - Un scaleY non uniforme sur le SVG complet déforme une forme quand elle tourne (la longueur semble varier).
+  - On applique donc le scaleY uniquement au convoyeur (pas au battant rotaté).
+*/
+.projets-convoyeur-svg #convoyeur {
+    transform-box: fill-box;
+    transform-origin: center bottom;
     transform: scaleY(var(--projets-convoyeur-scale-y, 1));
 }
 

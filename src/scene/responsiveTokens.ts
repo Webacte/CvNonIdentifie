@@ -72,10 +72,10 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--mask-chemine-clip-raw': 'polygon(65% 21%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%)',
         '--exp-alien2-left-percent': '-14',
         '--exp-alien2-width-percent': '10.5',
-        '--convoyeur-left-vw': '-55.8',
+        '--convoyeur-left-vw': '-55',
         '--convoyeur-w-vw': '105',
         /* Convoyeur SVG (Projets) : hauteur ≈ scaleY, fin de translate X (unités SVG, parse JS) */
-        '--projets-convoyeur-scale-y': '1.2',
+        '--projets-convoyeur-scale-y': '0.5',
         '--projets-convoyeur-slide-end-x': '100',
         '--robot-above-y-percent': round(robotAboveYPercent, 1),
         '--robot-ground-y-percent': round(robotGroundYPercent, 1),
