@@ -367,8 +367,8 @@
 /* Masque convoyeur : Responsive Tokens (golden 1348 : bottom 8.5, height 37 numériques ; wide 1920 : 12.5, 33) */
 .experiences-mask-convoyeur {
     left: var(--mask-convoyeur-left, 4.5%);
-    width: var(--mask-convoyeur-width, 93.5%);
-    bottom: 0;
+    width: var(--mask-convoyeur-width, 93.9%);
+    bottom: calc(var(--mask-convoyeur-bottom-vh, 0.2) * 1vh);
     height: calc(var(--mask-convoyeur-height, 37) * 1%);
 }
 
@@ -451,7 +451,10 @@
 .projets-convoyeur-svg #convoyeur {
     transform-box: fill-box;
     transform-origin: center bottom;
-    transform: scaleY(var(--projets-convoyeur-scale-y, 1));
+    transform: scale(
+        var(--projets-convoyeur-scale-x, 0.8),
+        var(--projets-convoyeur-scale-y, 0.4)
+    );
 }
 
 /* Section Projets – textes Scania / LikeThat (derrière tête/main robot et convoyeur pour éviter chevauchement) */

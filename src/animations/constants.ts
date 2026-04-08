@@ -441,7 +441,7 @@ export const EXP_CONVEYOR_SLIDE_START = 0.68
 export const EXP_CONVEYOR_SLIDE_END = 0.78
 
 /** Translation X initiale #convoyeur-motion (unités SVG). */
-export const EXP_CONVEYOR_START_X = -300
+export const EXP_CONVEYOR_START_X = -230
 /**
  * Translation X finale si `--projets-convoyeur-slide-end-x` absente ou invalide sur le stage.
  */
@@ -456,15 +456,7 @@ export const EXP_BATTANT_PIVOT_Y = 91.174
 export const EXP_BATTANT_ROTATE_START = -90
 export const EXP_BATTANT_ROTATE_END = 0
 /** Scale X sur #convoyeur-motion (attribut transform). */
-export const CONVOYEUR_SCALE_X = 0.8
-/** Hauteur du viewBox du SVG convoyeur-projet (unités SVG). */
-export const CONVOYEUR_PROJET_VIEWBOX_HEIGHT = 93
-/**
- * Décalage vertical (translate Y) en % de la hauteur du viewBox (0–100), appliqué sur #convoyeur-motion.
- * Les pieds du dessin sont vers y ≈ 90,2 pour viewBox hauteur 93 : ~3 % ≈ 2,8 unités suffit pour poser
- * le convoyeur sur le bas du SVG (aligné avec le « sol » du calque). Une valeur type 40 % enfonçait le convoyeur sous le sol.
- */
-export const CONVOYEUR_TOP_PERCENT = 3.05
+export const CONVOYEUR_SCALE_X = 1
 
 /** Nombre de cycles de marche alien2 pendant EXP_ALIEN_IN. */
 export const ALIEN2_WALK_CYCLES = 4

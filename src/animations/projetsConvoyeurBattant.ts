@@ -1,7 +1,5 @@
 import {
-    CONVOYEUR_PROJET_VIEWBOX_HEIGHT,
     CONVOYEUR_SCALE_X,
-    CONVOYEUR_TOP_PERCENT,
     EXP_BATTANT_OFFSET_X,
     EXP_BATTANT_OFFSET_Y,
     EXP_BATTANT_PIVOT_X,
@@ -60,7 +58,9 @@ export function createProjetsConvoyeurBattantApplier() {
         const slideEndParsed = parseFloat(slideEndToken)
         const slideEndX = Number.isFinite(slideEndParsed) ? slideEndParsed : EXP_CONVEYOR_END_X
 
-        const ty = roundSvgScalar(CONVOYEUR_PROJET_VIEWBOX_HEIGHT * (CONVOYEUR_TOP_PERCENT / 100), 3)
+        // Le calque `.projets-convoyeur-layer` est déjà ancré au sol via `--ground-bottom-vh`.
+        // On évite donc tout translateY ici (un offset en unités SVG se désynchronise vite du « sol » responsive).
+        const ty = 1
         const sx = roundSvgScalar(CONVOYEUR_SCALE_X, 4)
         const slideP = roundSvgScalar(conveyorSlideProgress, 4)
         const slideX = roundSvgScalar(EXP_CONVEYOR_START_X + (slideEndX - EXP_CONVEYOR_START_X) * slideP, 3)

@@ -66,7 +66,8 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--exp-hab-left-px': round(w * 0.72, 0),
         '--exp-hab-w-px': round(w * 0.74, 0),
         '--mask-convoyeur-bottom': '8.5',
-        '--mask-convoyeur-height': '37',
+        '--mask-convoyeur-height': '43',
+        '--mask-convoyeur-bottom-vh': '0.2',
         '--mask-chemine-bottom': '18',
         '--mask-chemine-height': '59',
         '--mask-chemine-clip-raw': 'polygon(65% 21%, 178% 0, 100% 100%, 0% 100%, 0% 45.5%)',
@@ -75,6 +76,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--convoyeur-left-vw': '-55',
         '--convoyeur-w-vw': '105',
         /* Convoyeur SVG (Projets) : hauteur ≈ scaleY, fin de translate X (unités SVG, parse JS) */
+        '--projets-convoyeur-scale-x': '0.65',
         '--projets-convoyeur-scale-y': '0.5',
         '--projets-convoyeur-slide-end-x': '100',
         '--robot-above-y-percent': round(robotAboveYPercent, 1),
