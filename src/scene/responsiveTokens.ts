@@ -13,8 +13,6 @@ export interface ResponsiveTokens {
     scaleClamped: number
     flags: ResponsiveTokensFlags
     cssVars: Record<string, string>
-    robotAboveYPercent: number
-    robotGroundYPercent: number
 }
 
 const clamp = (min: number, value: number, max: number): number => Math.max(min, Math.min(max, value))
@@ -39,8 +37,6 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
     const ultraWide = false
     // La demande utilisateur : forcer --ground-bottom-vh à 25 (toutes largeurs).
     const groundBottomVh = 25
-    const robotAboveYPercent = 51
-    const robotGroundYPercent = 61
 
     const cssVars: Record<string, string> = {
         '--vw': `${w}px`,
@@ -79,8 +75,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--projets-convoyeur-scale-x': '0.65',
         '--projets-convoyeur-scale-y': '0.5',
         '--projets-convoyeur-slide-end-x': '100',
-        '--robot-above-y-percent': round(robotAboveYPercent, 1),
-        '--robot-ground-y-percent': round(robotGroundYPercent, 1),
+        '--projets-convoyeur-bbox-height': '0px',
         '--robot-final-x-mult': '1',
         '--quest-titre-left': '50vw',
         '--quest-titre-top': '3vh',
@@ -109,8 +104,6 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         scaleClamped,
         flags: { is425: false, is768: false, is1050: true, is1349: false, is1500: false, shortH, ultraWide },
         cssVars,
-        robotAboveYPercent,
-        robotGroundYPercent,
     }
 }
 

@@ -492,35 +492,9 @@ export const EXP_QUEST_STAY_RATIO = 0.1
 /** Ratio effacement dans chaque cycle (0–1). */
 export const EXP_QUEST_ERASE_RATIO = 0.3
 
-// ----- Robot au-dessus du convoyeur : adaptatif selon la largeur d'écran -----
-/** Seuil (px) : au-dessus on applique l'offset Y pour grands écrans. Modifiable ici. */
+// ----- Robots section Projets : X fin main selon breakpoint ; Y = sol vh + hauteur #convoyeur (scrollAnimations) -----
+/** Seuil (px) : au-dessus on applique un décalage X supplémentaire pour la main en fin de course. */
 export const ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX = 1500
-/** Hauteur Y (%) de base pour head/hand-robot au-dessus du convoyeur (écrans ≤ breakpoint). */
-export const ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT = 50.5
-/** Hauteur Y (%) de base pour head/hand-robot au niveau du sol (après chute). Ajustable. */
-export const ROBOT_GROUND_Y_PERCENT = 61
-/** Écart (Δ) entre début et fin de l'animation Y. Conservé pour tous les écrans. */
-export const ROBOT_ABOVE_TO_GROUND_Y_GAP = ROBOT_GROUND_Y_PERCENT - ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT
-/** Offset Y (%) de base pour les écrans > breakpoint. Positif = plus bas, négatif = plus haut. Réglé pour la position de départ. */
-export const ROBOT_Y_OFFSET_LARGE = -11.5
-/** Hauteur viewport de référence (px) où les positions sont correctes. Sur écrans plus hauts (ex. 904px), la position finale (sol) reçoit plus d'offset pour éviter que la tête soit trop basse. */
-export const ROBOT_Y_REFERENCE_HEIGHT = 768
-/** Fallback { above, ground } quand les tokens responsive (--robot-above-y-percent, --robot-ground-y-percent dérivés du convoyeur) ne sont pas disponibles. Utilisé uniquement en dernier recours par scrollAnimations. */
-export function getRobotYPercentByViewport(viewportWidthPx: number, viewportHeightPx?: number): { above: number, ground: number } {
-    const offset = viewportWidthPx > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX ? ROBOT_Y_OFFSET_LARGE : 0
-    const h = viewportHeightPx != null && viewportHeightPx > 0 ? viewportHeightPx : ROBOT_Y_REFERENCE_HEIGHT
-    const heightFactor = Math.max(0.7, Math.min(1.4, h / ROBOT_Y_REFERENCE_HEIGHT))
-    return {
-        above: ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT + offset,
-        ground: ROBOT_GROUND_Y_PERCENT + offset * heightFactor,
-    }
-}
-/** Retourne la valeur Y (%) au-dessus du convoyeur selon la largeur viewport. */
-export function getRobotAboveConvoyeurYPercent(viewportWidthPx: number): number {
-    return getRobotYPercentByViewport(viewportWidthPx).above
-}
-/** @deprecated Utiliser getRobotAboveConvoyeurYPercent(window.innerWidth) pour un comportement adaptatif. */
-export const ROBOT_ABOVE_CONVOYEUR_Y_PERCENT = ROBOT_ABOVE_CONVOYEUR_Y_PERCENT_DEFAULT
 /** Chute diagonale : décalage X (vw) à droite au moment de l'atterrissage. Ajustable. */
 export const ROBOT_FALL_DIAGONAL_X_VW = 4
 /** Après atterrissage : déplacement X (vw) supplémentaire vers la droite (roule sur le sol). Ajustable. */

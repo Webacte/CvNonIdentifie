@@ -165,7 +165,7 @@ import {
     EXP_QUEST_WRITE_RATIO,
     EXP_QUEST_STAY_RATIO,
     EXP_QUEST_ERASE_RATIO,
-    getRobotYPercentByViewport,
+    GROUND_BOTTOM_VH,
     ROBOT_SIZE_SCALE,
     ROBOT_FALL_DIAGONAL_X_VW,
     ROBOT_FALL_ROLL_RIGHT_X_VW,
@@ -2319,8 +2319,6 @@ export interface ProjectsSectionScrollAnimationParams {
     robotHandElement?: HTMLElement | null
     /** Getter du conteneur du SVG convoyeur-projet (section Projets), pour résolution après chargement async */
     getConvoyeurProjetElement?: () => HTMLElement | null
-    /** Tokens responsive (robot above/ground Y %) — priorité sur getComputedStyle et getRobotYPercentByViewport */
-    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent'>
 }
 
 /**
@@ -2328,6 +2326,32 @@ export interface ProjectsSectionScrollAnimationParams {
  */
 /** Calibration robot-hand end X : activer avec window.__DEBUG_ROBOT_HAND_END_X__ = true */
 const DEBUG_ROBOT_HAND_END_X = typeof window !== 'undefined' && !!(window as Window & { __DEBUG_ROBOT_HAND_END_X__?: boolean }).__DEBUG_ROBOT_HAND_END_X__
+
+/**
+ * Hauteur d’1vh en px telle que le moteur la résout pour `height: 100vh` (aligné avec `bottom: N * 1vh` du convoyeur).
+ * Ne pas utiliser `innerHeight / 100` : écart possible (mobile, barres UI, vs grande viewport).
+ */
+let cssVhPxCache: { innerW: number; innerH: number; vhPx: number } | null = null
+
+function getCssOneVhInPx(): number {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return 8
+    }
+    const innerW = window.innerWidth
+    const innerH = window.innerHeight
+    if (cssVhPxCache && cssVhPxCache.innerW === innerW && cssVhPxCache.innerH === innerH) {
+        return cssVhPxCache.vhPx
+    }
+    const probe = document.createElement('div')
+    probe.style.cssText =
+        'position:fixed;left:0;top:0;width:0;height:100vh;margin:0;padding:0;border:0;pointer-events:none;visibility:hidden;contain:strict'
+    document.documentElement.appendChild(probe)
+    const h100 = probe.offsetHeight
+    document.documentElement.removeChild(probe)
+    const vhPx = h100 > 0 ? h100 / 100 : innerH / 100
+    cssVhPxCache = { innerW, innerH, vhPx }
+    return vhPx
+}
 
 export function createProjectsSectionScrollAnimation(params: ProjectsSectionScrollAnimationParams): (() => void) | void {
     const { scrollValues, scrollTween, getConvoyeurProjetElement, robotHeadElement, robotHandElement } = params
@@ -2341,9 +2365,52 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     let loggedHandEndX = false
     /** Debug robot (window.__ROBOT_DEBUG__ = true) : throttle et valeurs précédentes pour deltas */
     let _robotDebugLastLog = 0
-    const _robotDebugPrev: { headX?: number; headY?: number; headR?: number; handX?: number; handY?: number; handR?: number } = {}
+    const _robotDebugPrev: { headX?: number; headBottomPx?: number; headR?: number; handX?: number; handBottomPx?: number; handR?: number } = {}
 
     const applyConvoyeurBattant = createProjetsConvoyeurBattantApplier()
+
+    let convoyeurResizeObserver: ResizeObserver | null = null
+    let observedConvoyeurNode: Element | null = null
+
+    const attachConvoyeurHeightObserver = (layer: HTMLElement | null, stage: HTMLElement | null): void => {
+        if (typeof ResizeObserver === 'undefined' || !layer || !stage) return
+        const el = layer.querySelector('#convoyeur')
+        if (!el) return
+        if (observedConvoyeurNode !== el) {
+            convoyeurResizeObserver?.disconnect()
+            observedConvoyeurNode = el
+            convoyeurResizeObserver = new ResizeObserver(() => {
+                const h = el.getBoundingClientRect().height
+                stage.style.setProperty('--projets-convoyeur-bbox-height', `${Math.round(h * 1000) / 1000}px`)
+            })
+            convoyeurResizeObserver.observe(el)
+        }
+        const h = el.getBoundingClientRect().height
+        if (h > 0) stage.style.setProperty('--projets-convoyeur-bbox-height', `${Math.round(h * 1000) / 1000}px`)
+    }
+
+    /**
+     * Distances en px jusqu’au bord bas des blocs tête/main : `ground` = `--ground-bottom-vh` × `1vh` mesuré comme le CSS (pas `innerHeight`).
+     * - `aboveConvoyeur` : bas du robot au niveau du haut du #convoyeur (sol + hauteur mesurée).
+     * - `ground` : bas du robot sur la ligne de sol.
+     */
+    const robotBottomEdgePxFromViewportBottom = (stage: HTMLElement | null): { aboveConvoyeur: number; ground: number } => {
+        let groundVh = GROUND_BOTTOM_VH
+        if (stage) {
+            const t = parseFloat(getComputedStyle(stage).getPropertyValue('--ground-bottom-vh').trim())
+            if (Number.isFinite(t)) groundVh = t
+        }
+        const groundPx = groundVh * getCssOneVhInPx()
+        let convPx = 0
+        if (stage) {
+            const raw = getComputedStyle(stage).getPropertyValue('--projets-convoyeur-bbox-height').trim()
+            const n = parseFloat(raw)
+            if (Number.isFinite(n) && n > 0) convPx = n
+        }
+        return { aboveConvoyeur: groundPx + convPx, ground: groundPx }
+    }
+
+    const robotBottomCss = (pxFromViewportBottom: number): string => `${Math.round(pxFromViewportBottom * 1000) / 1000}px`
 
     const updateLoop = () => {
         const progress = mainScrollTrigger.progress
@@ -2373,41 +2440,21 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             })
         }
 
-        // Animation head-robot et hand-robot : priorité tokens injectés > vars CSS stage (parseFloat safe, fallback golden) > getRobotYPercentByViewport
+        // Robots : bord bas des SVG (CSS bottom) = sol + convoyeur puis interpolation vers la ligne de sol.
         if (robotHeadElement || robotHandElement) {
             const viewportW = scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1500)
             const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
-            const fallbackFromViewport = getRobotYPercentByViewport(viewportW, viewportH)
             const stage = (container?.closest?.('.horizontal-scroll-stage') ?? robotHeadElement?.closest?.('.horizontal-scroll-stage') ?? robotHandElement?.closest?.('.horizontal-scroll-stage')) as HTMLElement | null
+
+            attachConvoyeurHeightObserver(container, stage)
+
+            const { aboveConvoyeur: bottomAbovePx, ground: bottomGroundPx } = robotBottomEdgePxFromViewportBottom(stage)
             const robotFinalXMultToken = stage ? parseFloat(getComputedStyle(stage).getPropertyValue('--robot-final-x-mult').trim()) : NaN
             const robotFinalXMult = Number.isFinite(robotFinalXMultToken) ? robotFinalXMultToken : 1
-            const parseTokenPercent = (val: string, goldenFallback: number): number => {
-                const n = parseFloat(val)
-                return Number.isNaN(n) ? goldenFallback : n
-            }
-            const ROBOT_ABOVE_GOLDEN = 50
-            const ROBOT_GROUND_GOLDEN = 61
-            let robotAboveYPercent: number
-            let robotGroundYPercent: number
-            let robotSource: 'tokens' | 'stage' | 'fallback'
-            if (params.responsiveTokens != null) {
-                robotAboveYPercent = params.responsiveTokens.robotAboveYPercent
-                robotGroundYPercent = params.responsiveTokens.robotGroundYPercent
-                robotSource = 'tokens'
-            } else if (stage) {
-                const tokenAbove = getComputedStyle(stage).getPropertyValue('--robot-above-y-percent').trim()
-                const tokenGround = getComputedStyle(stage).getPropertyValue('--robot-ground-y-percent').trim()
-                robotAboveYPercent = tokenAbove ? parseTokenPercent(tokenAbove, ROBOT_ABOVE_GOLDEN) : fallbackFromViewport.above
-                robotGroundYPercent = tokenGround ? parseTokenPercent(tokenGround, ROBOT_GROUND_GOLDEN) : fallbackFromViewport.ground
-                robotSource = 'stage'
-            } else {
-                robotAboveYPercent = fallbackFromViewport.above
-                robotGroundYPercent = fallbackFromViewport.ground
-                robotSource = 'fallback'
-            }
+
             const robotDebug = typeof window !== 'undefined' && ((window as Window & { __RESPONSIVE_DEBUG__?: boolean }).__RESPONSIVE_DEBUG__ || (window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__)
             if (robotDebug && !robotsInited) {
-                console.log('[robot] scrollAnimations applied', { source: robotSource, appliedAbove: robotAboveYPercent, appliedGround: robotGroundYPercent })
+                console.log('[robot] bottom edge from viewport bottom (px)', { bottomAbovePx, bottomGroundPx, convHeightToken: stage ? getComputedStyle(stage).getPropertyValue('--projets-convoyeur-bbox-height').trim() : '' })
             }
             if (!robotsInited) {
                 robotsInited = true
@@ -2415,9 +2462,10 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     gsap.set(robotHeadElement, {
                         position: 'absolute',
                         left: '50%',
-                        top: `${robotAboveYPercent}%`,
+                        top: 'auto',
+                        bottom: robotBottomCss(bottomAbovePx),
                         xPercent: -50,
-                        yPercent: -50,
+                        yPercent: 0,
                         x: '-50vw',
                         opacity: 0,
                         scale: ROBOT_SIZE_SCALE,
@@ -2428,9 +2476,10 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     gsap.set(robotHandElement, {
                         position: 'absolute',
                         left: '50%',
-                        top: `${robotAboveYPercent}%`,
+                        top: 'auto',
+                        bottom: robotBottomCss(bottomAbovePx),
                         xPercent: -50,
-                        yPercent: -50,
+                        yPercent: 0,
                         x: '-50vw',
                         opacity: 0,
                         scale: ROBOT_SIZE_SCALE,
@@ -2443,19 +2492,18 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const handSlideProgress = mapProgressToAnimation(progressProjets, ROBOT_HAND_SLIDE_START, ROBOT_HAND_SLIDE_END)
             const handFallProgress = mapProgressToAnimation(progressProjets, ROBOT_HAND_FALL_START, ROBOT_HAND_FALL_END)
 
-            // Head : calcul des positions (toujours pour debug, puis gsap si élément présent)
             const headOpacity = progressProjets >= ROBOT_HEAD_SLIDE_START ? 1 : 0
             let headX: number
-            let headYPercent: number
+            let headBottomPx: number
             let headRotation: number
             let headTransformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
             if (headSlideProgress < 1) {
                 headX = -50 + 50.5 * headSlideProgress
-                headYPercent = robotAboveYPercent
+                headBottomPx = bottomAbovePx
                 headRotation = 0
             } else if (headFallProgress <= 0) {
                 headX = .5
-                headYPercent = robotAboveYPercent
+                headBottomPx = bottomAbovePx
                 headRotation = 0
             } else {
                 const diagonalProgress = Math.min(1, headFallProgress / ROBOT_FALL_DIAGONAL_RATIO)
@@ -2471,8 +2519,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 const rollRightProgress = ROBOT_FALL_DIAGONAL_RATIO < 1
                     ? Math.max(0, (headFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
                     : 0
-                headYPercent = robotAboveYPercent +
-                    (robotGroundYPercent - robotAboveYPercent) * diagonalProgress
+                headBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
                 headX = diagonalProgress < 1
                     ? 0.5 + (ROBOT_FALL_DIAGONAL_X_VW - 0.5) * diagonalProgress
                     : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * robotFinalXMult * rollRightProgress
@@ -2482,7 +2529,8 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 gsap.set(robotHeadElement, {
                     opacity: headOpacity,
                     x: `${headX}vw`,
-                    top: `${headYPercent}%`,
+                    top: 'auto',
+                    bottom: robotBottomCss(headBottomPx),
                     rotation: headRotation,
                     transformOrigin: headTransformOrigin,
                     scale: ROBOT_SIZE_SCALE,
@@ -2490,19 +2538,18 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 })
             }
 
-            // Hand : calcul des positions (toujours pour debug, puis gsap si élément présent)
             const handOpacity = progressProjets >= ROBOT_HAND_SLIDE_START ? 1 : 0
             let handX: number
-            let handYPercent: number
+            let handBottomPx: number
             let handRotation: number
             let handTransformOrigin: string = ROBOT_ROLL_TRANSFORM_ORIGIN
             if (handSlideProgress < 1) {
                 handX = -50 + 50 * handSlideProgress
-                handYPercent = robotAboveYPercent
+                handBottomPx = bottomAbovePx
                 handRotation = 0
             } else if (handFallProgress <= 0) {
                 handX = 0
-                handYPercent = robotAboveYPercent
+                handBottomPx = bottomAbovePx
                 handRotation = 0
             } else {
                 const handDiagonalRatio = ROBOT_HAND_FALL_DIAGONAL_RATIO
@@ -2516,7 +2563,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     const originY = 100 - 50 * t
                     handTransformOrigin = `50% ${originY}%`
                 }
-                // Accélérer la phase rotation/roulage de manière perceptible en compressant le progress (scrub scroll)
                 const handRollBase = Math.min(
                     1,
                     ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS > 0
@@ -2526,10 +2572,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 const rollRightProgress = handDiagonalRatio < 1
                     ? Math.max(0, (handRollBase - handDiagonalRatio) / (1 - handDiagonalRatio))
                     : 0
-                const rollRightEased = Math.pow(Math.min(1, rollRightProgress), ROBOT_HAND_ROLL_EASE_POWER)
-                handYPercent = robotAboveYPercent +
-                    ((robotGroundYPercent + .5) - robotAboveYPercent) * diagonalProgress
-                // X en linéaire (rollRightProgress) pour éviter l'effet "arrêt puis saut" dû à l'ease-in sur rollRightEased
+                handBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
                 handX = diagonalProgress < 1
                     ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
                     : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * robotFinalXMult * rollRightProgress
@@ -2552,7 +2595,8 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 gsap.set(robotHandElement, {
                     opacity: handOpacity,
                     x: `${handX}vw`,
-                    top: `${handYPercent}%`,
+                    top: 'auto',
+                    bottom: robotBottomCss(handBottomPx),
                     rotation: handRotation,
                     transformOrigin: handTransformOrigin,
                     scale: ROBOT_SIZE_SCALE,
@@ -2560,24 +2604,23 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                 })
             }
 
-            // Debug robot : window.__ROBOT_DEBUG__ = true (throttle ~120 ms, deltas optionnels)
             const ROBOT_DEBUG = typeof window !== 'undefined' && !!(window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__
             if (ROBOT_DEBUG) {
                 const now = Date.now()
                 if (now - _robotDebugLastLog >= 120) {
                     _robotDebugLastLog = now
-                    const headDelta = _robotDebugPrev.headX != null ? { x: headX - _robotDebugPrev.headX, y: headYPercent - (_robotDebugPrev.headY ?? 0), r: headRotation - (_robotDebugPrev.headR ?? 0) } : null
-                    const handDelta = _robotDebugPrev.handX != null ? { x: handX - _robotDebugPrev.handX, y: handYPercent - (_robotDebugPrev.handY ?? 0), r: handRotation - (_robotDebugPrev.handR ?? 0) } : null
+                    const headDelta = _robotDebugPrev.headX != null ? { x: headX - _robotDebugPrev.headX, bottomPx: headBottomPx - (_robotDebugPrev.headBottomPx ?? 0), r: headRotation - (_robotDebugPrev.headR ?? 0) } : null
+                    const handDelta = _robotDebugPrev.handX != null ? { x: handX - _robotDebugPrev.handX, bottomPx: handBottomPx - (_robotDebugPrev.handBottomPx ?? 0), r: handRotation - (_robotDebugPrev.handR ?? 0) } : null
                     console.log('[Robot Debug]', {
                         progressProjets,
-                        head: { slideP: headSlideProgress, fallP: headFallProgress, x: headX, y: headYPercent, rotate: headRotation, delta: headDelta },
-                        hand: { slideP: handSlideProgress, fallP: handFallProgress, x: handX, y: handYPercent, rotate: handRotation, delta: handDelta },
+                        head: { slideP: headSlideProgress, fallP: headFallProgress, x: headX, bottomPx: headBottomPx, rotate: headRotation, delta: headDelta },
+                        hand: { slideP: handSlideProgress, fallP: handFallProgress, x: handX, bottomPx: handBottomPx, rotate: handRotation, delta: handDelta },
                     })
                     _robotDebugPrev.headX = headX
-                    _robotDebugPrev.headY = headYPercent
+                    _robotDebugPrev.headBottomPx = headBottomPx
                     _robotDebugPrev.headR = headRotation
                     _robotDebugPrev.handX = handX
-                    _robotDebugPrev.handY = handYPercent
+                    _robotDebugPrev.handBottomPx = handBottomPx
                     _robotDebugPrev.handR = handRotation
                 }
             }
@@ -2587,7 +2630,12 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
     }
     rafId = requestAnimationFrame(updateLoop)
 
-    return () => cancelAnimationFrame(rafId)
+    return () => {
+        convoyeurResizeObserver?.disconnect()
+        convoyeurResizeObserver = null
+        observedConvoyeurNode = null
+        cancelAnimationFrame(rafId)
+    }
 }
 
 /**
@@ -2620,7 +2668,7 @@ export function configureAllScrollAnimations(
     scaniaDescRef?: RefObject<HTMLDivElement | null>,
     likethatTitreRef?: RefObject<HTMLDivElement | null>,
     likethatDescRef?: RefObject<HTMLDivElement | null>,
-    responsiveTokens?: Pick<ResponsiveTokens, 'robotAboveYPercent' | 'robotGroundYPercent' | 'cssVars'>
+    responsiveTokens?: Pick<ResponsiveTokens, 'cssVars'> | null,
 ): (() => void) | void {
     // Si scrollValues n'est pas fourni, calculer les valeurs (fallback)
     if (!scrollValues) {
@@ -2757,7 +2805,6 @@ export function configureAllScrollAnimations(
         robotHeadElement: robotHeadElement ?? null,
         robotHandElement: robotHandElement ?? null,
         getConvoyeurProjetElement: getConvoyeurProjetElement ?? undefined,
-        responsiveTokens: responsiveTokens ?? undefined,
     })
     if (projectsCleanup) cleanups.push(projectsCleanup)
 
