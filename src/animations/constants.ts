@@ -445,7 +445,7 @@ export const EXP_CONVEYOR_START_X = -230
 /**
  * Translation X finale si `--projets-convoyeur-slide-end-x` absente ou invalide sur le stage.
  */
-export const EXP_CONVEYOR_END_X = 100
+export const EXP_CONVEYOR_END_X = 80
 /** Décalage du groupe #battant-motion (unités SVG viewBox). */
 export const EXP_BATTANT_OFFSET_X = 210
 export const EXP_BATTANT_OFFSET_Y = 0

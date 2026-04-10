@@ -2400,7 +2400,8 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const t = parseFloat(getComputedStyle(stage).getPropertyValue('--ground-bottom-vh').trim())
             if (Number.isFinite(t)) groundVh = t
         }
-        const groundPx = groundVh * getCssOneVhInPx()
+        const oneVhPx = getCssOneVhInPx()
+        const groundPx = groundVh * oneVhPx
         let convPx = 0
         if (stage) {
             const raw = getComputedStyle(stage).getPropertyValue('--projets-convoyeur-bbox-height').trim()
@@ -2451,6 +2452,11 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             const { aboveConvoyeur: bottomAbovePx, ground: bottomGroundPx } = robotBottomEdgePxFromViewportBottom(stage)
             const robotFinalXMultToken = stage ? parseFloat(getComputedStyle(stage).getPropertyValue('--robot-final-x-mult').trim()) : NaN
             const robotFinalXMult = Number.isFinite(robotFinalXMultToken) ? robotFinalXMultToken : 1
+            const oneVhPx = getCssOneVhInPx()
+            const robotGroundNudgeVh = stage
+                ? parseFloat(getComputedStyle(stage).getPropertyValue('--robot-ground-nudge-vh').trim())
+                : NaN
+            const robotGroundNudgePx = Number.isFinite(robotGroundNudgeVh) ? robotGroundNudgeVh * oneVhPx : 0
 
             const robotDebug = typeof window !== 'undefined' && ((window as Window & { __RESPONSIVE_DEBUG__?: boolean }).__RESPONSIVE_DEBUG__ || (window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__)
             if (robotDebug && !robotsInited) {
@@ -2520,6 +2526,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     ? Math.max(0, (headFallProgress - ROBOT_FALL_DIAGONAL_RATIO) / (1 - ROBOT_FALL_DIAGONAL_RATIO))
                     : 0
                 headBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
+                headBottomPx += robotGroundNudgePx * diagonalProgress
                 headX = diagonalProgress < 1
                     ? 0.5 + (ROBOT_FALL_DIAGONAL_X_VW - 0.5) * diagonalProgress
                     : ROBOT_FALL_DIAGONAL_X_VW + ROBOT_FALL_ROLL_RIGHT_X_VW * robotFinalXMult * rollRightProgress
@@ -2573,6 +2580,7 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     ? Math.max(0, (handRollBase - handDiagonalRatio) / (1 - handDiagonalRatio))
                     : 0
                 handBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
+                handBottomPx += robotGroundNudgePx * diagonalProgress
                 handX = diagonalProgress < 1
                     ? ROBOT_FALL_DIAGONAL_X_VW * diagonalProgress
                     : ROBOT_FALL_DIAGONAL_X_VW + (ROBOT_FALL_ROLL_RIGHT_X_VW - 7) * robotFinalXMult * rollRightProgress

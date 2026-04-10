@@ -74,8 +74,10 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         /* Convoyeur SVG (Projets) : hauteur ≈ scaleY, fin de translate X (unités SVG, parse JS) */
         '--projets-convoyeur-scale-x': '0.65',
         '--projets-convoyeur-scale-y': '0.5',
-        '--projets-convoyeur-slide-end-x': '100',
+        '--projets-convoyeur-slide-end-x': '80',
         '--projets-convoyeur-bbox-height': '0px',
+        /* Ajustement visuel (vh) : appliqué uniquement pendant la chute (via diagonalProgress) pour corriger l'atterrissage. */
+        '--robot-ground-nudge-vh': '-1',
         '--robot-final-x-mult': '1',
         '--quest-titre-left': '50vw',
         '--quest-titre-top': '3vh',
