@@ -492,9 +492,7 @@ export const EXP_QUEST_STAY_RATIO = 0.1
 /** Ratio effacement dans chaque cycle (0–1). */
 export const EXP_QUEST_ERASE_RATIO = 0.3
 
-// ----- Robots section Projets : X fin main selon breakpoint ; Y = sol vh + hauteur #convoyeur (scrollAnimations) -----
-/** Seuil (px) : au-dessus on applique un décalage X supplémentaire pour la main en fin de course. */
-export const ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX = 1500
+// ----- Robots section Projets : translation X (vw) partagée tête/main — Y = sol vh + hauteur #convoyeur (scrollAnimations) -----
 /** Chute diagonale : décalage X (vw) à droite au moment de l'atterrissage. Ajustable. */
 export const ROBOT_FALL_DIAGONAL_X_VW = 4
 /** Après atterrissage : déplacement X (vw) supplémentaire vers la droite (roule sur le sol). Ajustable. */
@@ -503,16 +501,10 @@ export const ROBOT_FALL_ROLL_RIGHT_X_VW = 16
 export const ROBOT_HEAD_ROLL_DEG = 360
 /** Rotation totale (degrés) pendant la chute et la roulade de la main-robot. Ex. 360 = un tour. Ajustable. */
 export const ROBOT_HAND_ROLL_DEG = 279
-/** Sur écrans > ROBOT_ABOVE_CONVOYEUR_BREAKPOINT_PX : décalage X (vw) en plus à la fin de la course de la main uniquement. */
-export const ROBOT_HAND_FINAL_X_EXTRA_VW_LARGE = 1
 /** Ratio 0–1 : fraction de la phase fall pour la chute diagonale (reste = roule à droite). Ex. 0.4 = 40% diagonal, 60% roll right. */
 export const ROBOT_FALL_DIAGONAL_RATIO = 0.4
 /** Ratio spécifique main : fraction du fall pour la chute Y (diagonale). Plus grand = descente Y plus lente. */
 export const ROBOT_HAND_FALL_DIAGONAL_RATIO = 0.32
-/** Progress fall (0–1) auquel la main doit déjà avoir fini sa rotation/roulade (plus petit = animation plus “rapide”). */
-export const ROBOT_HAND_ROLL_FINISH_AT_FALL_PROGRESS = 0.8
-/** Exposant d’easing pour la rotation/roulade main (appliqué au progress de rotation/roulage). */
-export const ROBOT_HAND_ROLL_EASE_POWER = 0.68
 /** Exposant pour la rotation seule : > 1 = lent au début, plus rapide à la fin (position finale inchangée). */
 export const ROBOT_HAND_ROLL_ROTATION_EASE_POWER = 1.6
 /** Origine de la rotation pour la roulade. Ex. "center bottom" = roule sur le bord bas. */
@@ -521,6 +513,13 @@ export const ROBOT_ROLL_TRANSFORM_ORIGIN = 'center bottom'
 export const ROBOT_FALL_ORIGIN_BLEND_START = 0.15
 /** Fin (0–1) de la transition : au-delà, on reste à 'center center'. */
 export const ROBOT_FALL_ORIGIN_BLEND_END = 0.5
+/**
+ * Décalage horizontal souhaité tête → main, exprimé d’abord en vw puis borné en px (`min(vw→px, clamp max)`),
+ * pour éviter un écart trop grand en px sur les très larges viewports. Appliqué seulement en phase « roll right ».
+ */
+export const ROBOT_HAND_LEFT_OF_HEAD_VW = 9
+/** Plafond en px pour l’écart effectif : `min(largeur_viewport × ROBOT_HAND_LEFT_OF_HEAD_VW / 100, ce plafond)`. */
+export const ROBOT_HAND_LEFT_OF_HEAD_CLAMP_MAX_PX = 92
 /** Facteur de réduction de taille pour head-robot et hand-robot (0–1). */
 export const ROBOT_SIZE_SCALE = 0.85
 /** Début des animations robots : après la fin du glissement convoyeur (EXP_CONVEYOR_SLIDE_END). */

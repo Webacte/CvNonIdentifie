@@ -406,6 +406,12 @@
 
 .projets-robot-head-container,
 .projets-robot-hand-container {
+    /* Centrage horizontal : la translation X (vw) est appliquée par GSAP par-dessus. */
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
     max-width: var(--robot-max-width, 16vw);
     max-height: var(--robot-max-height, 25vh);
 }
