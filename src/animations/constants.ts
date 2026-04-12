@@ -172,21 +172,11 @@ export const ROCKET_END_ROTATE = 90
 /** Seuil de progress (0–1) à partir duquel la fusée est affichée en position « atterrie » sur Contact. */
 export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.20
 
-/** Marge (px) entre le bord droit du viewport et la fusée en position atterrie sur Contact. */
-export const ROCKET_LANDED_X_RIGHT_OFFSET = 200
-
-/** Décalage (px) vers la gauche de la fusée en position atterrie. */
-export const ROCKET_LANDED_X_LEFT_OFFSET = 1500
-
 /** Pourcentage (0–1) de la hauteur du viewport pour la position Y atterrie (niveau du sol). Ex. 1.003 = niveau du sol. */
 export const ROCKET_LANDED_Y_PERCENTAGE = 1.003
 
 /** Rotation (degrés) de la fusée en position atterrie sur Contact. */
 export const ROCKET_LANDED_ROTATE = 140
-
-/** Position finale (px) fusée atterrie à 1920×1080 : translate3d(x, y, 0). */
-export const ROCKET_LANDED_X_1920 = 4508
-export const ROCKET_LANDED_Y_1920 = 927.24
 
 /** Opacité de #fumee à la fin de l'animation (écran Contact). */
 export const ROCKET_FUMEE_OPACITY_END = 1

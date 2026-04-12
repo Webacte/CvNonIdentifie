@@ -3,10 +3,10 @@
 /* Position relative au champ message (wrapper formulaire) */
 .contactArcScrollbar {
   position: absolute;
-  left: -3vw;
+  left: -4.5vw;
   top: 0.1vh;
   height: 23vh;
-  width: 8vw;
+  width: 10vw;
   pointer-events: none;
   z-index: 5;
   display: flex;

@@ -37,6 +37,8 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
     const ultraWide = false
     // La demande utilisateur : forcer --ground-bottom-vh à 25 (toutes largeurs).
     const groundBottomVh = 25
+    /** Même valeur que le titre Contact : marge depuis la droite (fusée atterrie + titre). */
+    const contactSectionTitleWrapperRight = '6vw'
 
     const cssVars: Record<string, string> = {
         '--vw': `${w}px`,
@@ -89,7 +91,8 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--contact-form-wrapper-left': '15',
         '--contact-form-wrapper-top': '36.5',
         '--contact-form-wrapper-height-vh': '75',
-        '--contact-section-title-wrapper-right': '6vw',
+        '--contact-section-title-wrapper-right': contactSectionTitleWrapperRight,
+        '--rocket-landed-right': contactSectionTitleWrapperRight,
         '--contact-section-title-wrapper-top': '10vh',
         '--handwriting-svg-width': '58vw',
         '--paper-step-mult': '1',

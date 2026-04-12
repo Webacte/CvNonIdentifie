@@ -81,7 +81,8 @@
     text-align: center;
     transform-origin: center bottom;
     left: 0;
-    top: 70%;
+    top: 50%;
+    width: 100%;
 }
 
 /* Label flottant : em relatifs au champ */
@@ -99,7 +100,7 @@
 
 .contact-field-societe:focus-within .contact-label,
 .contact-field-societe.is-filled .contact-label {
-    transform: translate(-11vw, -0.8vh);
+    transform: translate(-15vw, -0.8vh);
     font-size: 0.85rem;
 }
 
@@ -111,7 +112,7 @@
 
 .contact-field-message:focus-within .contact-label,
 .contact-field-message.is-filled .contact-label {
-    transform: translate(-6vw, -26vh);
+    transform: translate(-6vw, -20vh);
     font-size: 0.85rem;
 }
 

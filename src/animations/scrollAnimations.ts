@@ -16,7 +16,6 @@ import {
     ROCKET_END_Y_PERCENTAGE_425,
     ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL,
     ROCKET_END_Y_PERCENTAGE_MOBILE,
-    LARGE_DESKTOP_MIN_WIDTH,
     ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
     ROCKET_X_BASE_SPEED_EASE,
     ROCKET_END_X_MIN_PX,
@@ -48,12 +47,8 @@ import {
     ROCKET_START_ROTATE,
     ROCKET_END_ROTATE,
     ROCKET_LANDED_PROGRESS_THRESHOLD,
-    ROCKET_LANDED_X_RIGHT_OFFSET,
-    ROCKET_LANDED_X_LEFT_OFFSET,
     ROCKET_LANDED_Y_PERCENTAGE,
     ROCKET_LANDED_ROTATE,
-    ROCKET_LANDED_X_1920,
-    ROCKET_LANDED_Y_1920,
     ROCKET_FUMEE_OPACITY_END,
     ROCKET_FUMEE_ROTATE,
     ROCKET_FUMEE_PULSE_COUNT,
@@ -287,8 +282,17 @@ function lerp(a: number, b: number, t: number): number {
     return a + (b - a) * t
 }
 
-/** Largeur de référence pour interpolation large desktop (tWide=1 à 1920px). */
-const ROCKET_WIDE_DESKTOP_WIDTH = 1920
+/** Convertit une longueur CSS (`6vw`, `10vh`, `12px`) en px pour la largeur/hauteur viewport courantes. */
+function parseCssLengthToPx(raw: string | undefined, viewportW: number, viewportH: number): number {
+    const s = (raw ?? '').trim()
+    if (!s) return 0
+    const n = parseFloat(s)
+    if (!Number.isFinite(n)) return 0
+    if (s.endsWith('vw')) return (n / 100) * viewportW
+    if (s.endsWith('vh')) return (n / 100) * viewportH
+    if (s.endsWith('px')) return n
+    return n
+}
 
 /**
  * Paramètres responsive fusée pour la partie pilotée en JS :
@@ -602,79 +606,23 @@ export function createRocketScrollAnimation(
         return currentY
     }
 
-    /** Position de la fusée « atterrie » sur l'écran Contact (droite, niveau du sol). À 1920×1080 : interpolation vers (ROCKET_LANDED_X_1920, ROCKET_LANDED_Y_1920). Override via tokens --rocket-landed-x-px / --rocket-landed-y-px / --rocket-landed-rotate-deg (ex. 1024×768). */
+    /** Position de la fusée « atterrie » sur l'écran Contact : X = marge droite `--rocket-landed-right` (défaut = titre Contact), Y = hauteur de section × `ROCKET_LANDED_Y_PERCENTAGE`. */
     const getLandedPosition = (): { landedX: number; landedY: number; landedRotateDeg: number } => {
-        const tokenX = responsiveTokens?.cssVars?.['--rocket-landed-x-px']
-        const tokenY = responsiveTokens?.cssVars?.['--rocket-landed-y-px']
-        const tokenRotate = responsiveTokens?.cssVars?.['--rocket-landed-rotate-deg']
-        const overrideX = tokenX != null && tokenX !== '' ? parseFloat(tokenX) : NaN
-        const overrideY = tokenY != null && tokenY !== '' ? parseFloat(tokenY) : NaN
-        const overrideRotate = tokenRotate != null && tokenRotate !== '' ? parseFloat(tokenRotate) : NaN
+        const rawLandedRight =
+            responsiveTokens?.cssVars?.['--rocket-landed-right'] ??
+            responsiveTokens?.cssVars?.['--contact-section-title-wrapper-right'] ??
+            '6vw'
+        const marginRightPx = parseCssLengthToPx(rawLandedRight, viewportW, viewportH)
 
-        const inBand1680 = (() => {
-            // Calibration doit rester cohérente avec responsiveTokens.ts (bande w/h).
-            const CALIBRATION_1680_1050_WIDTH_MIN = 1640
-            const CALIBRATION_1680_1050_WIDTH_PEAK = 1680
-            const CALIBRATION_1680_1050_WIDTH_MAX = 1725
-            const CALIBRATION_1680_1050_HEIGHT_MIN = 1010
-            const CALIBRATION_1680_1050_HEIGHT_PEAK = 1050
-            const CALIBRATION_1680_1050_HEIGHT_MAX = 1068
-
-            const tW =
-                viewportW <= CALIBRATION_1680_1050_WIDTH_MIN ||
-                viewportW >= CALIBRATION_1680_1050_WIDTH_MAX
-                    ? 0
-                    : smoothstep((viewportW - CALIBRATION_1680_1050_WIDTH_MIN) / (CALIBRATION_1680_1050_WIDTH_PEAK - CALIBRATION_1680_1050_WIDTH_MIN)) *
-                      (1 - smoothstep((viewportW - CALIBRATION_1680_1050_WIDTH_PEAK) / (CALIBRATION_1680_1050_WIDTH_MAX - CALIBRATION_1680_1050_WIDTH_PEAK)))
-            if (tW === 0) return 0
-
-            const tH =
-                viewportH <= CALIBRATION_1680_1050_HEIGHT_MIN ||
-                viewportH >= CALIBRATION_1680_1050_HEIGHT_MAX
-                    ? 0
-                    : smoothstep((viewportH - CALIBRATION_1680_1050_HEIGHT_MIN) / (CALIBRATION_1680_1050_HEIGHT_PEAK - CALIBRATION_1680_1050_HEIGHT_MIN)) *
-                      (1 - smoothstep((viewportH - CALIBRATION_1680_1050_HEIGHT_PEAK) / (CALIBRATION_1680_1050_HEIGHT_MAX - CALIBRATION_1680_1050_HEIGHT_PEAK)))
-            if (tH === 0) return 0
-
-            return tW * tH
-        })()
-
-        const hasOverride = Number.isFinite(overrideX) && Number.isFinite(overrideY)
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
-        const baseLandedX =
+        const landedX =
             scrollValues.scrollDistanceWithMovement +
             scrollValues.viewportWidth -
-            (rocketElement.offsetWidth || 0) -
-            ROCKET_LANDED_X_RIGHT_OFFSET -
             (rocketElement.offsetLeft || 0) -
-            ROCKET_LANDED_X_LEFT_OFFSET
-        const baseLandedY = referenceHeight * ROCKET_LANDED_Y_PERCENTAGE
-        const tWide = smoothstep((viewportW - LARGE_DESKTOP_MIN_WIDTH) / (ROCKET_WIDE_DESKTOP_WIDTH - LARGE_DESKTOP_MIN_WIDTH))
-        const landedX = lerp(baseLandedX, ROCKET_LANDED_X_1920, tWide)
-        const landedY = lerp(baseLandedY, ROCKET_LANDED_Y_1920, tWide)
-
-        // Comportement historique inchangé en dehors de la bande 1680×1050 :
-        // si tokens override existent, on les applique directement.
-        if (inBand1680 === 0) {
-            if (hasOverride) {
-                return {
-                    landedX: overrideX,
-                    landedY: overrideY,
-                    landedRotateDeg: Number.isFinite(overrideRotate) ? overrideRotate : ROCKET_LANDED_ROTATE,
-                }
-            }
-            return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
-        }
-
-        // Dans la bande 1680×1050 uniquement : blend progressif fallback -> override.
-        const landedRotateDeg = hasOverride
-            ? lerp(ROCKET_LANDED_ROTATE, Number.isFinite(overrideRotate) ? overrideRotate : ROCKET_LANDED_ROTATE, inBand1680)
-            : ROCKET_LANDED_ROTATE
-        return {
-            landedX: hasOverride ? lerp(landedX, overrideX, inBand1680) : landedX,
-            landedY: hasOverride ? lerp(landedY, overrideY, inBand1680) : landedY,
-            landedRotateDeg,
-        }
+            (rocketElement.offsetWidth || 0) -
+            marginRightPx
+        const landedY = referenceHeight * ROCKET_LANDED_Y_PERCENTAGE
+        return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
     }
 
     /** Position atterrissage figée : calculée une seule fois au franchissement du seuil pour éviter que la fusée bouge/tourne encore avec le scroll. */
