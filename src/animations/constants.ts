@@ -172,6 +172,12 @@ export const ROCKET_END_ROTATE = 90
 /** Seuil de progress (0–1) à partir duquel la fusée est affichée en position « atterrie » sur Contact. */
 export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.20
 
+/**
+ * Décalage horizontal de la fusée atterrie par rapport au titre Contact : marge depuis le bord droit
+ * du viewport plus grande de cette valeur (vw) — la fusée apparaît plus à gauche que le titre.
+ */
+export const ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE = 5
+
 /** Pourcentage (0–1) de la hauteur du viewport pour la position Y atterrie (niveau du sol). Ex. 1.003 = niveau du sol. */
 export const ROCKET_LANDED_Y_PERCENTAGE = 1.003
 

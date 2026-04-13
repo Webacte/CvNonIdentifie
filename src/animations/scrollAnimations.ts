@@ -47,6 +47,7 @@ import {
     ROCKET_START_ROTATE,
     ROCKET_END_ROTATE,
     ROCKET_LANDED_PROGRESS_THRESHOLD,
+    ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE,
     ROCKET_LANDED_Y_PERCENTAGE,
     ROCKET_LANDED_ROTATE,
     ROCKET_FUMEE_OPACITY_END,
@@ -606,13 +607,12 @@ export function createRocketScrollAnimation(
         return currentY
     }
 
-    /** Position de la fusée « atterrie » sur l'écran Contact : X = marge droite `--rocket-landed-right` (défaut = titre Contact), Y = hauteur de section × `ROCKET_LANDED_Y_PERCENTAGE`. */
+    /** Position de la fusée « atterrie » sur l'écran Contact : X = marge droite du titre + `ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE` (fusée plus à gauche que le titre). */
     const getLandedPosition = (): { landedX: number; landedY: number; landedRotateDeg: number } => {
-        const rawLandedRight =
-            responsiveTokens?.cssVars?.['--rocket-landed-right'] ??
-            responsiveTokens?.cssVars?.['--contact-section-title-wrapper-right'] ??
-            '6vw'
-        const marginRightPx = parseCssLengthToPx(rawLandedRight, viewportW, viewportH)
+        const rawTitleRight = responsiveTokens?.cssVars?.['--contact-section-title-wrapper-right'] ?? '6vw'
+        const titleMarginRightPx = parseCssLengthToPx(rawTitleRight, viewportW, viewportH)
+        const marginRightPx =
+            titleMarginRightPx + (ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE / 100) * viewportW
 
         const referenceHeight = firstSection?.offsetHeight ?? viewportH
         const landedX =
