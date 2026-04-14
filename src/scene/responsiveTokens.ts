@@ -47,6 +47,8 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--scale': round(scale, 4),
         '--scale-clamped': round(scaleClamped, 4),
         '--ground-bottom-vh': round(groundBottomVh, 1),
+        // Ajustement fusée atterrie (en vh, positif = remonte la fusée au-dessus du sol)
+        '--rocket-landed-ground-offset-vh': '16',
         '--presentation-margin-top-vh': '-5',
         '--home-myname-font-size-base-vw': '7',
         '--home-myname-font-size-delta-vw': '0',

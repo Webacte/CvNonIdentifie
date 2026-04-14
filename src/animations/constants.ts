@@ -178,9 +178,6 @@ export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.20
  */
 export const ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE = 5
 
-/** Pourcentage (0–1) de la hauteur du viewport pour la position Y atterrie (niveau du sol). Ex. 1.003 = niveau du sol. */
-export const ROCKET_LANDED_Y_PERCENTAGE = 1.003
-
 /** Rotation (degrés) de la fusée en position atterrie sur Contact. */
 export const ROCKET_LANDED_ROTATE = 140
 

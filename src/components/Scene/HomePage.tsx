@@ -70,7 +70,16 @@ export default function HomePage() {
         fetch('/assets/svg/fusee.svg')
             .then(response => response.text())
             .then(svg => {
-                setRocketContent(svg)
+                // Ajouter un ancrage "sol" pour aligner la fusée sur la ground line en JS.
+                // On utilise des % pour être indépendant du viewBox : (50%, 100%) = bas-centre du SVG.
+                const hasAnchor = /id="rocket-ground-anchor"/.test(svg)
+                const anchoredSvg = hasAnchor
+                    ? svg
+                    : svg.replace(
+                          /<\/svg>/,
+                          '<circle id="rocket-ground-anchor" cx="50%" cy="100%" r="1" fill="transparent" opacity="0" pointer-events="none" /></svg>'
+                      )
+                setRocketContent(anchoredSvg)
             })
             .catch(error => {
                 // Erreur silencieuse

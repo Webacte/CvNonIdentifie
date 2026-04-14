@@ -48,7 +48,6 @@ import {
     ROCKET_END_ROTATE,
     ROCKET_LANDED_PROGRESS_THRESHOLD,
     ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE,
-    ROCKET_LANDED_Y_PERCENTAGE,
     ROCKET_LANDED_ROTATE,
     ROCKET_FUMEE_OPACITY_END,
     ROCKET_FUMEE_ROTATE,
@@ -614,14 +613,41 @@ export function createRocketScrollAnimation(
         const marginRightPx =
             titleMarginRightPx + (ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE / 100) * viewportW
 
-        const referenceHeight = firstSection?.offsetHeight ?? viewportH
+        // Sol (CSS) : `--ground-bottom-vh` × `1vh` mesuré comme le CSS, pas via innerHeight.
+        // On place le bas de la fusée exactement sur la ground line.
+        const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
+        let groundVh = GROUND_BOTTOM_VH
+        if (stageEl) {
+            const t = parseFloat(getComputedStyle(stageEl).getPropertyValue('--ground-bottom-vh').trim())
+            if (Number.isFinite(t)) groundVh = t
+        }
+        const oneVhPx = getCssOneVhInPx()
+        const groundPxFromViewportBottom = groundVh * oneVhPx
+        const rocketOffsetVhRaw = responsiveTokens?.cssVars?.['--rocket-landed-ground-offset-vh'] ?? '0'
+        const rocketOffsetVh = parseFloat(String(rocketOffsetVhRaw).trim())
+        const rocketOffsetPx = (Number.isFinite(rocketOffsetVh) ? rocketOffsetVh : 0) * oneVhPx
+        const desiredBottomViewport = viewportH - groundPxFromViewportBottom - rocketOffsetPx
+
         const landedX =
             scrollValues.scrollDistanceWithMovement +
             scrollValues.viewportWidth -
             (rocketElement.offsetLeft || 0) -
             (rocketElement.offsetWidth || 0) -
             marginRightPx
-        const landedY = referenceHeight * ROCKET_LANDED_Y_PERCENTAGE
+
+        // Alignement vertical sur la ground line :
+        // 1) on applique X + rotation atterrie (sans changer Y) pour mesurer dans l'état final
+        // 2) on mesure le point d'ancrage SVG (bas-centre) et on ajuste Y avec un delta.
+        const currentY = Number(gsap.getProperty(rocketElement, 'y'))
+        const safeCurrentY = Number.isFinite(currentY) ? currentY : 0
+        gsap.set(rocketElement, { x: landedX, rotate: ROCKET_LANDED_ROTATE, force3D: true })
+
+        const anchorEl = rocketElement.querySelector('#rocket-ground-anchor') as HTMLElement | null
+        const measuredEl = anchorEl ?? rocketElement
+        const rect = measuredEl.getBoundingClientRect()
+        const deltaY = desiredBottomViewport - rect.bottom
+        const landedY = safeCurrentY + deltaY
+
         return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
     }
 
