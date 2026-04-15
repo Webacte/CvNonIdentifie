@@ -3,6 +3,8 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { ScrollValues } from './horizontalScroll'
 import type { ResponsiveTokens } from '@/scene/responsiveTokens'
+import { applyRocketGroundAnchorFromTokens } from '@/scene/rocketGroundAnchor'
+import { createViewportSizeGate } from '@/scene/viewportSizeGate'
 import {
     ROCKET_ANIMATION_START_DELAY,
     ROCKET_PROGRESS_RANGE_RATIO,
@@ -608,13 +610,15 @@ export function createRocketScrollAnimation(
 
     /** Position de la fusée « atterrie » sur l'écran Contact : X = marge droite du titre + `ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE` (fusée plus à gauche que le titre). */
     const getLandedPosition = (): { landedX: number; landedY: number; landedRotateDeg: number } => {
-        const rawTitleRight = responsiveTokens?.cssVars?.['--contact-section-title-wrapper-right'] ?? '6vw'
-        const titleMarginRightPx = parseCssLengthToPx(rawTitleRight, viewportW, viewportH)
-        const marginRightPx =
-            titleMarginRightPx + (ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE / 100) * viewportW
+        const layoutW = typeof window !== 'undefined' ? window.innerWidth : viewportW
+        const layoutH = typeof window !== 'undefined' ? window.innerHeight : viewportH
 
-        // Sol (CSS) : `--ground-bottom-vh` × `1vh` mesuré comme le CSS, pas via innerHeight.
-        // On place le bas de la fusée exactement sur la ground line.
+        const rawTitleRight = responsiveTokens?.cssVars?.['--contact-section-title-wrapper-right'] ?? '6vw'
+        const titleMarginRightPx = parseCssLengthToPx(rawTitleRight, layoutW, layoutH)
+        const marginRightPx =
+            titleMarginRightPx + (ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE / 100) * layoutW
+
+        // Sol : se baser uniquement sur `--ground-bottom-vh`, comme le reste des éléments.
         const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
         let groundVh = GROUND_BOTTOM_VH
         if (stageEl) {
@@ -622,11 +626,11 @@ export function createRocketScrollAnimation(
             if (Number.isFinite(t)) groundVh = t
         }
         const oneVhPx = getCssOneVhInPx()
-        const groundPxFromViewportBottom = groundVh * oneVhPx
         const rocketOffsetVhRaw = responsiveTokens?.cssVars?.['--rocket-landed-ground-offset-vh'] ?? '0'
         const rocketOffsetVh = parseFloat(String(rocketOffsetVhRaw).trim())
         const rocketOffsetPx = (Number.isFinite(rocketOffsetVh) ? rocketOffsetVh : 0) * oneVhPx
-        const desiredBottomViewport = viewportH - groundPxFromViewportBottom - rocketOffsetPx
+        const groundPxFromViewportBottom = groundVh * oneVhPx
+        const desiredBottomViewport = layoutH - groundPxFromViewportBottom - rocketOffsetPx
 
         const landedX =
             scrollValues.scrollDistanceWithMovement +
@@ -650,6 +654,12 @@ export function createRocketScrollAnimation(
 
         return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
     }
+
+    // Recalcule la position atterrie seulement si le viewport a changé depuis la dernière fois.
+    const viewportGate = createViewportSizeGate(() => ({
+        width: typeof window !== 'undefined' ? window.innerWidth : scrollValues.viewportWidth,
+        height: typeof window !== 'undefined' ? window.innerHeight : scrollValues.viewportHeight,
+    }))
 
     /** Position atterrissage figée : calculée une seule fois au franchissement du seuil pour éviter que la fusée bouge/tourne encore avec le scroll. */
     let landedPositionCache: { landedX: number; landedY: number; landedRotateDeg: number } | null = null
@@ -684,6 +694,7 @@ export function createRocketScrollAnimation(
             const progress = mainScrollTrigger.progress
             const progressPhase1 = getRocketPhase1Progress(progress, scrollValues)
 
+            // Debug uniquement quand le progress bouge, mais l'état "atterri" doit pouvoir se recalculer sur resize.
             if (progress !== lastProgress) {
                 lastProgress = progress
                 if (!rocketDebugLogged && rocketDebugEnabled) {
@@ -702,30 +713,34 @@ export function createRocketScrollAnimation(
                         sameY,
                     })
                 }
+            }
 
-                if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
-                    if (landedPositionCache === null) {
-                        landedPositionCache = getLandedPosition()
-                    }
-                    applyLandedState(
-                        landedPositionCache.landedX,
-                        landedPositionCache.landedY,
-                        landedPositionCache.landedRotateDeg
-                    )
-                } else {
-                    landedPositionCache = null
-                    const currentX = updateRocketPositionX(progressPhase1)
-                    const currentY = updateRocketPositionY(progressPhase1)
-                    const currentRotate = updateRocketRotate(progressPhase1)
-                    gsap.set(rocketElement, {
-                        x: currentX,
-                        y: currentY,
-                        rotate: currentRotate,
-                        force3D: true,
-                    })
-                    if (teteElement) {
-                        gsap.set(teteElement, { x: 0, y: 0, rotate: 0, force3D: true })
-                    }
+            if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
+                if (landedPositionCache === null || viewportGate.hasChangedSinceLastCommit()) {
+                    const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
+                    applyRocketGroundAnchorFromTokens(rocketElement, responsiveTokens?.cssVars ?? null, stageEl)
+                    landedPositionCache = getLandedPosition()
+                    viewportGate.commit()
+                }
+                applyLandedState(
+                    landedPositionCache.landedX,
+                    landedPositionCache.landedY,
+                    landedPositionCache.landedRotateDeg
+                )
+            } else {
+                landedPositionCache = null
+                viewportGate.clear()
+                const currentX = updateRocketPositionX(progressPhase1)
+                const currentY = updateRocketPositionY(progressPhase1)
+                const currentRotate = updateRocketRotate(progressPhase1)
+                gsap.set(rocketElement, {
+                    x: currentX,
+                    y: currentY,
+                    rotate: currentRotate,
+                    force3D: true,
+                })
+                if (teteElement) {
+                    gsap.set(teteElement, { x: 0, y: 0, rotate: 0, force3D: true })
                 }
             }
 
@@ -740,6 +755,20 @@ export function createRocketScrollAnimation(
         return () => cancelAnimationFrame(rafId)
     } else {
         let landedCache: { landedX: number; landedY: number; landedRotateDeg: number } | null = null
+        let latestProgress = 0
+
+        const onResizeIfLanded = () => {
+            if (!rocketElement) return
+            if (latestProgress < ROCKET_LANDED_PROGRESS_THRESHOLD) return
+            if (!viewportGate.hasChangedSinceLastCommit()) return
+            const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
+            applyRocketGroundAnchorFromTokens(rocketElement, responsiveTokens?.cssVars ?? null, stageEl)
+            landedCache = getLandedPosition()
+            viewportGate.commit()
+            applyLandedState(landedCache.landedX, landedCache.landedY, landedCache.landedRotateDeg)
+        }
+
+        if (typeof window !== 'undefined') window.addEventListener('resize', onResizeIfLanded, { passive: true })
         ScrollTrigger.create({
             trigger: container,
             start: 'top top',
@@ -748,10 +777,14 @@ export function createRocketScrollAnimation(
             invalidateOnRefresh: true,
             onUpdate: (self) => {
                 const progress = self.progress
+                latestProgress = progress
                 const progressPhase1 = getRocketPhase1Progress(progress, scrollValues)
                 if (progress >= ROCKET_LANDED_PROGRESS_THRESHOLD) {
-                    if (landedCache === null) {
+                    if (landedCache === null || viewportGate.hasChangedSinceLastCommit()) {
+                        const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
+                        applyRocketGroundAnchorFromTokens(rocketElement, responsiveTokens?.cssVars ?? null, stageEl)
                         landedCache = getLandedPosition()
+                        viewportGate.commit()
                     }
                     applyLandedState(landedCache.landedX, landedCache.landedY, landedCache.landedRotateDeg)
                     updateFumeeFromProgress(progress)
@@ -760,6 +793,7 @@ export function createRocketScrollAnimation(
                     }
                 } else {
                     landedCache = null
+                    viewportGate.clear()
                     const currentX = updateRocketPositionX(progressPhase1)
                     const currentY = updateRocketPositionY(progressPhase1)
                     const currentRotate = updateRocketRotate(progressPhase1)
@@ -776,6 +810,10 @@ export function createRocketScrollAnimation(
                 }
             }
         })
+
+        return () => {
+            if (typeof window !== 'undefined') window.removeEventListener('resize', onResizeIfLanded)
+        }
     }
 }
     

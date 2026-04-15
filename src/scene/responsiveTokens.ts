@@ -38,7 +38,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
     // La demande utilisateur : forcer --ground-bottom-vh à 25 (toutes largeurs).
     const groundBottomVh = 25
     /** Marge depuis la droite pour le titre Contact (la fusée atterrie utilise cette valeur + 3vw en JS). */
-    const contactSectionTitleWrapperRight = '12vw'
+    const contactSectionTitleWrapperRight = '8vw'
 
     const cssVars: Record<string, string> = {
         '--vw': `${w}px`,
@@ -48,7 +48,10 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--scale-clamped': round(scaleClamped, 4),
         '--ground-bottom-vh': round(groundBottomVh, 1),
         // Ajustement fusée atterrie (en vh, positif = remonte la fusée au-dessus du sol)
-        '--rocket-landed-ground-offset-vh': '16',
+        '--rocket-landed-ground-offset-vh': '0',
+        // Point d’ancrage sol (dans le SVG fusée) — à ajuster si le viewBox a des marges.
+        '--rocket-ground-anchor-cx': '55%',
+        '--rocket-ground-anchor-cy': '18%',
         '--presentation-margin-top-vh': '-5',
         '--home-myname-font-size-base-vw': '7',
         '--home-myname-font-size-delta-vw': '0',
