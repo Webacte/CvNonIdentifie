@@ -176,7 +176,7 @@ export const ROCKET_LANDED_PROGRESS_THRESHOLD = 0.20
  * Décalage horizontal de la fusée atterrie par rapport au titre Contact : marge depuis le bord droit
  * du viewport plus grande de cette valeur (vw) — la fusée apparaît plus à gauche que le titre.
  */
-export const ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE = 4
+export const ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE = 5
 
 /** Rotation (degrés) de la fusée en position atterrie sur Contact. */
 export const ROCKET_LANDED_ROTATE = 140
