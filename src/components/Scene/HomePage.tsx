@@ -65,6 +65,15 @@ export default function HomePage() {
     const [aboutSvgContent, setAboutSvgContent] = useState<string>('')
     const [hologramSvgContent, setHologramSvgContent] = useState<string>('')
 
+    const getAboutBigSvgScaleFactor = (): 2 | 3 => {
+        if (typeof window === 'undefined') return 2
+        const w = window.innerWidth || 0
+        const h = window.innerHeight || 0
+        const isVeryTallDesktop = h > 1000
+        const isPortrait = h > w
+        return (isVeryTallDesktop || isPortrait) ? 3 : 2
+    }
+
     // Charger la fusee en inline
     useEffect(() => {
         fetch('/assets/svg/fusee.svg')
@@ -91,6 +100,11 @@ export default function HomePage() {
         fetch('/assets/svg/extraterrestre.svg')
             .then(response => response.text())
             .then(svg => {
+                const scaleFactor = getAboutBigSvgScaleFactor()
+                const aboutScale = scaleFactor / 2 // base actuelle = 2 ; mode grand = 3 (=> x1.5)
+                const targetWidth = Math.round(144 * aboutScale)
+                const targetHeight = Math.round(248 * aboutScale)
+
                 // Agrandir le viewBox pour éviter que les bras et jambes soient coupés lors de l'animation
                 // Le viewBox original est "0 0 64 188", on ajoute de l'espace de manière symétrique
                 // Centre original : x=32, y=94. On ajoute 40px de chaque côté horizontalement et 30px verticalement
@@ -103,11 +117,11 @@ export default function HomePage() {
                 // On utilise le facteur de largeur pour maintenir les proportions
                 expandedSvg = expandedSvg.replace(
                     /width="([^"]*)"/,
-                    'width="144"'
+                    `width="${targetWidth}"`
                 )
                 expandedSvg = expandedSvg.replace(
                     /height="([^"]*)"/,
-                    'height="248"'
+                    `height="${targetHeight}"`
                 )
                 setAboutSvgContent(expandedSvg)
             })
@@ -121,19 +135,20 @@ export default function HomePage() {
         fetch('/assets/svg/hologramme.svg')
             .then(response => response.text())
             .then(svg => {
-                // Doubler la taille du SVG en multipliant width et height par 2
+                const scaleFactor = getAboutBigSvgScaleFactor()
+                // Desktop très haut (>1000px) ou écran portrait : on multiplie par 3, sinon par 2.
                 let enlargedSvg = svg.replace(
                     /width="([^"]*)"/,
                     (match, width) => {
                         const numWidth = parseFloat(width)
-                        return `width="${numWidth * 2}"`
+                        return `width="${numWidth * scaleFactor}"`
                     }
                 )
                 enlargedSvg = enlargedSvg.replace(
                     /height="([^"]*)"/,
                     (match, height) => {
                         const numHeight = parseFloat(height)
-                        return `height="${numHeight * 2}"`
+                        return `height="${numHeight * scaleFactor}"`
                     }
                 )
                 setHologramSvgContent(enlargedSvg)

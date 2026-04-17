@@ -39,6 +39,9 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
     const groundBottomVh = 25
     /** Marge depuis la droite pour le titre Contact (la fusée atterrie utilise cette valeur + 3vw en JS). */
     const contactSectionTitleWrapperRight = '8vw'
+    // About (alien + hologramme) : sur viewport très haut ou écran portrait, on augmente l’échelle globale (x1.5).
+    // Base actuelle pensée pour un scaling "x2" côté SVG ; en mode grand (x3), on garde la proportion.
+    const aboutBigScale = (h > 1000 || h > w) ? 1.5 : 1
 
     const cssVars: Record<string, string> = {
         '--vw': `${w}px`,
@@ -63,7 +66,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--rocket-left': '10vw',
         '--rocket-top': '-60vh',
         '--rocket-phase1-end-y-ratio': '0.95',
-        '--about-alien-width': 'min(17vw, 220px)',
+        '--about-alien-width': aboutBigScale === 1.5 ? 'min(25.5vw, 330px)' : 'min(17vw, 220px)',
         '--about-alien-left': '10vw',
         '--about-hologram-left': '11vw',
         '--exp-hab-left-px': round(w * 0.72, 0),
