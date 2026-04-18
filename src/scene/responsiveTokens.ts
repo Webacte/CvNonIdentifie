@@ -87,7 +87,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--projets-convoyeur-slide-end-x': '80',
         '--projets-convoyeur-bbox-height': '0px',
         /* Ajustement visuel (vh) : appliqué uniquement pendant la chute (via diagonalProgress) pour corriger l'atterrissage. */
-        '--robot-ground-nudge-vh': '-1',
+        '--robot-ground-nudge-vh': '6',
         '--quest-titre-left': '50vw',
         '--quest-titre-top': '3vh',
         '--quest-titre-max-width': '50vw',

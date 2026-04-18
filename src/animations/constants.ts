@@ -510,11 +510,11 @@ export const ROBOT_FALL_ORIGIN_BLEND_END = 0.5
  * Décalage horizontal souhaité tête → main, exprimé d’abord en vw puis borné en px (`min(vw→px, clamp max)`),
  * pour éviter un écart trop grand en px sur les très larges viewports. Appliqué seulement en phase « roll right ».
  */
-export const ROBOT_HAND_LEFT_OF_HEAD_VW = 9
+export const ROBOT_HAND_LEFT_OF_HEAD_VW = 8
 /** Plafond en px pour l’écart effectif : `min(largeur_viewport × ROBOT_HAND_LEFT_OF_HEAD_VW / 100, ce plafond)`. */
-export const ROBOT_HAND_LEFT_OF_HEAD_CLAMP_MAX_PX = 92
+export const ROBOT_HAND_LEFT_OF_HEAD_CLAMP_MAX_PX = 300
 /** Facteur de réduction de taille pour head-robot et hand-robot (0–1). */
-export const ROBOT_SIZE_SCALE = 0.85
+export const ROBOT_SIZE_SCALE = 3
 /** Début des animations robots : après la fin du glissement convoyeur (EXP_CONVEYOR_SLIDE_END). */
 export const ROBOT_ANIMATION_START = EXP_CONVEYOR_SLIDE_END
 /** Sous-phases dans progressProjets (0–1) : début/fin slide head, début/fin fall head, idem hand. */

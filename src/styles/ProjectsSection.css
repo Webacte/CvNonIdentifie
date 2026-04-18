@@ -412,8 +412,7 @@
     margin-left: auto;
     margin-right: auto;
     width: fit-content;
-    max-width: var(--robot-max-width, 16vw);
-    max-height: var(--robot-max-height, 25vh);
+    max-width: 2.5vw;
 }
 
 .projets-robot-head-container svg,
