@@ -204,10 +204,14 @@
     transform-style: preserve-3d;
 }
 
-/* Contexte 3D pour le SVG fusée */
+/* SVG : suit la taille du conteneur ; ratio viewBox 338×387 inchangé (hauteur = référence pour tenir dans le carré). */
 .rocket-scaled svg {
     transform-style: preserve-3d;
     display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    margin-inline: auto;
 }
 
 /* Fumée fusée : miroir gauche-droite (scaleX), pas de transition. */
