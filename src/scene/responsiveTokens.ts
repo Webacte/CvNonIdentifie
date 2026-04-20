@@ -65,7 +65,6 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--rocket-height': '27vw',
         '--rocket-left': '10vw',
         '--rocket-top': '-60vh',
-        '--rocket-phase1-end-y-ratio': '0.95',
         '--about-alien-width': aboutBigScale === 1.5 ? 'min(25.5vw, 330px)' : 'min(17vw, 220px)',
         '--about-alien-left': '10vw',
         '--about-hologram-left': '11vw',

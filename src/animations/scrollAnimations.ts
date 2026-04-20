@@ -13,11 +13,7 @@ import {
     SECOND_SECTION_BLOCK_START,
     SECOND_SECTION_BLOCK_END,
     VIEWPORT_REFERENCE_WIDTH,
-    ROCKET_END_Y_PERCENTAGE,
     ROCKET_Y_COMPLETION_PROGRESS,
-    ROCKET_END_Y_PERCENTAGE_425,
-    ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL,
-    ROCKET_END_Y_PERCENTAGE_MOBILE,
     ROCKET_HORIZONTAL_PROGRESS_MULTIPLIER,
     ROCKET_X_BASE_SPEED_EASE,
     ROCKET_END_X_MIN_PX,
@@ -298,20 +294,12 @@ function parseCssLengthToPx(raw: string | undefined, viewportW: number, viewport
 
 /**
  * Paramètres responsive fusée pour la partie pilotée en JS :
- * - endYOffsetPx : offset en pixels appliqué à la position Y finale (tablette uniquement)
  * - yCompletionProgress : progress (0–1) auquel le mouvement Y se termine et où X commence.
- *
- * Le ratio de hauteur (point bas atteint avant le départ sur X) n'est plus déterminé ici :
- * il est piloté exclusivement par les responsive tokens via `rocketPhase1EndYRatio`.
  */
-function getRocketResponsiveParams(viewportW: number, _viewportH: number): {
-    endYOffsetPx: number
+function getRocketResponsiveParams(): {
     yCompletionProgress: number
 } {
-    void viewportW
-    // Mode desktop-only : pas d'adaptation selon la largeur.
     return {
-        endYOffsetPx: 0,
         yCompletionProgress: ROCKET_Y_COMPLETION_PROGRESS,
     }
 }
@@ -465,8 +453,6 @@ export function createRocketScrollAnimation(
     container: HTMLElement,
     scrollValues: ScrollValues,
     scrollTween?: gsap.core.Tween,
-    firstSection?: HTMLElement | null,
-    rocketPhase1EndYRatio?: number,
     responsiveTokens?: Pick<ResponsiveTokens, 'cssVars'> | null
 ): (() => void) | void {
     if (!rocketElement) {
@@ -527,7 +513,7 @@ export function createRocketScrollAnimation(
     
     const viewportW = scrollValues.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1050)
     const viewportH = scrollValues.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 800)
-    const rocketParams = getRocketResponsiveParams(viewportW, viewportH)
+    const rocketParams = getRocketResponsiveParams()
     const getRocketEndX = () => {
         // Normalise le plancher X sur la largeur de référence pour garder un rendu
         // cohérent entre mobile, desktop et ultrawide.
@@ -539,30 +525,7 @@ export function createRocketScrollAnimation(
 
     /** Position Y à la fin de la phase 1 (point bas atteint avant le départ sur X). Phase 2 part exactement de cette position. */
     const getPhase1EndY = () => {
-        const referenceHeight = firstSection?.offsetHeight ?? viewportH
-        // Correction ciblée 2560×1440 : si le token px existe, on l'utilise pour obtenir le point bas exact.
-        // Cela ne touche qu'à la phase 1 (début de trajectoire), sans impacter l’atterrissage final.
-        const tW2560 =
-            viewportW <= 2380 || viewportW >= 2725
-                ? 0
-                : smoothstep((viewportW - 2380) / (2560 - 2380)) *
-                  (1 - smoothstep((viewportW - 2560) / (2725 - 2560)))
-        const tH2560 =
-            viewportH <= 1320 || viewportH >= 1525
-                ? 0
-                : smoothstep((viewportH - 1320) / (1440 - 1320)) *
-                  (1 - smoothstep((viewportH - 1440) / (1525 - 1440)))
-        const t2560 = tW2560 * tH2560
-        if (t2560 > 0 && rocketParams.endYOffsetPx === 0) {
-            const tokenPhase1EndYPx = responsiveTokens?.cssVars?.['--rocket-phase1-end-y-px']
-            const tokenPx = tokenPhase1EndYPx != null && tokenPhase1EndYPx !== '' ? parseFloat(tokenPhase1EndYPx) : NaN
-            if (Number.isFinite(tokenPx)) return tokenPx
-        }
-
-        const ratio = (typeof rocketPhase1EndYRatio === 'number' && !Number.isNaN(rocketPhase1EndYRatio) && rocketPhase1EndYRatio > 0 && rocketPhase1EndYRatio < 2)
-            ? rocketPhase1EndYRatio
-            : ROCKET_END_Y_PERCENTAGE
-        return referenceHeight * ratio + rocketParams.endYOffsetPx
+        return viewportH * 0.99
     }
 
     gsap.set(rocketElement, {
@@ -699,15 +662,12 @@ export function createRocketScrollAnimation(
                 lastProgress = progress
                 if (!rocketDebugLogged && rocketDebugEnabled) {
                     rocketDebugLogged = true
-                    const referenceHeight = firstSection?.offsetHeight ?? viewportH
                     const phase1EndY = getPhase1EndY()
                     const yCompletionProgress = getYCompletionProgress()
                     const phase2StartY = updateRocketPositionY(yCompletionProgress)
                     const sameY = Math.abs(phase2StartY - phase1EndY) < 1
                     // eslint-disable-next-line no-console
                     console.log('[rocket] phase1/phase2 continuity', {
-                        rocketPhase1EndYRatio: rocketPhase1EndYRatio ?? 'fallback:ROCKET_END_Y_PERCENTAGE',
-                        referenceHeight,
                         phase1EndY,
                         phase2StartY,
                         sameY,
@@ -2757,18 +2717,12 @@ export function configureAllScrollAnimations(
     const rocketFireCleanup = createRocketFireScrollAnimation(rocketElement, container, scrollValues, scrollTween)
     if (typeof rocketFireCleanup === 'function') cleanups.push(rocketFireCleanup)
 
-    // 3. Animation de la fusée (phase 1 = chute jusqu'au point bas piloté par rocketPhase1EndYRatio)
-    const rocketPhase1EndYRatioFromTokens =
-        responsiveTokens && responsiveTokens.cssVars
-            ? parseFloat(responsiveTokens.cssVars['--rocket-phase1-end-y-ratio'] ?? '')
-            : NaN
+    // 3. Animation de la fusée (phase 1 = chute jusqu'à 80vh)
     const rocketCleanup = createRocketScrollAnimation(
         rocketElement,
         container,
         scrollValues,
         scrollTween,
-        sections[0] ?? null,
-        rocketPhase1EndYRatioFromTokens,
         responsiveTokens ?? null
     )
     if (typeof rocketCleanup === 'function') cleanups.push(rocketCleanup)

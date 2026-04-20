@@ -98,9 +98,6 @@ export const ROCKET_ANIMATION_START_DELAY = 0.3
 /** Hauteur (px) à soustraire pour le point d’atterrissage sur tablette. */
 export const ROCKET_HEIGHT_PX = 200
 
-/** Pourcentage de la hauteur du viewport pour le point d’atterrissage (desktop). Ex. 1.05 = 105%. Utilisé aussi comme fallback pour phase1EndY si rocketPhase1EndYRatio invalide. */
-export const ROCKET_END_Y_PERCENTAGE = .95
-
 /** Progress (0–1) à laquelle le mouvement Y de la fusée se termine (desktop). */
 export const ROCKET_Y_COMPLETION_PROGRESS = 1 / 2.5
 
@@ -116,9 +113,6 @@ export const GROUND_LINE_425_MAX_WIDTH = 425
 /** Position verticale de la ground line (vh). Source unique : injecté en --ground-bottom-vh par responsiveTokens. */
 export const GROUND_BOTTOM_VH = 25
 
-/** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand sol à 55% (≤425px). */
-export const ROCKET_END_Y_PERCENTAGE_425 = 0.55
-
 /** Facteur appliqué à ROCKET_Y_COMPLETION_PROGRESS pour écrans ≤425px (sol à 55%). */
 export const ROCKET_Y_COMPLETION_425_FACTOR = 55 / 65
 
@@ -127,12 +121,6 @@ export const MOBILE_SMALL_MAX_WIDTH = 375
 
 /** Seuil viewport (px) : en dessous, atterrissage à 72% hauteur. */
 export const MOBILE_MAX_WIDTH = 600
-
-/** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand ≤375px. */
-export const ROCKET_END_Y_PERCENTAGE_MOBILE_SMALL = 0.76
-
-/** Pourcentage (0–1) hauteur viewport pour atterrissage fusée quand ≤600px. */
-export const ROCKET_END_Y_PERCENTAGE_MOBILE = 0.72
 
 /** Seuil viewport (px) : tablette, atterrissage remonté d’une hauteur fusée. */
 export const TABLET_MAX_WIDTH = 768
