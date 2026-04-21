@@ -251,6 +251,10 @@
 
 .about-svg-container svg {
     overflow: visible;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
 }
 
 /* Conteneur SVG hologramme : --about-hologram-* (Responsive Tokens) */

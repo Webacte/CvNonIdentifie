@@ -95,37 +95,18 @@ export default function HomePage() {
             })
     }, [])
 
-    // Charger le SVG pour la section à propos
+    // Charger le SVG pour la section à propos (responsive : sizing via CSS, pas via width/height inline).
     useEffect(() => {
         fetch('/assets/svg/extraterrestre.svg')
             .then(response => response.text())
             .then(svg => {
-                const scaleFactor = getAboutBigSvgScaleFactor()
-                const aboutScale = scaleFactor / 2 // base actuelle = 2 ; mode grand = 3 (=> x1.5)
-                const targetWidth = Math.round(144 * aboutScale)
-                const targetHeight = Math.round(248 * aboutScale)
-
-                // Agrandir le viewBox pour éviter que les bras et jambes soient coupés lors de l'animation
-                // Le viewBox original est "0 0 64 188", on ajoute de l'espace de manière symétrique
-                // Centre original : x=32, y=94. On ajoute 40px de chaque côté horizontalement et 30px verticalement
-                let expandedSvg = svg.replace(
-                    /viewBox="([^"]*)"/,
-                    'viewBox="-40 -30 144 248"'
-                )
-                // Ajuster aussi les attributs width et height pour garder la même taille d'affichage
-                // Largeur : 64 -> 144 (facteur 2.25), Hauteur : 188 -> 248 (facteur ~1.32)
-                // On utilise le facteur de largeur pour maintenir les proportions
-                expandedSvg = expandedSvg.replace(
-                    /width="([^"]*)"/,
-                    `width="${targetWidth}"`
-                )
-                expandedSvg = expandedSvg.replace(
-                    /height="([^"]*)"/,
-                    `height="${targetHeight}"`
-                )
-                setAboutSvgContent(expandedSvg)
+                // Garde-fou : si un export réintroduit width/height, on les retire.
+                const cleaned = svg
+                    .replace(/\swidth="[^"]*"/, '')
+                    .replace(/\sheight="[^"]*"/, '')
+                setAboutSvgContent(cleaned)
             })
-            .catch(error => {
+            .catch(() => {
                 // Erreur silencieuse
             })
     }, [])
