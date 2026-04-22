@@ -100,11 +100,7 @@ export default function HomePage() {
         fetch('/assets/svg/extraterrestre.svg')
             .then(response => response.text())
             .then(svg => {
-                // Garde-fou : si un export réintroduit width/height, on les retire.
-                const cleaned = svg
-                    .replace(/\swidth="[^"]*"/, '')
-                    .replace(/\sheight="[^"]*"/, '')
-                setAboutSvgContent(cleaned)
+                setAboutSvgContent(svg)
             })
             .catch(() => {
                 // Erreur silencieuse
@@ -116,23 +112,7 @@ export default function HomePage() {
         fetch('/assets/svg/hologramme.svg')
             .then(response => response.text())
             .then(svg => {
-                const scaleFactor = getAboutBigSvgScaleFactor()
-                // Desktop très haut (>1000px) ou écran portrait : on multiplie par 3, sinon par 2.
-                let enlargedSvg = svg.replace(
-                    /width="([^"]*)"/,
-                    (match, width) => {
-                        const numWidth = parseFloat(width)
-                        return `width="${numWidth * scaleFactor}"`
-                    }
-                )
-                enlargedSvg = enlargedSvg.replace(
-                    /height="([^"]*)"/,
-                    (match, height) => {
-                        const numHeight = parseFloat(height)
-                        return `height="${numHeight * scaleFactor}"`
-                    }
-                )
-                setHologramSvgContent(enlargedSvg)
+                setHologramSvgContent(svg)
             })
             .catch(error => {
                 // Erreur silencieuse

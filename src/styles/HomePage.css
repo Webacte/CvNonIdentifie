@@ -71,7 +71,6 @@
 /* Ancre verticale commune About (alien + hologram) : uniquement sur la section qui contient l’alien. */
 .horizontal-section:has(.about-svg-container) {
     --about-ground-anchor: calc(var(--ground-bottom-vh, 25) * 0.5vh);
-    --about-hologram-offset-y: calc(var(--ground-bottom-vh, 25) * 1vh / 150);
 }
 
 /* Lettrages animés (SplitType .char) : scale au survol (transform, pas zoom = pas de reflow) */
@@ -263,11 +262,8 @@
     transform-box: fill-box;
     width: var(--about-hologram-width, auto);
     height: auto;
-    left: var(--about-hologram-left, 11vw);
-    bottom: calc(
-        var(--about-ground-anchor, calc(var(--ground-bottom-vh, 25) * 0.5vh)) +
-            var(--about-hologram-offset-y, calc(var(--ground-bottom-vh, 25) * 1vh / 14))
-    );
+    right: var(--about-hologram-right, 11vw);
+    bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     z-index: 12;
     opacity: 1;
     overflow: visible;
@@ -282,7 +278,6 @@
 }
 
 #hologramme {
-    scale: .75;
     transform-origin: 450px 200px;
 }
 

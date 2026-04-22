@@ -128,12 +128,7 @@ const ProjectsSection = forwardRef<HTMLElement, ProjectsSectionProps>((props, re
         fetch('/assets/svg/extraterrestre.svg')
             .then(response => response.text())
             .then(svg => {
-                // Responsive : le sizing est piloté par le conteneur CSS (width: 100%, height:auto).
-                // Garde-fou si un export réintroduit width/height.
-                const cleaned = svg
-                    .replace(/\swidth="[^"]*"/, '')
-                    .replace(/\sheight="[^"]*"/, '')
-                setExtraterrestreSvgContent(cleaned)
+                setExtraterrestreSvgContent(svg)
             })
             .catch(() => {})
     }, [])
