@@ -52,6 +52,8 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--ground-bottom-vh': round(groundBottomVh, 1),
         // Ajustement fusée atterrie (en vh, positif = remonte la fusée au-dessus du sol)
         '--rocket-landed-ground-offset-vh': '0',
+        // Ajustement fin de chute phase 1 (en vh, positif = remonte la fusée au-dessus du sol)
+        '--rocket-phase1-ground-offset-vh': '17',
         // Point d’ancrage sol (dans le SVG fusée) — à ajuster si le viewBox a des marges.
         '--rocket-ground-anchor-cx': '55%',
         '--rocket-ground-anchor-cy': '18%',

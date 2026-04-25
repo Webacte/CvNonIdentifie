@@ -523,9 +523,66 @@ export function createRocketScrollAnimation(
         return Math.max(scrollDistance * ROCKET_END_X_MIN_RATIO, responsiveMinPx)
     }
 
+    // Sol : se baser sur `--ground-bottom-vh` (source unique).
+    const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
+
+    // Applique dès le début l’ancre sol depuis les tokens (utile pour le calcul phase 1).
+    applyRocketGroundAnchorFromTokens(rocketElement, responsiveTokens?.cssVars ?? null, stageEl)
+
+    // Recalcule la fin de chute seulement si le viewport a changé depuis la dernière fois.
+    const viewportGate = createViewportSizeGate(() => ({
+        width: typeof window !== 'undefined' ? window.innerWidth : scrollValues.viewportWidth,
+        height: typeof window !== 'undefined' ? window.innerHeight : scrollValues.viewportHeight,
+    }))
+
+    let phase1EndYCache: number | null = null
+
     /** Position Y à la fin de la phase 1 (point bas atteint avant le départ sur X). Phase 2 part exactement de cette position. */
-    const getPhase1EndY = () => {
-        return viewportH * 0.99
+    const getPhase1EndY = (): number => {
+        if (phase1EndYCache !== null && !viewportGate.hasChangedSinceLastCommit()) return phase1EndYCache
+
+        const layoutW = typeof window !== 'undefined' ? window.innerWidth : viewportW
+        const layoutH = typeof window !== 'undefined' ? window.innerHeight : viewportH
+
+        let groundVh = GROUND_BOTTOM_VH
+        if (stageEl) {
+            const t = parseFloat(getComputedStyle(stageEl).getPropertyValue('--ground-bottom-vh').trim())
+            if (Number.isFinite(t)) groundVh = t
+        }
+
+        const oneVhPx = getCssOneVhInPx()
+        const rawOffsetVh =
+            responsiveTokens?.cssVars?.['--rocket-phase1-ground-offset-vh'] ??
+            responsiveTokens?.cssVars?.['--rocket-landed-ground-offset-vh'] ??
+            '0'
+        const offsetVh = parseFloat(String(rawOffsetVh).trim())
+        const offsetPx = (Number.isFinite(offsetVh) ? offsetVh : 0) * oneVhPx
+
+        const groundPxFromViewportBottom = groundVh * oneVhPx
+        const desiredBottomViewport = layoutH - groundPxFromViewportBottom - offsetPx
+
+        const prevX = Number(gsap.getProperty(rocketElement, 'x'))
+        const prevY = Number(gsap.getProperty(rocketElement, 'y'))
+        const prevRotate = Number(gsap.getProperty(rocketElement, 'rotate'))
+
+        const safePrevX = Number.isFinite(prevX) ? prevX : rocketStartX
+        const safePrevY = Number.isFinite(prevY) ? prevY : rocketStartY
+        const safePrevRotate = Number.isFinite(prevRotate) ? prevRotate : rocketStartRotate
+
+        // Mesure dans un état stable : Y=0 et rotation finale (celle de fin de chute).
+        gsap.set(rocketElement, { x: rocketStartX, y: 0, rotate: rocketEndRotate, force3D: true })
+        const anchorEl = rocketElement.querySelector('#rocket-ground-anchor') as HTMLElement | null
+        const measuredEl = anchorEl ?? rocketElement
+        const rect = measuredEl.getBoundingClientRect()
+
+        // Restaure l’état précédent.
+        gsap.set(rocketElement, { x: safePrevX, y: safePrevY, rotate: safePrevRotate, force3D: true })
+
+        // Si Y=0, rect.bottom est le bas actuel; on veut que ce bas arrive sur desiredBottomViewport.
+        const endY = desiredBottomViewport - rect.bottom
+        phase1EndYCache = Number.isFinite(endY) ? endY : layoutH * 0.99
+        viewportGate.commit()
+        return phase1EndYCache
     }
 
     gsap.set(rocketElement, {
@@ -582,7 +639,6 @@ export function createRocketScrollAnimation(
             titleMarginRightPx + (ROCKET_LANDED_EXTRA_RIGHT_VW_VS_CONTACT_TITLE / 100) * layoutW
 
         // Sol : se baser uniquement sur `--ground-bottom-vh`, comme le reste des éléments.
-        const stageEl = (rocketElement.closest?.('.horizontal-scroll-stage') ?? null) as HTMLElement | null
         let groundVh = GROUND_BOTTOM_VH
         if (stageEl) {
             const t = parseFloat(getComputedStyle(stageEl).getPropertyValue('--ground-bottom-vh').trim())
@@ -617,12 +673,6 @@ export function createRocketScrollAnimation(
 
         return { landedX, landedY, landedRotateDeg: ROCKET_LANDED_ROTATE }
     }
-
-    // Recalcule la position atterrie seulement si le viewport a changé depuis la dernière fois.
-    const viewportGate = createViewportSizeGate(() => ({
-        width: typeof window !== 'undefined' ? window.innerWidth : scrollValues.viewportWidth,
-        height: typeof window !== 'undefined' ? window.innerHeight : scrollValues.viewportHeight,
-    }))
 
     /** Position atterrissage figée : calculée une seule fois au franchissement du seuil pour éviter que la fusée bouge/tourne encore avec le scroll. */
     let landedPositionCache: { landedX: number; landedY: number; landedRotateDeg: number } | null = null
