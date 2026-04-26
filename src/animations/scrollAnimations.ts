@@ -1279,11 +1279,67 @@ function getHologramBasesStartPositions(viewportWidth?: number): {
     }
 }
 
+/** Convertit un déplacement (dx,dy) en coordonnées écran vers l’espace user du SVG hologramme (même repère que les `x`/`y` GSAP sur les <g>). */
+function screenDeltaToHologramUserSpace(dScreenX: number, dScreenY: number, svg: SVGSVGElement): Point {
+    const r = svg.getBoundingClientRect()
+    const vb = svg.viewBox?.baseVal
+    if (!vb || r.width < 0.5 || r.height < 0.5) {
+        return { x: dScreenX, y: dScreenY }
+    }
+    return {
+        x: dScreenX * (vb.width / r.width),
+        y: dScreenY * (vb.height / r.height),
+    }
+}
+
+/**
+ * Applique un alignement: coin haut-gauche de .about-svg-container = coin haut-gauche du getBBox écran de #base-gauche (positions de référence identiques, décalage commun en espace user).
+ * Si `about` est absent ou la mesure échoue, retourne les positions héritées.
+ */
+function getAnchoredHologramBasesStarts(
+    aboutContainer: HTMLElement,
+    svg: SVGSVGElement,
+    baseDroite: Element,
+    baseGauche: Element,
+    legacy: { baseDroite: Point; baseGauche: Point }
+): { baseDroite: Point; baseGauche: Point } {
+    const aboutRect = aboutContainer.getBoundingClientRect()
+    if (aboutRect.width < 0.5 && aboutRect.height < 0.5) {
+        return legacy
+    }
+    gsap.set(baseDroite, {
+        x: legacy.baseDroite.x,
+        y: legacy.baseDroite.y,
+        rotation: HOLOGRAM_BASES_DROITE_START_ROTATE,
+        force3D: true,
+    })
+    gsap.set(baseGauche, {
+        x: legacy.baseGauche.x,
+        y: legacy.baseGauche.y,
+        rotation: HOLOGRAM_BASES_GAUCHE_START_ROTATE,
+        force3D: true,
+    })
+    const gRect = (baseGauche as SVGGraphicsElement).getBoundingClientRect()
+    if (gRect.width < 0.5 && gRect.height < 0.5) {
+        return legacy
+    }
+    const dSx = aboutRect.left - gRect.left
+    const dSy = aboutRect.top - gRect.top
+    const { x: adX, y: adY } = screenDeltaToHologramUserSpace(dSx, dSy, svg)
+    return {
+        baseGauche: { x: legacy.baseGauche.x + adX, y: legacy.baseGauche.y + adY },
+        baseDroite: { x: legacy.baseDroite.x + adX, y: legacy.baseDroite.y + adY },
+    }
+}
+
 /**
  * Animation de l'hologramme qui bouge avec le scroll
+ *
+ * @param aboutContainerElement Conteneur `.about-svg-container` (alien) : ancre le point de départ des bases sur son coin supérieur gauche (si null, positions legacy uniquement).
  */
 export function createHologramBasesScrollAnimation(
     hologramElement: HTMLElement | null,
+    aboutContainerElement: HTMLElement | null,
     container: HTMLElement,
     scrollValues: ScrollValues,
     scrollTween?: gsap.core.Tween
@@ -1291,13 +1347,29 @@ export function createHologramBasesScrollAnimation(
     if (!hologramElement) return
 
     // Trouver les éléments de l'hologramme
-    const baseDroite = hologramElement.querySelector('#base-droite') as HTMLElement | null
-    const baseGauche = hologramElement.querySelector('#base-gauche') as HTMLElement | null
+    const baseDroite = hologramElement.querySelector('#base-droite') as SVGGElement | null
+    const baseGauche = hologramElement.querySelector('#base-gauche') as SVGGElement | null
+    const innerSvg = hologramElement.querySelector('svg') as SVGSVGElement | null
 
-    if (!baseDroite || !baseGauche) return
+    if (!baseDroite || !baseGauche || !innerSvg) return
+
+    const useAboutAnchor = Boolean(
+        aboutContainerElement && aboutContainerElement.isConnected && aboutContainerElement !== hologramElement
+    )
+
+    /** Paire de points au repos (alignement about) ; figée pendant le déplacement des bases. */
+    let refAtRest: { baseDroite: Point; baseGauche: Point } | null = null
+    let frozenForBasesMove: { baseDroite: Point; baseGauche: Point } | null = null
 
     const applyInitialBases = () => {
-        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions(scrollValues.viewportWidth)
+        const legacy = getHologramBasesStartPositions(scrollValues.viewportWidth)
+        const { baseDroite: startD, baseGauche: startG } = useAboutAnchor
+            ? getAnchoredHologramBasesStarts(aboutContainerElement!, innerSvg, baseDroite, baseGauche, legacy)
+            : legacy
+        if (useAboutAnchor) {
+            refAtRest = { baseDroite: { ...startD }, baseGauche: { ...startG } }
+            frozenForBasesMove = null
+        }
         gsap.set(baseDroite, {
             x: startD.x,
             y: startD.y,
@@ -1324,9 +1396,35 @@ export function createHologramBasesScrollAnimation(
 
     // Fonction pour mettre à jour les transformations en fonction du progress (progressPhase2 = bloc About)
     const updateHologramBases = (progressPhase2: number) => {
-        const { baseDroite: startD, baseGauche: startG } = getHologramBasesStartPositions(scrollValues.viewportWidth)
-
+        const legacy = getHologramBasesStartPositions(scrollValues.viewportWidth)
         const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_BASES_ANIMATION_START, HOLOGRAM_BASES_ANIMATION_END)
+
+        let startD: Point
+        let startG: Point
+        if (useAboutAnchor) {
+            if (animationProgress <= 0) {
+                const anchored = getAnchoredHologramBasesStarts(aboutContainerElement!, innerSvg, baseDroite, baseGauche, legacy)
+                refAtRest = { baseDroite: { ...anchored.baseDroite }, baseGauche: { ...anchored.baseGauche } }
+                frozenForBasesMove = null
+                startD = anchored.baseDroite
+                startG = anchored.baseGauche
+            } else {
+                if (frozenForBasesMove === null) {
+                    const snap =
+                        refAtRest ??
+                        getAnchoredHologramBasesStarts(aboutContainerElement!, innerSvg, baseDroite, baseGauche, legacy)
+                    frozenForBasesMove = {
+                        baseDroite: { ...snap.baseDroite },
+                        baseGauche: { ...snap.baseGauche },
+                    }
+                }
+                startD = frozenForBasesMove.baseDroite
+                startG = frozenForBasesMove.baseGauche
+            }
+        } else {
+            startD = legacy.baseDroite
+            startG = legacy.baseGauche
+        }
 
         const baseDroiteRotate = HOLOGRAM_BASES_DROITE_START_ROTATE + (HOLOGRAM_BASES_DROITE_END_ROTATE - HOLOGRAM_BASES_DROITE_START_ROTATE) * animationProgress
         const baseGaucheRotate = HOLOGRAM_BASES_GAUCHE_START_ROTATE + (HOLOGRAM_BASES_GAUCHE_END_ROTATE - HOLOGRAM_BASES_GAUCHE_START_ROTATE) * animationProgress
@@ -1371,7 +1469,9 @@ export function createHologramBasesScrollAnimation(
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
             const progressPhase2Early = getPhase2EarlyProgress(progress, scrollValues)
-            if (progress !== lastProgress) {
+            if (useAboutAnchor) {
+                updateHologramBases(progressPhase2Early)
+            } else if (progress !== lastProgress) {
                 lastProgress = progress
                 updateHologramBases(progressPhase2Early)
             }
@@ -1379,22 +1479,52 @@ export function createHologramBasesScrollAnimation(
             rafId = requestAnimationFrame(updateLoop)
         }
         rafId = requestAnimationFrame(updateLoop)
-        return () => cancelAnimationFrame(rafId)
+        const onScrollTriggerRefresh = () => {
+            updateHologramBases(getPhase2EarlyProgress(mainScrollTrigger.progress, scrollValues))
+        }
+        if (useAboutAnchor) {
+            ScrollTrigger.addEventListener('refresh', onScrollTriggerRefresh)
+        }
+        return () => {
+            if (useAboutAnchor) {
+                ScrollTrigger.removeEventListener('refresh', onScrollTriggerRefresh)
+            }
+            cancelAnimationFrame(rafId)
+        }
     } else {
         // Initialiser les valeurs dès le début
         updateHologramBases(0)
 
-        ScrollTrigger.create({
+        const st = ScrollTrigger.create({
             trigger: container,
             start: 'top top',
             end: () => `+=${scrollValues.scrollDistanceWithoutMovement}`,
             scrub: true,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
-                const progressPhase2Early = getPhase2EarlyProgress(self.progress, scrollValues)
-                updateHologramBases(progressPhase2Early)
-            }
+                if (!useAboutAnchor) {
+                    const progressPhase2Early = getPhase2EarlyProgress(self.progress, scrollValues)
+                    updateHologramBases(progressPhase2Early)
+                }
+            },
+            onRefresh: (self) => {
+                if (useAboutAnchor) {
+                    updateHologramBases(getPhase2EarlyProgress(self.progress, scrollValues))
+                }
+            },
         })
+        if (useAboutAnchor) {
+            let rafElse = 0
+            const loopElse = () => {
+                updateHologramBases(getPhase2EarlyProgress(st.progress, scrollValues))
+                rafElse = requestAnimationFrame(loopElse)
+            }
+            rafElse = requestAnimationFrame(loopElse)
+            return () => {
+                st.kill()
+                cancelAnimationFrame(rafElse)
+            }
+        }
     }
 }
 
@@ -2784,8 +2914,14 @@ export function configureAllScrollAnimations(
     const alienCleanup = createAlienScrollAnimation(alienElement || null, container, scrollValues, scrollTween)
     if (typeof alienCleanup === 'function') cleanups.push(alienCleanup)
 
-    // 6. Animation de l'hologramme
-    const hologramBasesCleanup = createHologramBasesScrollAnimation(hologramElement || null, container, scrollValues, scrollTween)
+    // 6. Animation de l'hologramme (about = même ref que l’alien = .about-svg-container, ancrage des bases)
+    const hologramBasesCleanup = createHologramBasesScrollAnimation(
+        hologramElement || null,
+        alienElement ?? null,
+        container,
+        scrollValues,
+        scrollTween
+    )
     if (typeof hologramBasesCleanup === 'function') cleanups.push(hologramBasesCleanup)
     const hologramReflecteursCleanup = createHologramReflecteursScrollAnimation(hologramElement || null, container, scrollValues, scrollTween)
     if (typeof hologramReflecteursCleanup === 'function') cleanups.push(hologramReflecteursCleanup)
