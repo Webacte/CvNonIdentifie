@@ -89,6 +89,8 @@ import {
     HOLOGRAM_BASES_DESKTOP_DROITE_Y,
     HOLOGRAM_BASES_DESKTOP_GAUCHE_X,
     HOLOGRAM_BASES_DESKTOP_GAUCHE_Y,
+    HOLOGRAM_BASES_ABOUT_ANCHOR_X,
+    HOLOGRAM_BASES_ABOUT_ANCHOR_Y,
     HOLOGRAM_BASES_TABLET_SCALE_DROITE_X,
     HOLOGRAM_BASES_TABLET_SCALE_GAUCHE_X,
     HOLOGRAM_BASES_TABLET_Y_DROITE,
@@ -1323,8 +1325,10 @@ function getAnchoredHologramBasesStarts(
     if (gRect.width < 0.5 && gRect.height < 0.5) {
         return legacy
     }
-    const dSx = aboutRect.left - gRect.left
-    const dSy = aboutRect.top - gRect.top
+    const targetX = aboutRect.left + aboutRect.width * HOLOGRAM_BASES_ABOUT_ANCHOR_X
+    const targetY = aboutRect.top + aboutRect.height * HOLOGRAM_BASES_ABOUT_ANCHOR_Y
+    const dSx = targetX - gRect.left
+    const dSy = targetY - gRect.top
     const { x: adX, y: adY } = screenDeltaToHologramUserSpace(dSx, dSy, svg)
     return {
         baseGauche: { x: legacy.baseGauche.x + adX, y: legacy.baseGauche.y + adY },
