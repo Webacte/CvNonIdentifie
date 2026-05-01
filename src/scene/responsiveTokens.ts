@@ -71,6 +71,9 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--about-alien-left': '10vw',
         '--about-hologram-width': aboutBigScale === 1.5 ? 'min(90vw, 1650px)' : 'min(90vw, 1160px)',
         '--about-hologram-right': '11vw',
+        /* Ancrage hologramme : longueurs CSS (% / px / calc) dans `.about-svg-container` — `.about-hologram-bases-anchor-mark` */
+        '--about-hologram-bases-anchor-left': aboutBigScale === 1.5 ? '12%' : '14%',
+        '--about-hologram-bases-anchor-top': aboutBigScale === 1.5 ? '8%' : '9%',
         '--exp-hab-left-px': round(w * 0.72, 0),
         '--exp-hab-w-px': round(w * 0.74, 0),
         '--mask-convoyeur-bottom': '8.5',

@@ -89,8 +89,6 @@ import {
     HOLOGRAM_BASES_DESKTOP_DROITE_Y,
     HOLOGRAM_BASES_DESKTOP_GAUCHE_X,
     HOLOGRAM_BASES_DESKTOP_GAUCHE_Y,
-    HOLOGRAM_BASES_ABOUT_ANCHOR_X,
-    HOLOGRAM_BASES_ABOUT_ANCHOR_Y,
     HOLOGRAM_BASES_TABLET_SCALE_DROITE_X,
     HOLOGRAM_BASES_TABLET_SCALE_GAUCHE_X,
     HOLOGRAM_BASES_TABLET_Y_DROITE,
@@ -1281,6 +1279,8 @@ function getHologramBasesStartPositions(viewportWidth?: number): {
     }
 }
 
+const ABOUT_HOLOGRAM_BASES_ANCHOR_MARK = '.about-hologram-bases-anchor-mark'
+
 /** Convertit un déplacement (dx,dy) en coordonnées écran vers l’espace user du SVG hologramme (même repère que les `x`/`y` GSAP sur les <g>). */
 function screenDeltaToHologramUserSpace(dScreenX: number, dScreenY: number, svg: SVGSVGElement): Point {
     const r = svg.getBoundingClientRect()
@@ -1295,8 +1295,7 @@ function screenDeltaToHologramUserSpace(dScreenX: number, dScreenY: number, svg:
 }
 
 /**
- * Applique un alignement: coin haut-gauche de .about-svg-container = coin haut-gauche du getBBox écran de #base-gauche (positions de référence identiques, décalage commun en espace user).
- * Si `about` est absent ou la mesure échoue, retourne les positions héritées.
+ * Ancre #base-gauche sur le point écran défini par `.about-hologram-bases-anchor-mark` (CSS sur `.about-svg-container`).
  */
 function getAnchoredHologramBasesStarts(
     aboutContainer: HTMLElement,
@@ -1305,10 +1304,11 @@ function getAnchoredHologramBasesStarts(
     baseGauche: Element,
     legacy: { baseDroite: Point; baseGauche: Point }
 ): { baseDroite: Point; baseGauche: Point } {
-    const aboutRect = aboutContainer.getBoundingClientRect()
-    if (aboutRect.width < 0.5 && aboutRect.height < 0.5) {
+    const mark = aboutContainer.querySelector(ABOUT_HOLOGRAM_BASES_ANCHOR_MARK) as HTMLElement | null
+    if (!mark || !mark.isConnected) {
         return legacy
     }
+
     gsap.set(baseDroite, {
         x: legacy.baseDroite.x,
         y: legacy.baseDroite.y,
@@ -1325,8 +1325,9 @@ function getAnchoredHologramBasesStarts(
     if (gRect.width < 0.5 && gRect.height < 0.5) {
         return legacy
     }
-    const targetX = aboutRect.left + aboutRect.width * HOLOGRAM_BASES_ABOUT_ANCHOR_X
-    const targetY = aboutRect.top + aboutRect.height * HOLOGRAM_BASES_ABOUT_ANCHOR_Y
+    const markerRect = mark.getBoundingClientRect()
+    const targetX = markerRect.left
+    const targetY = markerRect.top
     const dSx = targetX - gRect.left
     const dSy = targetY - gRect.top
     const { x: adX, y: adY } = screenDeltaToHologramUserSpace(dSx, dSy, svg)
@@ -1339,7 +1340,7 @@ function getAnchoredHologramBasesStarts(
 /**
  * Animation de l'hologramme qui bouge avec le scroll
  *
- * @param aboutContainerElement Conteneur `.about-svg-container` (alien) : ancre le point de départ des bases sur son coin supérieur gauche (si null, positions legacy uniquement).
+ * @param aboutContainerElement Conteneur alien : ancres via `--about-hologram-bases-anchor-{left,top}` + marqueur DOM.
  */
 export function createHologramBasesScrollAnimation(
     hologramElement: HTMLElement | null,
@@ -1398,8 +1399,14 @@ export function createHologramBasesScrollAnimation(
         return { x, y: y - height * angle }
     }
 
+    /** Recalcul de l’ancrage au repos (~getBoundingClientRect) uniquement au scroll ou refresh évite les micro-saut rAF/sous-pixel. */
+    const PROGRESS_ANCHOR_STABLE_EPS = 1e-8
+
+    type HologramBasesTickOptions = { recomputeRestAnchor?: boolean }
+
     // Fonction pour mettre à jour les transformations en fonction du progress (progressPhase2 = bloc About)
-    const updateHologramBases = (progressPhase2: number) => {
+    const updateHologramBases = (progressPhase2: number, options?: HologramBasesTickOptions) => {
+        const recomputeRestAnchor = options?.recomputeRestAnchor ?? true
         const legacy = getHologramBasesStartPositions(scrollValues.viewportWidth)
         const animationProgress = mapProgressToAnimation(progressPhase2, HOLOGRAM_BASES_ANIMATION_START, HOLOGRAM_BASES_ANIMATION_END)
 
@@ -1407,16 +1414,36 @@ export function createHologramBasesScrollAnimation(
         let startG: Point
         if (useAboutAnchor) {
             if (animationProgress <= 0) {
-                const anchored = getAnchoredHologramBasesStarts(aboutContainerElement!, innerSvg, baseDroite, baseGauche, legacy)
-                refAtRest = { baseDroite: { ...anchored.baseDroite }, baseGauche: { ...anchored.baseGauche } }
                 frozenForBasesMove = null
-                startD = anchored.baseDroite
-                startG = anchored.baseGauche
+                if (!recomputeRestAnchor && refAtRest) {
+                    startD = { x: refAtRest.baseDroite.x, y: refAtRest.baseDroite.y }
+                    startG = { x: refAtRest.baseGauche.x, y: refAtRest.baseGauche.y }
+                } else {
+                    const anchored = getAnchoredHologramBasesStarts(
+                        aboutContainerElement!,
+                        innerSvg,
+                        baseDroite,
+                        baseGauche,
+                        legacy
+                    )
+                    refAtRest = {
+                        baseDroite: { ...anchored.baseDroite },
+                        baseGauche: { ...anchored.baseGauche },
+                    }
+                    startD = anchored.baseDroite
+                    startG = anchored.baseGauche
+                }
             } else {
                 if (frozenForBasesMove === null) {
                     const snap =
                         refAtRest ??
-                        getAnchoredHologramBasesStarts(aboutContainerElement!, innerSvg, baseDroite, baseGauche, legacy)
+                        getAnchoredHologramBasesStarts(
+                            aboutContainerElement!,
+                            innerSvg,
+                            baseDroite,
+                            baseGauche,
+                            legacy
+                        )
                     frozenForBasesMove = {
                         baseDroite: { ...snap.baseDroite },
                         baseGauche: { ...snap.baseGauche },
@@ -1469,12 +1496,17 @@ export function createHologramBasesScrollAnimation(
 
         // Surveiller la progression et mettre à jour les transformations (progress phase 2 early = hologramme commence avant le début phase 2)
         let lastProgress = -1
+        let prevMainProgressForAnchors = -1
         let rafId = 0
         const updateLoop = () => {
             const progress = mainScrollTrigger.progress
             const progressPhase2Early = getPhase2EarlyProgress(progress, scrollValues)
             if (useAboutAnchor) {
-                updateHologramBases(progressPhase2Early)
+                const scrollMoved =
+                    prevMainProgressForAnchors < 0 ||
+                    Math.abs(progress - prevMainProgressForAnchors) > PROGRESS_ANCHOR_STABLE_EPS
+                prevMainProgressForAnchors = progress
+                updateHologramBases(progressPhase2Early, { recomputeRestAnchor: scrollMoved })
             } else if (progress !== lastProgress) {
                 lastProgress = progress
                 updateHologramBases(progressPhase2Early)
@@ -1513,14 +1545,21 @@ export function createHologramBasesScrollAnimation(
             },
             onRefresh: (self) => {
                 if (useAboutAnchor) {
-                    updateHologramBases(getPhase2EarlyProgress(self.progress, scrollValues))
+                    updateHologramBases(getPhase2EarlyProgress(self.progress, scrollValues), {
+                        recomputeRestAnchor: true,
+                    })
                 }
             },
         })
         if (useAboutAnchor) {
+            let prevStProgressForAnchors = -1
             let rafElse = 0
             const loopElse = () => {
-                updateHologramBases(getPhase2EarlyProgress(st.progress, scrollValues))
+                const p = st.progress
+                const scrollMoved =
+                    prevStProgressForAnchors < 0 || Math.abs(p - prevStProgressForAnchors) > PROGRESS_ANCHOR_STABLE_EPS
+                prevStProgressForAnchors = p
+                updateHologramBases(getPhase2EarlyProgress(p, scrollValues), { recomputeRestAnchor: scrollMoved })
                 rafElse = requestAnimationFrame(loopElse)
             }
             rafElse = requestAnimationFrame(loopElse)

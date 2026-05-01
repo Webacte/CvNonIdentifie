@@ -273,10 +273,6 @@ export const ALIEN_AVANT_BRAS_SLOWED_XY = 0.8
 // Hologramme – bases (createHologramBasesScrollAnimation) – phase 2
 // =============================================================================
 
-/** Ancrage des bases sur `.about-svg-container` (fractions 0..1 du rect). */
-export const HOLOGRAM_BASES_ABOUT_ANCHOR_X = 0.14
-export const HOLOGRAM_BASES_ABOUT_ANCHOR_Y = 0.09
-
 /** Début du mouvement des bases de l’hologramme (fraction phase 2). */
 export const HOLOGRAM_BASES_ANIMATION_START = 0
 

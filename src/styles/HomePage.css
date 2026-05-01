@@ -248,6 +248,24 @@
     overflow: visible;
 }
 
+/* Point d’ancrage pour le départ des bases hologramme (units CSS %/px/calc du conteneur alien). Vars posées sur `.horizontal-scroll-stage` (responsiveTokens). */
+.about-hologram-bases-anchor-mark {
+    position: absolute;
+    left: var(--about-hologram-bases-anchor-left, 14%);
+    top: var(--about-hologram-bases-anchor-top, 9%);
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.about-svg-container .about-svg-graphic-inner {
+    position: relative;
+    z-index: 0;
+    display: block;
+    width: 100%;
+}
+
 .about-svg-container svg {
     overflow: visible;
     width: 100%;

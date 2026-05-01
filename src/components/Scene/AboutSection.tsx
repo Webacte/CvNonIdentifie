@@ -18,11 +18,13 @@ const AboutSection = forwardRef<HTMLElement, AboutSectionProps>(
         return (
             <section className="horizontal-section" ref={ref}>
                 {svgContent && (
-                    <div 
-                        ref={svgRef}
-                        className="about-svg-container"
-                        dangerouslySetInnerHTML={{ __html: svgContent }}
-                    />
+                    <div ref={svgRef} className="about-svg-container">
+                        <span className="about-hologram-bases-anchor-mark" aria-hidden />
+                        <div
+                            className="about-svg-graphic-inner"
+                            dangerouslySetInnerHTML={{ __html: svgContent }}
+                        />
+                    </div>
                 )}
                 {hologramSvgContent && (
                     <div
