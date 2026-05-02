@@ -42,6 +42,22 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
     // About (alien + hologramme) : sur viewport très haut ou écran portrait, on augmente l’échelle globale (x1.5).
     // Base actuelle pensée pour un scaling "x2" côté SVG ; en mode grand (x3), on garde la proportion.
     const aboutBigScale = (h > 1000 || h > w) ? 1.5 : 1
+    const isPortraitViewport = h > w
+
+    // Point marqueur `.about-hologram-bases-anchor-mark` : % du rect alien. En portrait (boîte plus haute, hologramme très large) on rapproche horizontalement et on baisse le % vertical pour viser le perso.
+    let aboutHologramBasesAnchorLeft: string
+    let aboutHologramBasesAnchorTop: string
+    if (isPortraitViewport) {
+        aboutHologramBasesAnchorLeft = '25%'
+        /** En portrait `aboutBigScale` est déjà 1.5 ; boîte alien haute → % vertical plus bas pour viser le corps du SVG. */
+        aboutHologramBasesAnchorTop = '20%'
+    } else if (aboutBigScale === 1.5) {
+        aboutHologramBasesAnchorLeft = '12%'
+        aboutHologramBasesAnchorTop = '8%'
+    } else {
+        aboutHologramBasesAnchorLeft = '14%'
+        aboutHologramBasesAnchorTop = '9%'
+    }
 
     const cssVars: Record<string, string> = {
         '--vw': `${w}px`,
@@ -71,9 +87,9 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--about-alien-left': '10vw',
         '--about-hologram-width': aboutBigScale === 1.5 ? 'min(90vw, 1650px)' : 'min(90vw, 1160px)',
         '--about-hologram-right': '11vw',
-        /* Ancrage hologramme : longueurs CSS (% / px / calc) dans `.about-svg-container` — `.about-hologram-bases-anchor-mark` */
-        '--about-hologram-bases-anchor-left': aboutBigScale === 1.5 ? '12%' : '14%',
-        '--about-hologram-bases-anchor-top': aboutBigScale === 1.5 ? '8%' : '9%',
+        /* Ancrage hologramme — `.about-hologram-bases-anchor-mark` (voir aboutHologramBasesAnchor* ci-dessus). */
+        '--about-hologram-bases-anchor-left': aboutHologramBasesAnchorLeft,
+        '--about-hologram-bases-anchor-top': aboutHologramBasesAnchorTop,
         '--exp-hab-left-px': round(w * 0.72, 0),
         '--exp-hab-w-px': round(w * 0.74, 0),
         '--mask-convoyeur-bottom': '8.5',
