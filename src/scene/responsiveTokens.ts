@@ -87,6 +87,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         '--about-alien-left': '10vw',
         '--about-hologram-width': aboutBigScale === 1.5 ? 'min(90vw, 1650px)' : 'min(90vw, 1160px)',
         '--about-hologram-right': '11vw',
+        '--about-hologram-rise': 'clamp(60px, 6vh, 136px)',
         /* Ancrage hologramme — `.about-hologram-bases-anchor-mark` (voir aboutHologramBasesAnchor* ci-dessus). */
         '--about-hologram-bases-anchor-left': aboutHologramBasesAnchorLeft,
         '--about-hologram-bases-anchor-top': aboutHologramBasesAnchorTop,

@@ -281,8 +281,10 @@
     width: var(--about-hologram-width, auto);
     height: auto;
     right: var(--about-hologram-right, 11vw);
-    /* Même ancre verticale que l’alien (section `:has(.about-svg-container)` + fallback). */
-    bottom: var(--about-ground-anchor, calc(var(--ground-bottom-vh, 25) * 0.5vh));
+    /* Sol = même base que l’alien + `--about-hologram-rise` (tokens) pour monter uniquement le bloc hologramme. */
+    bottom: calc(
+        var(--about-ground-anchor, calc(var(--ground-bottom-vh, 25) * 0.5vh)) + var(--about-hologram-rise, 0px)
+    );
     z-index: 12;
     opacity: 1;
     overflow: visible;
