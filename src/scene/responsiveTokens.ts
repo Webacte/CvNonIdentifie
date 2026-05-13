@@ -73,7 +73,7 @@ export function computeResponsiveTokens(metrics: ViewportMetricsInput): Responsi
         // Point d’ancrage sol (dans le SVG fusée) — à ajuster si le viewBox a des marges.
         '--rocket-ground-anchor-cx': '55%',
         '--rocket-ground-anchor-cy': '18%',
-        '--presentation-margin-top-vh': '-5',
+        '--presentation-margin-top-vh': '0',
         '--home-myname-font-size-base-vw': '7',
         '--home-myname-font-size-delta-vw': '0',
         '--home-description-font-size-base-vw': '3.5',

@@ -168,7 +168,7 @@
 /* Image portrait */
 .portrait-image {
     position: absolute;
-    width: 20vw;
+    width: 40vw;
     max-width: 30vh;
     height: auto;
     object-fit: contain;
