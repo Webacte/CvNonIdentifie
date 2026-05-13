@@ -36,10 +36,10 @@ import {
     HOLOGRAM_ECRA_ANIMATION_END,
     HOLOGRAM_HANDWRITING_START,
     HOLOGRAM_HANDWRITING_END,
-    PORTRAIT_SCROLL_START,
-    PORTRAIT_SCROLL_END,
-    DESCRIPTION_SCROLL_START,
-    DESCRIPTION_SCROLL_END,
+    PORTRAIT_OPACITY_SCROLL_START_REF_PX,
+    PORTRAIT_OPACITY_SCROLL_END_REF_PX,
+    DESCRIPTION_OPACITY_SCROLL_START_REF_PX,
+    DESCRIPTION_OPACITY_SCROLL_END_REF_PX,
     ROCKET_START_X,
     ROCKET_START_Y,
     ROCKET_START_ROTATE,
@@ -939,62 +939,94 @@ export function createRocketFireScrollAnimation(
     }
 }
 
-/**
- * Animation du portrait qui apparaît avec une opacité de 0 à 1 quand le scroll atteint 500px.
- * Note : utilise trigger document.body avec start/end en px (scroll global). Pour une cohérence
- * totale avec le scroll horizontal, on pourrait à l'avenir dériver l'opacité de getScrollProgress(scrollTween).
- */
-export function createPortraitScrollAnimation(
-    portraitElement: HTMLElement | null
-): void {
-    if (!portraitElement) {
-        return
+/** Opacité 0→1 quand scrollY franchit [startRef×scale, endRef×scale] (même logique d’échelle que le scroll fusée). */
+function opacityFromScaledScrollRange(
+    scrollY: number,
+    startRefPx: number,
+    endRefPx: number,
+    scale: number
+): number {
+    const startPx = startRefPx * scale
+    const endPx = endRefPx * scale
+    const span = endPx - startPx
+    if (span <= 0) {
+        return scrollY >= endPx ? 1 : 0
     }
-
-    // Initialiser l'opacité à 0 immédiatement
-    gsap.set(portraitElement, { opacity: 0, immediateRender: true })
-
-    // Créer un ScrollTrigger qui surveille le scroll vertical
-    ScrollTrigger.create({
-        trigger: document.body,
-        start: PORTRAIT_SCROLL_START,
-        end: PORTRAIT_SCROLL_END,
-        scrub: true,
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
-            const opacity = Math.max(0, Math.min(1, self.progress))
-            gsap.set(portraitElement, { opacity, immediateRender: false })
-        }
-    })
+    return Math.max(0, Math.min(1, (scrollY - startPx) / span))
 }
 
 /**
- * Animation du descriptionContainer (opacité 0 à 1).
- * Note : utilise trigger document.body avec start/end en px (scroll global). Pour une cohérence
- * totale avec le scroll horizontal, on pourrait à l'avenir dériver l'opacité de getScrollProgress(scrollTween).
+ * Opacité du portrait et du descriptionContainer pilotées par le même progress que la fusée
+ * (`scrollY = progress × scrollDistanceWithoutMovement`), avec bornes en px ref × (W / Wref).
  */
-export function createDescriptionContainerScrollAnimation(
-    descriptionContainerElement: HTMLElement | null
-): void {
-    if (!descriptionContainerElement) {
+export function createPresentationOpacityScrollAnimations(
+    portraitElement: HTMLElement | null,
+    descriptionContainerElement: HTMLElement | null,
+    scrollTween: gsap.core.Tween | null | undefined,
+    scrollValues: ScrollValues,
+    container: HTMLElement
+): (() => void) | void {
+    if (!portraitElement && !descriptionContainerElement) {
         return
     }
 
-    // Initialiser l'opacité à 0 immédiatement
-    gsap.set(descriptionContainerElement, { opacity: 0, immediateRender: true })
+    const scale = scrollValues.viewportWidth / VIEWPORT_REFERENCE_WIDTH
 
-    // Créer un ScrollTrigger qui surveille le scroll vertical
-    ScrollTrigger.create({
-        trigger: document.body,
-        start: DESCRIPTION_SCROLL_START,
-        end: DESCRIPTION_SCROLL_END,
+    const apply = (progress: number): void => {
+        const scrollY = progress * scrollValues.scrollDistanceWithoutMovement
+        if (portraitElement) {
+            const opacity = opacityFromScaledScrollRange(
+                scrollY,
+                PORTRAIT_OPACITY_SCROLL_START_REF_PX,
+                PORTRAIT_OPACITY_SCROLL_END_REF_PX,
+                scale
+            )
+            gsap.set(portraitElement, { opacity, immediateRender: false })
+        }
+        if (descriptionContainerElement) {
+            const opacity = opacityFromScaledScrollRange(
+                scrollY,
+                DESCRIPTION_OPACITY_SCROLL_START_REF_PX,
+                DESCRIPTION_OPACITY_SCROLL_END_REF_PX,
+                scale
+            )
+            gsap.set(descriptionContainerElement, { opacity, immediateRender: false })
+        }
+    }
+
+    if (portraitElement) {
+        gsap.set(portraitElement, { opacity: 0, immediateRender: true })
+    }
+    if (descriptionContainerElement) {
+        gsap.set(descriptionContainerElement, { opacity: 0, immediateRender: true })
+    }
+
+    apply(getScrollProgress(scrollTween))
+
+    if (scrollTween?.scrollTrigger) {
+        const mainScrollTrigger = scrollTween.scrollTrigger
+        let rafId = 0
+        const updateLoop = (): void => {
+            apply(mainScrollTrigger.progress)
+            rafId = requestAnimationFrame(updateLoop)
+        }
+        rafId = requestAnimationFrame(updateLoop)
+        return () => cancelAnimationFrame(rafId)
+    }
+
+    const st = ScrollTrigger.create({
+        trigger: container,
+        start: 'top top',
+        end: () => `+=${scrollValues.scrollDistanceWithoutMovement}`,
         scrub: true,
         invalidateOnRefresh: true,
         onUpdate: (self) => {
-            const opacity = Math.max(0, Math.min(1, self.progress))
-            gsap.set(descriptionContainerElement, { opacity, immediateRender: false })
-        }
+            apply(self.progress)
+        },
     })
+    return () => {
+        st.kill()
+    }
 }
 
 /**
@@ -2933,8 +2965,15 @@ export function configureAllScrollAnimations(
     const animations: ScrollAnimationConfig[] = []
     const cleanups: (() => void)[] = []
 
-    // 1. Animation du portrait (opacité 0 à 1 à 500px de scroll)
-    createPortraitScrollAnimation(portraitElement || null)
+    // 1. Portrait + description : opacité dérivée du scroll horizontal (même échelle que la fusée)
+    const presentationOpacityCleanup = createPresentationOpacityScrollAnimations(
+        portraitElement || null,
+        descriptionContainerElement || null,
+        scrollTween ?? null,
+        scrollValues,
+        container
+    )
+    if (typeof presentationOpacityCleanup === 'function') cleanups.push(presentationOpacityCleanup)
 
     // 2. Animation des feux de la fusée (utilise les valeurs uniformisées)
     const rocketFireCleanup = createRocketFireScrollAnimation(rocketElement, container, scrollValues, scrollTween)
@@ -2950,14 +2989,11 @@ export function configureAllScrollAnimations(
     )
     if (typeof rocketCleanup === 'function') cleanups.push(rocketCleanup)
 
-    // 4. Animation du descriptionContainer (opacité 0 à 1 à 500px de scroll)
-    createDescriptionContainerScrollAnimation(descriptionContainerElement || null)
-
-    // 5. Animation des membres de l'extraterrestre
+    // 4. Animation des membres de l'extraterrestre
     const alienCleanup = createAlienScrollAnimation(alienElement || null, container, scrollValues, scrollTween)
     if (typeof alienCleanup === 'function') cleanups.push(alienCleanup)
 
-    // 6. Animation de l'hologramme (about = même ref que l’alien = .about-svg-container, ancrage des bases)
+    // 5. Animation de l'hologramme (about = même ref que l’alien = .about-svg-container, ancrage des bases)
     const hologramBasesCleanup = createHologramBasesScrollAnimation(
         hologramElement || null,
         alienElement ?? null,

@@ -73,27 +73,29 @@ export const WORLD_REFERENCE_HEIGHT = 650
 
 
 // =============================================================================
-// Portrait et description (ScrollTrigger, format GSAP)
+// Portrait et description (opacité dérivée du scroll horizontal, voir scrollAnimations)
+// Plages en px « monde référence » (VIEWPORT_REFERENCE_WIDTH) : scrollY_eff = progress × scrollDistance
+// est comparé à ces bornes × (viewportWidth / VIEWPORT_REFERENCE_WIDTH), comme le bloc initial fusée.
 // =============================================================================
 
-/** Début de la transition d’opacité du portrait (scroll en px). Format GSAP : '200px top'. */
-export const PORTRAIT_SCROLL_START = '100px top'
+/** Début (px ref) de la transition d’opacité du portrait. */
+export const PORTRAIT_OPACITY_SCROLL_START_REF_PX = 100
 
-/** Fin de la transition d’opacité du portrait. Format GSAP : '600px top'. */
-export const PORTRAIT_SCROLL_END = '400px top'
+/** Fin (px ref) de la transition d’opacité du portrait. */
+export const PORTRAIT_OPACITY_SCROLL_END_REF_PX = 350
 
-/** Début de la transition d’opacité du descriptionContainer. Format GSAP : 'top top' = 0. */
-export const DESCRIPTION_SCROLL_START = 'top top'
+/** Début (px ref) de la transition d’opacité du descriptionContainer. */
+export const DESCRIPTION_OPACITY_SCROLL_START_REF_PX = 0
 
-/** Fin de la transition d’opacité du descriptionContainer. Format GSAP : '500px top'. */
-export const DESCRIPTION_SCROLL_END = '300px top'
+/** Fin (px ref) de la transition d’opacité du descriptionContainer. */
+export const DESCRIPTION_OPACITY_SCROLL_END_REF_PX = 250
 
 // =============================================================================
 // Fusée (createRocketScrollAnimation)
 // =============================================================================
 
 /** Délai au début de l'animation fusée (0–1). Fraction de la plage phase 1 pendant laquelle la fusée reste immobile avant de démarrer. 0 = démarrage immédiat, 0.15 = 15 % de scroll avant que la fusée bouge. */
-export const ROCKET_ANIMATION_START_DELAY = 0.3
+export const ROCKET_ANIMATION_START_DELAY = 0.5
 
 /** Hauteur (px) à soustraire pour le point d’atterrissage sur tablette. */
 export const ROCKET_HEIGHT_PX = 200
