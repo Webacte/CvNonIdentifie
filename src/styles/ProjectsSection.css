@@ -17,8 +17,8 @@
     left: var(--quest-titre-left, 50vw);
     top: var(--quest-titre-top, 5vh);
     z-index: 10;
-    width: var(--quest-titre-max-width, 50vw);
-    max-width: var(--quest-titre-max-width, 50vw);
+    width: var(--quest-titre-width, 95vw);
+    max-width: var(--quest-titre-max-width, 2000px);
     max-height: var(--quest-titre-max-height, 15vh);
     pointer-events: none;
     opacity: 0;
@@ -290,9 +290,10 @@
 /* Tokens layout réels (px calculés par responsive tokens). */
 .experiences-habitation-container {
     position: absolute;
-    left: 15vw;
+    left: 19vw;
     bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     width: 75vw;
+    max-width: 85vh;
     /* Ratio exact de `habitation.svg` (1199x500) pour éviter les bandes haut/bas */
     height: calc(75vw * 500 / 1199);
     z-index: 20;
@@ -302,7 +303,7 @@
 
 .experiences-habitation-layer {
     position: absolute;
-    inset: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -431,6 +432,7 @@
     left: calc(var(--convoyeur-left-vw, -55) * 1vw);
     bottom: calc(var(--ground-bottom-vh, 25) * 1vh);
     width: calc(var(--convoyeur-w-vw, 105) * 1vw);
+    max-width: 117.5vh;
     z-index: 4;
     pointer-events: none;
     overflow: visible;

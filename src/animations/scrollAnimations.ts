@@ -2707,11 +2707,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
             attachConvoyeurHeightObserver(container, stage)
 
             const { aboveConvoyeur: bottomAbovePx, ground: bottomGroundPx } = robotBottomEdgePxFromViewportBottom(stage)
-            const oneVhPx = getCssOneVhInPx()
-            const robotGroundNudgeVh = stage
-                ? parseFloat(getComputedStyle(stage).getPropertyValue('--robot-ground-nudge-vh').trim())
-                : NaN
-            const robotGroundNudgePx = Number.isFinite(robotGroundNudgeVh) ? robotGroundNudgeVh * oneVhPx : 0
 
             const robotDebug = typeof window !== 'undefined' && ((window as Window & { __RESPONSIVE_DEBUG__?: boolean }).__RESPONSIVE_DEBUG__ || (window as Window & { __ROBOT_DEBUG__?: boolean }).__ROBOT_DEBUG__)
             if (robotDebug && !robotsInited) {
@@ -2771,7 +2766,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     headTransformOrigin = `50% ${originY}%`
                 }
                 headBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
-                headBottomPx += robotGroundNudgePx * diagonalProgress
                 headRotation = ROBOT_HEAD_ROLL_DEG * headFallProgress
             }
             if (robotHeadElement) {
@@ -2813,7 +2807,6 @@ export function createProjectsSectionScrollAnimation(params: ProjectsSectionScro
                     handTransformOrigin = `50% ${originY}%`
                 }
                 handBottomPx = bottomAbovePx + (bottomGroundPx - bottomAbovePx) * diagonalProgress
-                handBottomPx += robotGroundNudgePx * diagonalProgress
                 const handFallClamped = Math.min(1, handFallProgress)
                 handRotation = ROBOT_HAND_ROLL_DEG * Math.pow(handFallClamped, ROBOT_HAND_ROLL_ROTATION_EASE_POWER)
             }
